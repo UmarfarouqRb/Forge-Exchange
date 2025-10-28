@@ -41,12 +41,12 @@ export function Navigation() {
             <img 
               src={forgeLightLogo} 
               alt="Forge Logo" 
-              className="w-8 h-8 object-contain dark:hidden"
+              className="w-12 h-12 object-contain dark:hidden"
             />
             <img 
               src={forgeDarkLogo} 
               alt="Forge Logo" 
-              className="w-8 h-8 object-contain hidden dark:block"
+              className="w-12 h-12 object-contain hidden dark:block"
             />
             <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">
               Forge

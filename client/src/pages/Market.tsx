@@ -122,54 +122,52 @@ export default function Market() {
               ) : filteredPairs && filteredPairs.length > 0 ? (
                 filteredPairs.map((pair) => (
                   <Link key={pair.id} href={`/spot?pair=${pair.symbol}`}>
-                    <a>
-                      <div
-                        className="grid grid-cols-12 gap-4 p-4 items-center hover-elevate"
-                        data-testid={`row-market-${pair.symbol}`}
-                      >
-                        <div className="col-span-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            data-testid={`button-favorite-${pair.symbol}`}
-                          >
-                            <FiStar
-                              className={`w-4 h-4 ${pair.isFavorite ? 'fill-primary text-primary' : ''}`}
-                            />
-                          </Button>
-                        </div>
-                        <div className="col-span-2">
-                          <div className="font-medium text-foreground">{pair.symbol}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {pair.baseAsset}/{pair.quoteAsset}
-                          </div>
-                        </div>
-                        <div className="col-span-2 text-right">
-                          <div className="font-mono font-medium text-foreground" data-testid={`text-price-${pair.symbol}`}>
-                            ${parseFloat(pair.currentPrice).toLocaleString()}
-                          </div>
-                        </div>
-                        <div className="col-span-2 flex justify-end">
-                          <PriceChange value={parseFloat(pair.priceChange24h)} />
-                        </div>
-                        <div className="col-span-2 text-right">
-                          <div className="font-mono text-sm text-foreground">
-                            ${parseFloat(pair.volume24h).toLocaleString()}
-                          </div>
-                        </div>
-                        <div className="col-span-3">
-                          <MiniChart
-                            data={generateMockChartData()}
-                            isPositive={parseFloat(pair.priceChange24h) >= 0}
+                    <div
+                      className="grid grid-cols-12 gap-4 p-4 items-center hover-elevate cursor-pointer"
+                      data-testid={`row-market-${pair.symbol}`}
+                    >
+                      <div className="col-span-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          data-testid={`button-favorite-${pair.symbol}`}
+                        >
+                          <FiStar
+                            className={`w-4 h-4 ${pair.isFavorite ? 'fill-primary text-primary' : ''}`}
                           />
+                        </Button>
+                      </div>
+                      <div className="col-span-2">
+                        <div className="font-medium text-foreground">{pair.symbol}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {pair.baseAsset}/{pair.quoteAsset}
                         </div>
                       </div>
-                    </a>
+                      <div className="col-span-2 text-right">
+                        <div className="font-mono font-medium text-foreground" data-testid={`text-price-${pair.symbol}`}>
+                          ${parseFloat(pair.currentPrice).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="col-span-2 flex justify-end">
+                        <PriceChange value={parseFloat(pair.priceChange24h)} />
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <div className="font-mono text-sm text-foreground">
+                          ${parseFloat(pair.volume24h).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="col-span-3">
+                        <MiniChart
+                          data={generateMockChartData()}
+                          isPositive={parseFloat(pair.priceChange24h) >= 0}
+                        />
+                      </div>
+                    </div>
                   </Link>
                 ))
               ) : (
