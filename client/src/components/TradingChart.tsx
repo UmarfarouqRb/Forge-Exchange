@@ -78,10 +78,16 @@ export function TradingChart({ symbol }: TradingChartProps) {
 
     return () => {
       isMounted = false;
-      if (widgetRef.current && widgetRef.current.remove) {
-        widgetRef.current.remove();
+      if (widgetRef.current) {
+        try {
+          if (widgetRef.current.remove && typeof widgetRef.current.remove === 'function') {
+            widgetRef.current.remove();
+          }
+        } catch (error) {
+          console.warn('Error removing TradingView widget:', error);
+        }
+        widgetRef.current = null;
       }
-      widgetRef.current = null;
     };
   }, [symbol, chartId]);
 
