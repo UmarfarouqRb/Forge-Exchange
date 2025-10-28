@@ -7,10 +7,13 @@ import { TradingChart } from '@/components/TradingChart';
 import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
 import { useWallet } from '@/contexts/WalletContext';
+import { Button } from '@/components/ui/button';
+import { FiBarChart2, FiX } from 'react-icons/fi';
 import type { Order } from '@shared/schema';
 
 export default function Spot() {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT');
+  const [showChart, setShowChart] = useState(true);
   const { wallet } = useWallet();
 
   // Fetch order book data from backend
@@ -66,6 +69,15 @@ export default function Spot() {
               <div className="font-mono font-medium">2.4B USDT</div>
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowChart(!showChart)}
+            className="ml-2"
+            data-testid="button-toggle-chart-spot"
+          >
+            {showChart ? <FiX className="w-5 h-5" /> : <FiBarChart2 className="w-5 h-5" />}
+          </Button>
         </div>
       </div>
 
@@ -81,13 +93,15 @@ export default function Spot() {
         </div>
 
         {/* Chart - Center */}
-        <div className="col-span-6 h-full overflow-hidden flex flex-col gap-2">
-          <div className="flex-1 min-h-0">
-            <TradingChart symbol={selectedPair} />
-          </div>
+        <div className={showChart ? "col-span-6 h-full overflow-hidden flex flex-col gap-2" : "col-span-9 h-full overflow-hidden flex flex-col gap-2"}>
+          {showChart && (
+            <div className="flex-1 min-h-0">
+              <TradingChart symbol={selectedPair} />
+            </div>
+          )}
 
           {/* Order History / Open Orders */}
-          <div className="h-64 flex-shrink-0">
+          <div className={showChart ? "h-64 flex-shrink-0" : "flex-1"}>
             <Card className="h-full flex flex-col">
               <CardContent className="p-0 flex-1 overflow-hidden">
                 <Tabs defaultValue="open" className="h-full flex flex-col">
