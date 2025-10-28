@@ -2,6 +2,7 @@ import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { useWallet } from '@/contexts/WalletContext';
 import { formatAddress } from '@/lib/wallet';
+import { ChainSelector } from '@/components/ChainSelector';
 import {
   FiHome,
   FiTrendingUp,
@@ -74,8 +75,9 @@ export function Navigation() {
           </div>
         </div>
 
-        {/* Wallet Connection */}
-        <div className="flex items-center gap-4">
+        {/* Chain Selector and Wallet Connection */}
+        <div className="flex items-center gap-3">
+          <ChainSelector />
           {wallet.isConnected ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
