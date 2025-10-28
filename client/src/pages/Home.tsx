@@ -117,30 +117,26 @@ export default function Home() {
               No KYC • Low Fees • Lightning Fast Execution
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link href="/spot">
-                <a>
-                  <Button 
-                    variant="default" 
-                    size="lg" 
-                    className="w-full sm:w-auto text-base px-8"
-                    data-testid="button-start-trading"
-                  >
-                    Start Trading Now
-                    <FiArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                </a>
+              <Link href="/spot" asChild>
+                <Button 
+                  variant="default" 
+                  size="lg" 
+                  className="w-full sm:w-auto text-base px-8"
+                  data-testid="button-start-trading"
+                >
+                  Start Trading Now
+                  <FiArrowRight className="ml-2 w-5 h-5" />
+                </Button>
               </Link>
-              <Link href="/market">
-                <a>
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    className="w-full sm:w-auto text-base px-8"
-                    data-testid="button-view-markets"
-                  >
-                    Explore Markets
-                  </Button>
-                </a>
+              <Link href="/market" asChild>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="w-full sm:w-auto text-base px-8"
+                  data-testid="button-view-markets"
+                >
+                  Explore Markets
+                </Button>
               </Link>
             </div>
           </div>
@@ -239,13 +235,11 @@ export default function Home() {
                 Real-time cryptocurrency prices powered by TradingView
               </p>
             </div>
-            <Link href="/market">
-              <a>
-                <Button variant="ghost" size="sm" data-testid="link-view-all-markets">
-                  View All Markets
-                  <FiArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </a>
+            <Link href="/market" asChild>
+              <Button variant="ghost" size="sm" data-testid="link-view-all-markets">
+                View All Markets
+                <FiArrowRight className="ml-2 w-4 h-4" />
+              </Button>
             </Link>
           </div>
           
@@ -273,26 +267,24 @@ export default function Home() {
               <CardContent className="p-0">
                 <div className="divide-y divide-border">
                   {topGainers?.slice(0, 5).map((pair) => (
-                    <Link key={pair.id} href={`/spot?pair=${pair.symbol}`}>
-                      <a>
-                        <div
-                          className="flex items-center justify-between p-4 hover-elevate transition-colors"
-                          data-testid={`row-gainer-${pair.symbol}`}
-                        >
-                          <div className="flex-1">
-                            <div className="font-semibold text-foreground">{pair.symbol}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Vol: ${parseFloat(pair.volume24h).toLocaleString()}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-mono font-medium text-foreground">
-                              ${parseFloat(pair.currentPrice).toLocaleString()}
-                            </div>
-                            <PriceChange value={parseFloat(pair.priceChange24h)} />
+                    <Link key={pair.id} href={`/spot?pair=${pair.symbol}`} asChild>
+                      <div
+                        className="flex items-center justify-between p-4 hover-elevate transition-colors cursor-pointer"
+                        data-testid={`row-gainer-${pair.symbol}`}
+                      >
+                        <div className="flex-1">
+                          <div className="font-semibold text-foreground">{pair.symbol}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Vol: ${parseFloat(pair.volume24h).toLocaleString()}
                           </div>
                         </div>
-                      </a>
+                        <div className="text-right">
+                          <div className="font-mono font-medium text-foreground">
+                            ${parseFloat(pair.currentPrice).toLocaleString()}
+                          </div>
+                          <PriceChange value={parseFloat(pair.priceChange24h)} />
+                        </div>
+                      </div>
                     </Link>
                   ))}
                 </div>
@@ -310,26 +302,24 @@ export default function Home() {
               <CardContent className="p-0">
                 <div className="divide-y divide-border">
                   {topLosers?.slice(0, 5).map((pair) => (
-                    <Link key={pair.id} href={`/spot?pair=${pair.symbol}`}>
-                      <a>
-                        <div
-                          className="flex items-center justify-between p-4 hover-elevate transition-colors"
-                          data-testid={`row-loser-${pair.symbol}`}
-                        >
-                          <div className="flex-1">
-                            <div className="font-semibold text-foreground">{pair.symbol}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Vol: ${parseFloat(pair.volume24h).toLocaleString()}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-mono font-medium text-foreground">
-                              ${parseFloat(pair.currentPrice).toLocaleString()}
-                            </div>
-                            <PriceChange value={parseFloat(pair.priceChange24h)} />
+                    <Link key={pair.id} href={`/spot?pair=${pair.symbol}`} asChild>
+                      <div
+                        className="flex items-center justify-between p-4 hover-elevate transition-colors cursor-pointer"
+                        data-testid={`row-loser-${pair.symbol}`}
+                      >
+                        <div className="flex-1">
+                          <div className="font-semibold text-foreground">{pair.symbol}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Vol: ${parseFloat(pair.volume24h).toLocaleString()}
                           </div>
                         </div>
-                      </a>
+                        <div className="text-right">
+                          <div className="font-mono font-medium text-foreground">
+                            ${parseFloat(pair.currentPrice).toLocaleString()}
+                          </div>
+                          <PriceChange value={parseFloat(pair.priceChange24h)} />
+                        </div>
+                      </div>
                     </Link>
                   ))}
                 </div>
@@ -349,20 +339,16 @@ export default function Home() {
                 Connect your wallet and start trading on multiple chains with professional tools and real-time market data
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/spot">
-                  <a>
-                    <Button size="lg" className="w-full sm:w-auto px-8" data-testid="button-cta-spot">
-                      Trade Spot
-                      <FiArrowRight className="ml-2 w-5 h-5" />
-                    </Button>
-                  </a>
+                <Link href="/spot" asChild>
+                  <Button size="lg" className="w-full sm:w-auto px-8" data-testid="button-cta-spot">
+                    Trade Spot
+                    <FiArrowRight className="ml-2 w-5 h-5" />
+                  </Button>
                 </Link>
-                <Link href="/futures">
-                  <a>
-                    <Button size="lg" variant="outline" className="w-full sm:w-auto px-8" data-testid="button-cta-futures">
-                      Trade Futures
-                    </Button>
-                  </a>
+                <Link href="/futures" asChild>
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto px-8" data-testid="button-cta-futures">
+                    Trade Futures
+                  </Button>
                 </Link>
               </div>
             </CardContent>

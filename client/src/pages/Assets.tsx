@@ -137,14 +137,15 @@ export default function Assets() {
         {/* Assets Table */}
         <Card className="mb-6">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle>Your Assets</CardTitle>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setHideSmallBalances(!hideSmallBalances)}
                   data-testid="button-toggle-small-balances"
+                  className="w-full sm:w-auto justify-start sm:justify-center"
                 >
                   {hideSmallBalances ? (
                     <>
@@ -158,7 +159,7 @@ export default function Assets() {
                     </>
                   )}
                 </Button>
-                <div className="relative w-64">
+                <div className="relative w-full sm:w-64">
                   <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     placeholder="Search assets..."
@@ -172,7 +173,7 @@ export default function Assets() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="grid grid-cols-6 gap-4 p-4 border-b border-border text-xs font-medium text-muted-foreground">
+            <div className="hidden md:grid grid-cols-6 gap-4 p-4 border-b border-border text-xs font-medium text-muted-foreground">
               <div>Asset</div>
               <div className="text-right">Total</div>
               <div className="text-right">Available</div>
@@ -199,7 +200,7 @@ export default function Assets() {
                 </div>
               ) : assetsLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="grid grid-cols-6 gap-4 p-4 items-center">
+                  <div key={i} className="hidden md:grid grid-cols-6 gap-4 p-4 items-center">
                     <Skeleton className="h-5 w-20" />
                     <Skeleton className="h-5 w-24 ml-auto" />
                     <Skeleton className="h-5 w-24 ml-auto" />
@@ -210,52 +211,116 @@ export default function Assets() {
                 ))
               ) : filteredAssets && filteredAssets.length > 0 ? (
                 filteredAssets.map((asset) => (
-                  <div
-                    key={asset.id}
-                    className="grid grid-cols-6 gap-4 p-4 items-center hover-elevate"
-                    data-testid={`row-asset-${asset.asset}`}
-                  >
-                    <div>
-                      <div className="font-medium text-foreground">{asset.asset}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {asset.asset === 'BTC' ? 'Bitcoin' : asset.asset === 'ETH' ? 'Ethereum' : 'Tether'}
+                  <>
+                    {/* Desktop view */}
+                    <div
+                      key={`${asset.id}-desktop`}
+                      className="hidden md:grid grid-cols-6 gap-4 p-4 items-center hover-elevate"
+                      data-testid={`row-asset-${asset.asset}`}
+                    >
+                      <div>
+                        <div className="font-medium text-foreground">{asset.asset}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {asset.asset === 'BTC' ? 'Bitcoin' : asset.asset === 'ETH' ? 'Ethereum' : 'Tether'}
+                        </div>
+                      </div>
+                      <div className="text-right font-mono">{parseFloat(asset.total).toFixed(8)}</div>
+                      <div className="text-right font-mono">
+                        {parseFloat(asset.available).toFixed(8)}
+                      </div>
+                      <div className="text-right font-mono">
+                        {parseFloat(asset.inOrder).toFixed(8)}
+                      </div>
+                      <div className="text-right font-mono font-medium">
+                        ${parseFloat(asset.usdValue).toLocaleString()}
+                      </div>
+                      <div className="text-right flex gap-2 justify-end">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setDepositDialog({ open: true, asset: asset.asset })}
+                          data-testid={`button-deposit-${asset.asset}`}
+                        >
+                          <FiDownload className="w-3 h-3 mr-1" />
+                          Deposit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setWithdrawDialog({ 
+                            open: true, 
+                            asset: asset.asset,
+                            available: parseFloat(asset.available)
+                          })}
+                          data-testid={`button-withdraw-${asset.asset}`}
+                        >
+                          <FiUpload className="w-3 h-3 mr-1" />
+                          Withdraw
+                        </Button>
                       </div>
                     </div>
-                    <div className="text-right font-mono">{parseFloat(asset.total).toFixed(8)}</div>
-                    <div className="text-right font-mono">
-                      {parseFloat(asset.available).toFixed(8)}
+                    {/* Mobile view */}
+                    <div
+                      key={`${asset.id}-mobile`}
+                      className="md:hidden p-4 hover-elevate space-y-3"
+                      data-testid={`card-asset-${asset.asset}`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-semibold text-foreground text-lg">{asset.asset}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {asset.asset === 'BTC' ? 'Bitcoin' : asset.asset === 'ETH' ? 'Ethereum' : 'Tether'}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-mono font-semibold text-foreground">
+                            ${parseFloat(asset.usdValue).toLocaleString()}
+                          </div>
+                          <div className="text-xs text-muted-foreground">USD Value</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Total</div>
+                          <div className="font-mono">{parseFloat(asset.total).toFixed(6)}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Available</div>
+                          <div className="font-mono">{parseFloat(asset.available).toFixed(6)}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">In Order</div>
+                          <div className="font-mono">{parseFloat(asset.inOrder).toFixed(6)}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setDepositDialog({ open: true, asset: asset.asset })}
+                          data-testid={`button-deposit-mobile-${asset.asset}`}
+                        >
+                          <FiDownload className="w-3 h-3 mr-1" />
+                          Deposit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setWithdrawDialog({ 
+                            open: true, 
+                            asset: asset.asset,
+                            available: parseFloat(asset.available)
+                          })}
+                          data-testid={`button-withdraw-mobile-${asset.asset}`}
+                        >
+                          <FiUpload className="w-3 h-3 mr-1" />
+                          Withdraw
+                        </Button>
+                      </div>
                     </div>
-                    <div className="text-right font-mono">
-                      {parseFloat(asset.inOrder).toFixed(8)}
-                    </div>
-                    <div className="text-right font-mono font-medium">
-                      ${parseFloat(asset.usdValue).toLocaleString()}
-                    </div>
-                    <div className="text-right flex gap-2 justify-end">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setDepositDialog({ open: true, asset: asset.asset })}
-                        data-testid={`button-deposit-${asset.asset}`}
-                      >
-                        <FiDownload className="w-3 h-3 mr-1" />
-                        Deposit
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setWithdrawDialog({ 
-                          open: true, 
-                          asset: asset.asset,
-                          available: parseFloat(asset.available)
-                        })}
-                        data-testid={`button-withdraw-${asset.asset}`}
-                      >
-                        <FiUpload className="w-3 h-3 mr-1" />
-                        Withdraw
-                      </Button>
-                    </div>
-                  </div>
+                  </>
                 ))
               ) : (
                 <div className="p-12 text-center text-muted-foreground">No assets found</div>
@@ -270,7 +335,7 @@ export default function Assets() {
             <CardTitle>Transaction History</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="grid grid-cols-6 gap-4 p-4 border-b border-border text-xs font-medium text-muted-foreground">
+            <div className="hidden md:grid grid-cols-6 gap-4 p-4 border-b border-border text-xs font-medium text-muted-foreground">
               <div>Date</div>
               <div>Type</div>
               <div>Asset</div>
