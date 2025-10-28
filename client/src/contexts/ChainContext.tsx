@@ -52,7 +52,7 @@ export const SUPPORTED_CHAINS: Chain[] = [
   },
   {
     id: "sui",
-    name: "SUI",
+    name: "SUI (Coming Soon)",
     chainId: 101,
     rpcUrl: "https://fullnode.mainnet.sui.io",
     nativeCurrency: {
@@ -94,6 +94,10 @@ export function ChainProvider({ children }: { children: ReactNode }) {
     const chain = SUPPORTED_CHAINS.find(c => c.id === chainId);
     if (!chain) {
       throw new Error("Unsupported chain");
+    }
+
+    if (chain.id === 'sui') {
+      throw new Error("SUI network support coming soon. Please use an EVM-compatible chain.");
     }
 
     if (typeof window.ethereum !== 'undefined') {

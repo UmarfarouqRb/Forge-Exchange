@@ -9,15 +9,27 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 export function ChainSelector() {
-  const { selectedChain, switchChain } = useChain();
+  const { selectedChain, switchChain, setSelectedChain } = useChain();
   const { toast } = useToast();
 
   const handleChainChange = async (chainId: string) => {
+    const chain = SUPPORTED_CHAINS.find(c => c.id === chainId);
+    
+    if (chainId === 'sui') {
+      setSelectedChain(chain!);
+      toast({
+        title: "Coming Soon",
+        description: "SUI network support is coming soon. Currently only EVM-compatible chains are supported.",
+        variant: "default",
+      });
+      return;
+    }
+
     try {
       await switchChain(chainId);
       toast({
         title: "Chain Switched",
-        description: `Switched to ${SUPPORTED_CHAINS.find(c => c.id === chainId)?.name}`,
+        description: `Switched to ${chain?.name}`,
       });
     } catch (error: any) {
       toast({
