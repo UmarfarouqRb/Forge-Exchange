@@ -36,22 +36,20 @@ export function Navigation() {
       <div className="flex items-center justify-between h-16 px-6">
         {/* Logo */}
         <div className="flex items-center gap-8">
-          <Link href="/">
-            <a className="flex items-center gap-3 hover-elevate px-3 py-2 rounded-md" data-testid="link-home-logo">
-              <img 
-                src={forgeLightLogo} 
-                alt="Forge Logo" 
-                className="w-8 h-8 object-contain dark:hidden"
-              />
-              <img 
-                src={forgeDarkLogo} 
-                alt="Forge Logo" 
-                className="w-8 h-8 object-contain hidden dark:block"
-              />
-              <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">
-                Forge
-              </span>
-            </a>
+          <Link href="/" className="flex items-center gap-3 hover-elevate px-3 py-2 rounded-md" data-testid="link-home-logo">
+            <img 
+              src={forgeLightLogo} 
+              alt="Forge Logo" 
+              className="w-8 h-8 object-contain dark:hidden"
+            />
+            <img 
+              src={forgeDarkLogo} 
+              alt="Forge Logo" 
+              className="w-8 h-8 object-contain hidden dark:block"
+            />
+            <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">
+              Forge
+            </span>
           </Link>
 
           {/* Navigation Links */}
@@ -60,18 +58,16 @@ export function Navigation() {
               const Icon = item.icon;
               const isActive = location === item.path;
               return (
-                <Link key={item.path} href={item.path}>
-                  <a>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={isActive ? 'bg-accent text-accent-foreground' : ''}
-                      data-testid={`link-nav-${item.label.toLowerCase()}`}
-                    >
-                      <Icon className="w-4 h-4 mr-2" />
-                      {item.label}
-                    </Button>
-                  </a>
+                <Link key={item.path} href={item.path} asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={isActive ? 'bg-accent text-accent-foreground' : ''}
+                    data-testid={`link-nav-${item.label.toLowerCase()}`}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    {item.label}
+                  </Button>
                 </Link>
               );
             })}
@@ -120,18 +116,16 @@ export function Navigation() {
             const Icon = item.icon;
             const isActive = location === item.path;
             return (
-              <Link key={item.path} href={item.path}>
-                <a>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`flex-col h-auto py-2 ${isActive ? 'bg-accent text-accent-foreground' : ''}`}
-                    data-testid={`link-mobile-${item.label.toLowerCase()}`}
-                  >
-                    <Icon className="w-5 h-5 mb-1" />
-                    <span className="text-xs">{item.label}</span>
-                  </Button>
-                </a>
+              <Link key={item.path} href={item.path} asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`flex-col h-auto py-2 ${isActive ? 'bg-accent text-accent-foreground' : ''}`}
+                  data-testid={`link-mobile-${item.label.toLowerCase()}`}
+                >
+                  <Icon className="w-5 h-5 mb-1" />
+                  <span className="text-xs">{item.label}</span>
+                </Button>
               </Link>
             );
           })}
