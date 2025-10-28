@@ -1,6 +1,13 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { connectWallet, disconnectWallet, WalletState } from '@/lib/wallet';
+import { createContext, useContext, useEffect, ReactNode } from 'react';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useToast } from '@/hooks/use-toast';
+
+export type WalletState = {
+  address: string | null;
+  isConnected: boolean;
+  chainId: string | null;
+  balance: string | null;
+};
 
 type WalletContextType = {
   wallet: WalletState;
@@ -12,70 +19,41 @@ type WalletContextType = {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [wallet, setWallet] = useState<WalletState>({
-    address: null,
-    isConnected: false,
-    chainId: null,
-    balance: null,
-  });
-  const [isConnecting, setIsConnecting] = useState(false);
+  const { ready, authenticated, login, logout } = usePrivy();
+  const { wallets } = useWallets();
   const { toast } = useToast();
 
+  const wallet: WalletState = {
+    address: wallets[0]?.address || null,
+    isConnected: authenticated && wallets.length > 0,
+    chainId: wallets[0]?.chainId?.toString() || null,
+    balance: null,
+  };
+
   useEffect(() => {
-    // Check if already connected on mount
-    const checkConnection = async () => {
-      if (typeof window.ethereum !== 'undefined') {
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          if (accounts.length > 0) {
-            const walletState = await connectWallet();
-            setWallet(walletState);
-          }
-        } catch (error) {
-          console.error('Failed to check wallet connection:', error);
-        }
-      }
-    };
-    checkConnection();
-
-    // Listen for account changes
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', (accounts: string[]) => {
-        if (accounts.length === 0) {
-          setWallet(disconnectWallet());
-        } else {
-          checkConnection();
-        }
-      });
-
-      window.ethereum.on('chainChanged', () => {
-        checkConnection();
-      });
-    }
-  }, []);
-
-  const connect = async () => {
-    setIsConnecting(true);
-    try {
-      const walletState = await connectWallet();
-      setWallet(walletState);
+    if (authenticated && wallets.length > 0) {
+      const address = wallets[0].address;
       toast({
         title: 'Wallet Connected',
-        description: `Connected to ${walletState.address?.substring(0, 6)}...${walletState.address?.substring(walletState.address.length - 4)}`,
+        description: `Connected to ${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
       });
+    }
+  }, [authenticated, wallets]);
+
+  const connect = async () => {
+    try {
+      await login();
     } catch (error: any) {
       toast({
         title: 'Connection Failed',
         description: error.message || 'Failed to connect wallet',
         variant: 'destructive',
       });
-    } finally {
-      setIsConnecting(false);
     }
   };
 
   const disconnect = () => {
-    setWallet(disconnectWallet());
+    logout();
     toast({
       title: 'Wallet Disconnected',
       description: 'Your wallet has been disconnected',
@@ -83,7 +61,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <WalletContext.Provider value={{ wallet, connect, disconnect, isConnecting }}>
+    <WalletContext.Provider value={{ wallet, connect, disconnect, isConnecting: !ready }}>
       {children}
     </WalletContext.Provider>
   );

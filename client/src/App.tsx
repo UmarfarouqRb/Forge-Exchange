@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PrivyProvider } from "@privy-io/react-auth";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { ChainProvider } from "@/contexts/ChainContext";
 import { Navigation } from "@/components/Navigation";
@@ -27,18 +28,34 @@ function Router() {
 }
 
 function App() {
+  const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
+  
+  if (!privyAppId) {
+    console.error('VITE_PRIVY_APP_ID is not set. Please add it to your environment variables.');
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ChainProvider>
-          <WalletProvider>
-            <div className="min-h-screen bg-background">
-              <Navigation />
-              <Router />
-            </div>
-            <Toaster />
-          </WalletProvider>
-        </ChainProvider>
+        <PrivyProvider
+          appId={privyAppId || ""}
+          config={{
+            appearance: {
+              theme: 'dark',
+              accentColor: '#ff6b00',
+            },
+          }}
+        >
+          <ChainProvider>
+            <WalletProvider>
+              <div className="min-h-screen bg-background">
+                <Navigation />
+                <Router />
+              </div>
+              <Toaster />
+            </WalletProvider>
+          </ChainProvider>
+        </PrivyProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
