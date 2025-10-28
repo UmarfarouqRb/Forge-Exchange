@@ -1,6 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 const timeframes = ['1m', '5m', '15m', '1h', '4h', '1D', '1W'];
 
@@ -8,22 +8,82 @@ interface TradingChartProps {
   symbol: string;
 }
 
-export function TradingChart({ symbol }: TradingChartProps) {
-  // Generate mock data
-  const generateChartData = () => {
-    const data = [];
-    let basePrice = 45000;
-    for (let i = 0; i < 100; i++) {
-      basePrice += (Math.random() - 0.5) * 500;
-      data.push({
-        time: new Date(Date.now() - (100 - i) * 60000).toLocaleTimeString(),
-        price: basePrice,
-      });
-    }
-    return data;
-  };
+let chartIdCounter = 0;
+let tradingViewScriptPromise: Promise<void> | null = null;
 
-  const chartData = generateChartData();
+function loadTradingViewScript(): Promise<void> {
+  if (tradingViewScriptPromise) {
+    return tradingViewScriptPromise;
+  }
+
+  if ((window as any).TradingView) {
+    return Promise.resolve();
+  }
+
+  tradingViewScriptPromise = new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/tv.js';
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load TradingView script'));
+    document.head.appendChild(script);
+  });
+
+  return tradingViewScriptPromise;
+}
+
+export function TradingChart({ symbol }: TradingChartProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [chartId] = useState(() => `tradingview_chart_${++chartIdCounter}`);
+  const widgetRef = useRef<any>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const initializeChart = async () => {
+      try {
+        await loadTradingViewScript();
+        
+        if (!isMounted || !containerRef.current || !(window as any).TradingView) {
+          return;
+        }
+
+        // Clean up previous widget if it exists
+        if (widgetRef.current) {
+          widgetRef.current = null;
+        }
+
+        widgetRef.current = new (window as any).TradingView.widget({
+          autosize: true,
+          symbol: `BINANCE:${symbol}`,
+          interval: '60',
+          timezone: 'Etc/UTC',
+          theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+          style: '1',
+          locale: 'en',
+          enable_publishing: false,
+          hide_top_toolbar: false,
+          hide_legend: false,
+          save_image: false,
+          container_id: chartId,
+          toolbar_bg: 'hsl(var(--card))',
+          allow_symbol_change: true,
+        });
+      } catch (error) {
+        console.error('Failed to initialize TradingView chart:', error);
+      }
+    };
+
+    initializeChart();
+
+    return () => {
+      isMounted = false;
+      if (widgetRef.current && widgetRef.current.remove) {
+        widgetRef.current.remove();
+      }
+      widgetRef.current = null;
+    };
+  }, [symbol, chartId]);
 
   return (
     <Card className="h-full flex flex-col">
@@ -34,7 +94,7 @@ export function TradingChart({ symbol }: TradingChartProps) {
             <span className="text-lg font-bold font-mono" data-testid="text-chart-symbol">
               {symbol}
             </span>
-            <span className="text-sm text-muted-foreground">TradingView Chart</span>
+            <span className="text-sm text-muted-foreground">Live Chart</span>
           </div>
           <div className="flex gap-1">
             {timeframes.map((tf) => (
@@ -51,49 +111,9 @@ export function TradingChart({ symbol }: TradingChartProps) {
           </div>
         </div>
 
-        {/* Chart */}
-        <div className="flex-1 min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="time"
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-                interval={20}
-              />
-              <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={10}
-                tickLine={false}
-                axisLine={false}
-                domain={['dataMin - 500', 'dataMax + 500']}
-                tickFormatter={(value) => `$${value.toLocaleString()}`}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '6px',
-                }}
-                labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
-              />
-              <Area
-                type="monotone"
-                dataKey="price"
-                stroke="hsl(var(--chart-2))"
-                strokeWidth={2}
-                fill="url(#colorPrice)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        {/* TradingView Chart */}
+        <div className="flex-1 min-h-0" ref={containerRef}>
+          <div id={chartId} className="h-full w-full" />
         </div>
       </CardContent>
     </Card>

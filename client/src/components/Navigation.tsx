@@ -16,6 +16,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import forgeLightLogo from '@assets/1761614392004_1761638995733.jpg';
+import forgeDarkLogo from '@assets/1761614576584_1761638995664.jpg';
 
 const navItems = [
   { path: '/', label: 'Home', icon: FiHome },
@@ -35,11 +37,20 @@ export function Navigation() {
         {/* Logo */}
         <div className="flex items-center gap-8">
           <Link href="/">
-            <a className="flex items-center gap-2 hover-elevate px-3 py-2 rounded-md" data-testid="link-home-logo">
-              <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">D</span>
-              </div>
-              <span className="text-xl font-bold text-foreground">DexExchange</span>
+            <a className="flex items-center gap-3 hover-elevate px-3 py-2 rounded-md" data-testid="link-home-logo">
+              <img 
+                src={forgeLightLogo} 
+                alt="Forge Logo" 
+                className="w-8 h-8 object-contain dark:hidden"
+              />
+              <img 
+                src={forgeDarkLogo} 
+                alt="Forge Logo" 
+                className="w-8 h-8 object-contain hidden dark:block"
+              />
+              <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">
+                Forge
+              </span>
             </a>
           </Link>
 

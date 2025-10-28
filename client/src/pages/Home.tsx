@@ -28,22 +28,33 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="border-b border-border bg-card">
-        <div className="container mx-auto px-6 py-12">
+      <div className="border-b border-border bg-gradient-to-br from-background via-background to-card">
+        <div className="container mx-auto px-6 py-16">
           <div className="max-w-4xl">
-            <h1 className="text-4xl font-bold mb-4 text-foreground">
-              Trade Crypto Without KYC
-            </h1>
-            <p className="text-lg text-muted-foreground mb-8">
-              Connect your wallet and start trading instantly on our decentralized exchange.
-              Professional trading tools, no registration required.
+            <div className="flex items-center gap-3 mb-6">
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">
+                Forge Exchange
+              </h1>
+            </div>
+            <p className="text-xl text-muted-foreground mb-4">
+              Professional cryptocurrency trading platform with live market data
             </p>
-            <div className="flex gap-4">
+            <p className="text-base text-muted-foreground mb-8">
+              Start trading with a minimum deposit of $10. Low withdrawal fees, instant execution, and real-time market prices.
+            </p>
+            <div className="flex gap-4 flex-wrap">
               <Link href="/spot">
                 <a>
                   <Button variant="default" size="lg" data-testid="button-start-trading">
-                    Start Trading
+                    Start Spot Trading
                     <FiArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </a>
+              </Link>
+              <Link href="/futures">
+                <a>
+                  <Button size="lg" className="bg-accent text-accent-foreground" data-testid="button-start-futures">
+                    Trade Futures
                   </Button>
                 </a>
               </Link>

@@ -161,7 +161,12 @@ export class MemStorage implements IStorage {
 
     mockPairs.forEach((pair) => {
       const id = randomUUID();
-      const tradingPair: TradingPair = { ...pair, id };
+      const tradingPair: TradingPair = { 
+        ...pair, 
+        id,
+        category: pair.category || "spot",
+        isFavorite: pair.isFavorite ?? false,
+      };
       this.tradingPairs.set(id, tradingPair);
     });
 
@@ -204,7 +209,11 @@ export class MemStorage implements IStorage {
 
     mockAssets.forEach((asset) => {
       const id = randomUUID();
-      const assetData: Asset = { ...asset, id };
+      const assetData: Asset = { 
+        ...asset, 
+        id,
+        inOrder: asset.inOrder || "0",
+      };
       this.assets.set(id, assetData);
     });
 
@@ -241,6 +250,8 @@ export class MemStorage implements IStorage {
       const transaction: Transaction = {
         ...tx,
         id,
+        status: tx.status || "completed",
+        txHash: tx.txHash || null,
         timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
       };
       this.transactions.set(id, transaction);
@@ -286,7 +297,12 @@ export class MemStorage implements IStorage {
 
   async createTradingPair(insertPair: InsertTradingPair): Promise<TradingPair> {
     const id = randomUUID();
-    const pair: TradingPair = { ...insertPair, id };
+    const pair: TradingPair = { 
+      ...insertPair, 
+      id,
+      category: insertPair.category || "spot",
+      isFavorite: insertPair.isFavorite ?? false,
+    };
     this.tradingPairs.set(id, pair);
     return pair;
   }
@@ -326,6 +342,10 @@ export class MemStorage implements IStorage {
     const order: Order = {
       ...insertOrder,
       id,
+      status: insertOrder.status || "pending",
+      category: insertOrder.category || "spot",
+      price: insertOrder.price || null,
+      leverage: insertOrder.leverage || null,
       createdAt: new Date(),
     };
     this.orders.set(id, order);
@@ -365,13 +385,21 @@ export class MemStorage implements IStorage {
     );
 
     if (existing) {
-      const updated: Asset = { ...existing, ...insertAsset };
+      const updated: Asset = { 
+        ...existing, 
+        ...insertAsset,
+        inOrder: insertAsset.inOrder || existing.inOrder || "0",
+      };
       this.assets.set(existing.id, updated);
       return updated;
     }
 
     const id = randomUUID();
-    const asset: Asset = { ...insertAsset, id };
+    const asset: Asset = { 
+      ...insertAsset, 
+      id,
+      inOrder: insertAsset.inOrder || "0",
+    };
     this.assets.set(id, asset);
     return asset;
   }
@@ -392,6 +420,8 @@ export class MemStorage implements IStorage {
     const transaction: Transaction = {
       ...insertTransaction,
       id,
+      status: insertTransaction.status || "completed",
+      txHash: insertTransaction.txHash || null,
       timestamp: new Date(),
     };
     this.transactions.set(id, transaction);

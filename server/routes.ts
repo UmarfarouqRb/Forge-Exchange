@@ -183,6 +183,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Deposit Route
+  app.post("/api/transactions/deposit", async (req, res) => {
+    try {
+      const { walletAddress, asset, amount } = req.body;
+      const MINIMUM_DEPOSIT = 10;
+
+      if (!walletAddress || !asset || !amount) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const depositAmount = parseFloat(amount);
+      if (isNaN(depositAmount) || depositAmount <= 0) {
+        return res.status(400).json({ error: "Invalid deposit amount" });
+      }
+
+      if (depositAmount < MINIMUM_DEPOSIT) {
+        return res.status(400).json({ 
+          error: `Minimum deposit is $${MINIMUM_DEPOSIT}` 
+        });
+      }
+
+      // Create transaction
+      const transaction = await storage.createTransaction({
+        walletAddress,
+        type: "deposit",
+        asset,
+        amount: depositAmount.toString(),
+        status: "completed",
+        txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+      });
+
+      // Update asset balance
+      const existingAsset = await storage.getAssetByWalletAndSymbol(walletAddress, asset);
+      if (existingAsset) {
+        const newTotal = parseFloat(existingAsset.total) + depositAmount;
+        const newAvailable = parseFloat(existingAsset.available) + depositAmount;
+        await storage.createOrUpdateAsset({
+          walletAddress,
+          asset,
+          total: newTotal.toString(),
+          available: newAvailable.toString(),
+          inOrder: existingAsset.inOrder,
+          usdValue: newTotal.toString(),
+        });
+      } else {
+        await storage.createOrUpdateAsset({
+          walletAddress,
+          asset,
+          total: depositAmount.toString(),
+          available: depositAmount.toString(),
+          inOrder: "0",
+          usdValue: depositAmount.toString(),
+        });
+      }
+
+      res.status(201).json(transaction);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Withdrawal Route
+  app.post("/api/transactions/withdraw", async (req, res) => {
+    try {
+      const { walletAddress, asset, amount } = req.body;
+      const MINIMUM_WITHDRAWAL = 10;
+      const WITHDRAWAL_FEE = 0.1;
+
+      if (!walletAddress || !asset || !amount) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const withdrawAmount = parseFloat(amount);
+      if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
+        return res.status(400).json({ error: "Invalid withdrawal amount" });
+      }
+
+      if (withdrawAmount < MINIMUM_WITHDRAWAL) {
+        return res.status(400).json({ 
+          error: `Minimum withdrawal is $${MINIMUM_WITHDRAWAL}` 
+        });
+      }
+
+      // Check balance
+      const existingAsset = await storage.getAssetByWalletAndSymbol(walletAddress, asset);
+      if (!existingAsset) {
+        return res.status(400).json({ error: "Asset not found" });
+      }
+
+      const totalCost = withdrawAmount + WITHDRAWAL_FEE;
+      const available = parseFloat(existingAsset.available);
+      
+      if (available < totalCost) {
+        return res.status(400).json({ 
+          error: `Insufficient balance. Need $${totalCost.toFixed(2)} (including $${WITHDRAWAL_FEE} fee)` 
+        });
+      }
+
+      // Create transaction
+      const transaction = await storage.createTransaction({
+        walletAddress,
+        type: "withdrawal",
+        asset,
+        amount: withdrawAmount.toString(),
+        status: "completed",
+        txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+      });
+
+      // Update asset balance (deduct withdrawal + fee)
+      const newTotal = parseFloat(existingAsset.total) - totalCost;
+      const newAvailable = parseFloat(existingAsset.available) - totalCost;
+      
+      await storage.createOrUpdateAsset({
+        walletAddress,
+        asset,
+        total: Math.max(0, newTotal).toString(),
+        available: Math.max(0, newAvailable).toString(),
+        inOrder: existingAsset.inOrder,
+        usdValue: Math.max(0, newTotal).toString(),
+      });
+
+      res.status(201).json(transaction);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -8,12 +8,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useWallet } from '@/contexts/WalletContext';
 import { FiSearch, FiDownload, FiUpload, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useState } from 'react';
+import { DepositDialog } from '@/components/DepositDialog';
+import { WithdrawDialog } from '@/components/WithdrawDialog';
 import type { Asset, Transaction } from '@shared/schema';
 
 export default function Assets() {
   const { wallet } = useWallet();
   const [hideSmallBalances, setHideSmallBalances] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [depositDialog, setDepositDialog] = useState<{ open: boolean; asset: string }>({ open: false, asset: '' });
+  const [withdrawDialog, setWithdrawDialog] = useState<{ open: boolean; asset: string; available: number }>({ 
+    open: false, 
+    asset: '', 
+    available: 0 
+  });
 
   const { data: assets, isLoading: assetsLoading, error: assetsError } = useQuery<Asset[]>({
     queryKey: ['/api/assets', wallet.address],
@@ -224,11 +232,25 @@ export default function Assets() {
                       ${parseFloat(asset.usdValue).toLocaleString()}
                     </div>
                     <div className="text-right flex gap-2 justify-end">
-                      <Button variant="outline" size="sm" data-testid={`button-deposit-${asset.asset}`}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setDepositDialog({ open: true, asset: asset.asset })}
+                        data-testid={`button-deposit-${asset.asset}`}
+                      >
                         <FiDownload className="w-3 h-3 mr-1" />
                         Deposit
                       </Button>
-                      <Button variant="outline" size="sm" data-testid={`button-withdraw-${asset.asset}`}>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setWithdrawDialog({ 
+                          open: true, 
+                          asset: asset.asset,
+                          available: parseFloat(asset.available)
+                        })}
+                        data-testid={`button-withdraw-${asset.asset}`}
+                      >
                         <FiUpload className="w-3 h-3 mr-1" />
                         Withdraw
                       </Button>
@@ -338,6 +360,27 @@ export default function Assets() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Deposit Dialog */}
+      {wallet.address && (
+        <DepositDialog
+          open={depositDialog.open}
+          onOpenChange={(open) => setDepositDialog({ ...depositDialog, open })}
+          asset={depositDialog.asset}
+          walletAddress={wallet.address}
+        />
+      )}
+
+      {/* Withdraw Dialog */}
+      {wallet.address && (
+        <WithdrawDialog
+          open={withdrawDialog.open}
+          onOpenChange={(open) => setWithdrawDialog({ ...withdrawDialog, open })}
+          asset={withdrawDialog.asset}
+          walletAddress={wallet.address}
+          available={withdrawDialog.available}
+        />
+      )}
     </div>
   );
 }
