@@ -28,8 +28,27 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: path.resolve(import.meta.dirname, "dist/client"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('@privy-io') || id.includes('@reown') || id.includes('@walletconnect')) {
+              return 'wallet-vendors';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'ui-vendors';
+            }
+            if (id.includes('ethers') || id.includes('viem')) {
+              return 'web3-vendors';
+            }
+            return 'vendors';
+          }
+        },
+      },
+    },
   },
   server: {
     fs: {
