@@ -90,39 +90,40 @@ export default function Futures() {
       </div>
 
       {/* Trading Interface */}
-      <div className="flex-1 grid grid-cols-12 gap-2 p-2 overflow-hidden">
-        {/* Order Book - Left */}
-        <div className="col-span-3 h-full overflow-hidden">
-          <OrderBook 
-            bids={orderBookData?.bids || []} 
-            asks={orderBookData?.asks || []}
-            isLoading={!orderBookData}
-          />
-        </div>
+      <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
+        {/* Chart - Top (only when visible, full width) */}
+        {showChart && (
+          <div className="w-full h-64 md:h-80 flex-shrink-0">
+            <TradingChart symbol={selectedPair} />
+          </div>
+        )}
 
-        {/* Chart - Center */}
-        <div className={showChart ? "col-span-6 h-full overflow-hidden flex flex-col gap-2" : "col-span-9 h-full overflow-hidden flex flex-col gap-2"}>
-          {showChart && (
-            <div className="flex-1 min-h-0">
-              <TradingChart symbol={selectedPair} />
-            </div>
-          )}
+        {/* Main Trading Grid */}
+        <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-2 overflow-hidden">
+          {/* Order Book - Left on desktop, stacked on mobile */}
+          <div className="h-64 md:h-full md:col-span-3 overflow-hidden">
+            <OrderBook 
+              bids={orderBookData?.bids || []} 
+              asks={orderBookData?.asks || []}
+              isLoading={!orderBookData}
+            />
+          </div>
 
-          {/* Positions and Orders */}
-          <div className={showChart ? "h-64 flex-shrink-0" : "flex-1"}>
+          {/* Positions and Orders - Center */}
+          <div className="flex-1 md:col-span-6 overflow-hidden">
             <Card className="h-full flex flex-col">
               <CardContent className="p-0 flex-1 overflow-hidden">
                 <Tabs defaultValue="positions" className="h-full flex flex-col">
-                  <TabsList className="w-full justify-start rounded-none border-b border-border px-4">
-                    <TabsTrigger value="positions" data-testid="tab-positions">Positions</TabsTrigger>
-                    <TabsTrigger value="open" data-testid="tab-open-orders-futures">Open Orders</TabsTrigger>
-                    <TabsTrigger value="history" data-testid="tab-order-history-futures">Order History</TabsTrigger>
+                  <TabsList className="w-full justify-start rounded-none border-b border-border px-2 md:px-4">
+                    <TabsTrigger value="positions" className="text-xs md:text-sm" data-testid="tab-positions">Positions</TabsTrigger>
+                    <TabsTrigger value="open" className="text-xs md:text-sm" data-testid="tab-open-orders-futures">Open Orders</TabsTrigger>
+                    <TabsTrigger value="history" className="text-xs md:text-sm" data-testid="tab-order-history-futures">Order History</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="positions" className="flex-1 overflow-auto p-4 mt-0">
+                  <TabsContent value="positions" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
                     {wallet.isConnected ? (
                       <div className="overflow-auto">
-                        <div className="grid grid-cols-8 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
+                        <div className="hidden md:grid grid-cols-8 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
                           <div>Symbol</div>
                           <div>Size</div>
                           <div className="text-right">Entry Price</div>
@@ -136,7 +137,7 @@ export default function Futures() {
                           positions.map((position) => (
                             <div
                               key={position.id}
-                              className="grid grid-cols-8 gap-2 text-xs py-2 border-b border-border hover-elevate"
+                              className="grid grid-cols-1 md:grid-cols-8 gap-1 md:gap-2 text-xs py-2 border-b border-border hover-elevate"
                               data-testid={`row-position-${position.id}`}
                             >
                               <div>
@@ -149,17 +150,17 @@ export default function Futures() {
                                 </Badge>
                               </div>
                               <div className="font-mono">{position.amount}</div>
-                              <div className="text-right font-mono">${position.price}</div>
-                              <div className="text-right font-mono">$45,234.56</div>
-                              <div className="text-right font-mono text-destructive">
+                              <div className="md:text-right font-mono">${position.price}</div>
+                              <div className="md:text-right font-mono">$45,234.56</div>
+                              <div className="md:text-right font-mono text-destructive">
                                 $40,123.45
                               </div>
-                              <div className="text-right font-mono">${position.total}</div>
-                              <div className="text-right">
+                              <div className="md:text-right font-mono">${position.total}</div>
+                              <div className="md:text-right">
                                 <span className="text-chart-2 font-medium">+$234.56</span>
                                 <div className="text-xs text-chart-2">+5.2%</div>
                               </div>
-                              <div className="text-right">
+                              <div className="md:text-right">
                                 <button className="text-destructive hover:underline text-xs">
                                   Close
                                 </button>
@@ -179,11 +180,11 @@ export default function Futures() {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="open" className="flex-1 overflow-auto p-4 mt-0">
+                  <TabsContent value="open" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
                     <div className="text-center py-8 text-muted-foreground">No open orders</div>
                   </TabsContent>
 
-                  <TabsContent value="history" className="flex-1 overflow-auto p-4 mt-0">
+                  <TabsContent value="history" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
                     <div className="text-center py-8 text-muted-foreground">
                       No order history
                     </div>
@@ -192,11 +193,11 @@ export default function Futures() {
               </CardContent>
             </Card>
           </div>
-        </div>
 
-        {/* Trade Panel - Right */}
-        <div className="col-span-3 h-full overflow-hidden">
-          <TradePanel symbol={selectedPair} currentPrice="45234.56" type="futures" />
+          {/* Trade Panel - Right on desktop, stacked on mobile */}
+          <div className="h-auto md:h-full md:col-span-3 overflow-hidden">
+            <TradePanel symbol={selectedPair} currentPrice="45234.56" type="futures" />
+          </div>
         </div>
       </div>
     </div>

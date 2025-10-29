@@ -82,38 +82,40 @@ export default function Spot() {
       </div>
 
       {/* Trading Interface */}
-      <div className="flex-1 grid grid-cols-12 gap-2 p-2 overflow-hidden">
-        {/* Order Book - Left */}
-        <div className="col-span-3 h-full overflow-hidden">
-          <OrderBook 
-            bids={orderBookData?.bids || []} 
-            asks={orderBookData?.asks || []}
-            isLoading={!orderBookData}
-          />
-        </div>
-
-        {/* Chart - Center (only when visible) */}
+      <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
+        {/* Chart - Top (only when visible, full width) */}
         {showChart && (
-          <div className="col-span-6 h-full overflow-hidden flex flex-col gap-2">
-            <div className="flex-1 min-h-0">
-              <TradingChart symbol={selectedPair} />
-            </div>
+          <div className="w-full h-64 md:h-80 flex-shrink-0">
+            <TradingChart symbol={selectedPair} />
+          </div>
+        )}
 
-            {/* Order History / Open Orders */}
-            <div className="h-64 flex-shrink-0">
+        {/* Main Trading Grid */}
+        <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-2 overflow-hidden">
+          {/* Order Book - Left on desktop, stacked on mobile */}
+          <div className="h-64 md:h-full md:col-span-3 overflow-hidden">
+            <OrderBook 
+              bids={orderBookData?.bids || []} 
+              asks={orderBookData?.asks || []}
+              isLoading={!orderBookData}
+            />
+          </div>
+
+          {/* Order History / Open Orders - Center */}
+          <div className="flex-1 md:col-span-6 overflow-hidden">
             <Card className="h-full flex flex-col">
               <CardContent className="p-0 flex-1 overflow-hidden">
                 <Tabs defaultValue="open" className="h-full flex flex-col">
-                  <TabsList className="w-full justify-start rounded-none border-b border-border px-4">
-                    <TabsTrigger value="open" data-testid="tab-open-orders">Open Orders</TabsTrigger>
-                    <TabsTrigger value="history" data-testid="tab-order-history">Order History</TabsTrigger>
-                    <TabsTrigger value="trades" data-testid="tab-trade-history">Trade History</TabsTrigger>
+                  <TabsList className="w-full justify-start rounded-none border-b border-border px-2 md:px-4">
+                    <TabsTrigger value="open" className="text-xs md:text-sm" data-testid="tab-open-orders">Open Orders</TabsTrigger>
+                    <TabsTrigger value="history" className="text-xs md:text-sm" data-testid="tab-order-history">Order History</TabsTrigger>
+                    <TabsTrigger value="trades" className="text-xs md:text-sm" data-testid="tab-trade-history">Trade History</TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="open" className="flex-1 overflow-auto p-4 mt-0">
+                  <TabsContent value="open" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
                     {wallet.isConnected ? (
                       <div className="overflow-auto">
-                        <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
+                        <div className="hidden md:grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
                           <div>Date</div>
                           <div>Pair</div>
                           <div>Type</div>
@@ -128,13 +130,14 @@ export default function Spot() {
                             .map((order) => (
                               <div
                                 key={order.id}
-                                className="grid grid-cols-7 gap-2 text-xs py-2 border-b border-border hover-elevate"
+                                className="grid grid-cols-1 md:grid-cols-7 gap-1 md:gap-2 text-xs py-2 border-b border-border hover-elevate"
                                 data-testid={`row-open-order-${order.id}`}
                               >
-                                <div className="text-muted-foreground">
+                                <div className="md:hidden font-medium">{order.symbol}</div>
+                                <div className="text-muted-foreground md:table-cell">
                                   {new Date(order.createdAt).toLocaleTimeString()}
                                 </div>
-                                <div>{order.symbol}</div>
+                                <div className="hidden md:block">{order.symbol}</div>
                                 <div
                                   className={
                                     order.side === 'buy' ? 'text-chart-2' : 'text-destructive'
@@ -142,10 +145,10 @@ export default function Spot() {
                                 >
                                   {order.side.toUpperCase()}
                                 </div>
-                                <div className="text-right font-mono">${order.price}</div>
-                                <div className="text-right font-mono">{order.amount}</div>
-                                <div className="text-right font-mono">${order.total}</div>
-                                <div className="text-right">
+                                <div className="md:text-right font-mono">${order.price}</div>
+                                <div className="md:text-right font-mono">{order.amount}</div>
+                                <div className="md:text-right font-mono">${order.total}</div>
+                                <div className="md:text-right">
                                   <button className="text-destructive hover:underline text-xs">
                                     Cancel
                                   </button>
@@ -165,107 +168,24 @@ export default function Spot() {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="history" className="flex-1 overflow-auto p-4 mt-0">
+                  <TabsContent value="history" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
                     <div className="text-center py-8 text-muted-foreground">
                       No order history
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="trades" className="flex-1 overflow-auto p-4 mt-0">
+                  <TabsContent value="trades" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
                     <div className="text-center py-8 text-muted-foreground">No trade history</div>
                   </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
           </div>
+
+          {/* Trade Panel - Right on desktop, stacked on mobile */}
+          <div className="h-auto md:h-full md:col-span-3 overflow-hidden">
+            <TradePanel symbol={selectedPair} currentPrice="45234.56" type="spot" />
           </div>
-        )}
-
-        {/* Order History / Open Orders (when chart is hidden) */}
-        {!showChart && (
-          <div className="col-span-9 h-full overflow-hidden">
-            <Card className="h-full flex flex-col">
-              <CardContent className="p-0 flex-1 overflow-hidden">
-                <Tabs defaultValue="open" className="h-full flex flex-col">
-                  <TabsList className="w-full justify-start rounded-none border-b border-border px-4">
-                    <TabsTrigger value="open" data-testid="tab-open-orders">Open Orders</TabsTrigger>
-                    <TabsTrigger value="history" data-testid="tab-order-history">Order History</TabsTrigger>
-                    <TabsTrigger value="trades" data-testid="tab-trade-history">Trade History</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="open" className="flex-1 overflow-auto p-4 mt-0">
-                    {wallet.isConnected ? (
-                      <div className="overflow-auto">
-                        <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
-                          <div>Date</div>
-                          <div>Pair</div>
-                          <div>Type</div>
-                          <div className="text-right">Price</div>
-                          <div className="text-right">Amount</div>
-                          <div className="text-right">Total</div>
-                          <div className="text-right">Action</div>
-                        </div>
-                        {orders && orders.length > 0 ? (
-                          orders
-                            .filter((order) => order.status === 'pending')
-                            .map((order) => (
-                              <div
-                                key={order.id}
-                                className="grid grid-cols-7 gap-2 text-xs py-2 border-b border-border hover-elevate"
-                                data-testid={`row-open-order-${order.id}`}
-                              >
-                                <div className="text-muted-foreground">
-                                  {new Date(order.createdAt).toLocaleTimeString()}
-                                </div>
-                                <div>{order.symbol}</div>
-                                <div
-                                  className={
-                                    order.side === 'buy' ? 'text-chart-2' : 'text-destructive'
-                                  }
-                                >
-                                  {order.side.toUpperCase()}
-                                </div>
-                                <div className="text-right font-mono">${order.price}</div>
-                                <div className="text-right font-mono">{order.amount}</div>
-                                <div className="text-right font-mono">${order.total}</div>
-                                <div className="text-right">
-                                  <button className="text-destructive hover:underline text-xs">
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            ))
-                        ) : (
-                          <div className="text-center py-8 text-muted-foreground">
-                            No open orders
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-muted-foreground">
-                        Connect wallet to view orders
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="history" className="flex-1 overflow-auto p-4 mt-0">
-                    <div className="text-center py-8 text-muted-foreground">
-                      No order history
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="trades" className="flex-1 overflow-auto p-4 mt-0">
-                    <div className="text-center py-8 text-muted-foreground">No trade history</div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Trade Panel - Right */}
-        <div className="col-span-3 h-full overflow-hidden">
-          <TradePanel symbol={selectedPair} currentPrice="45234.56" type="spot" />
         </div>
       </div>
     </div>
