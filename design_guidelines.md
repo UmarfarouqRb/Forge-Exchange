@@ -1,4 +1,4 @@
-# Design Guidelines: Binance-Style Crypto Exchange
+# Design Guidelines: CEX-Style Decentralized Crypto Exchange
 
 ## Design Approach
 **Reference-Based: Binance/CEX Exchange**
