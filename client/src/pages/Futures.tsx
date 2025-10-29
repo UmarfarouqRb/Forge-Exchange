@@ -14,7 +14,7 @@ import type { Order } from '@shared/schema';
 
 export default function Futures() {
   const [selectedPair, setSelectedPair] = useState('BTCUSDT');
-  const [showChart, setShowChart] = useState(true);
+  const [showChart, setShowChart] = useState(false);
   const { wallet } = useWallet();
 
   // Fetch order book data from backend
