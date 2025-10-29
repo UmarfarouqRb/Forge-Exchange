@@ -41,7 +41,7 @@ export function Navigation() {
             <img 
               src={forgeLightLogo} 
               alt="Forge Logo" 
-              className="w-14 h-14 md:w-16 md:h-16 object-contain dark:hidden"
+              className="w-24 h-24 md:w-16 md:h-16 object-contain dark:hidden"
             />
             <img 
               src={forgeDarkLogo} 
