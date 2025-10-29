@@ -41,42 +41,44 @@ export default function Spot() {
   return (
     <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
       {/* Price Header */}
-      <div className="border-b border-border bg-card px-6 py-3 flex-shrink-0">
-        <div className="flex items-center gap-6">
-          <div>
-            <h1 className="text-2xl font-bold font-mono" data-testid="text-spot-symbol">
-              {selectedPair}
-            </h1>
-            <div className="text-xs text-muted-foreground">Spot Trading</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold font-mono text-chart-2" data-testid="text-spot-price">
-              $45,234.56
-            </div>
-            <PriceChange value={2.34} />
-          </div>
-          <div className="ml-auto grid grid-cols-3 gap-6 text-sm">
+      <div className="border-b border-border bg-card px-3 md:px-6 py-2 md:py-3 flex-shrink-0">
+        <div className="flex items-center justify-between gap-2 md:gap-6">
+          <div className="flex items-center gap-2 md:gap-6 flex-1 overflow-hidden">
             <div>
-              <div className="text-muted-foreground text-xs">24h High</div>
-              <div className="font-mono font-medium">$46,500.00</div>
+              <h1 className="text-lg md:text-2xl font-bold font-mono" data-testid="text-spot-symbol">
+                {selectedPair}
+              </h1>
+              <div className="text-xs text-muted-foreground">Spot Trading</div>
             </div>
             <div>
-              <div className="text-muted-foreground text-xs">24h Low</div>
-              <div className="font-mono font-medium">$44,100.00</div>
+              <div className="text-base md:text-lg font-bold font-mono text-chart-2" data-testid="text-spot-price">
+                $45,234.56
+              </div>
+              <PriceChange value={2.34} />
             </div>
-            <div>
-              <div className="text-muted-foreground text-xs">24h Volume</div>
-              <div className="font-mono font-medium">2.4B USDT</div>
+            <div className="hidden lg:grid grid-cols-3 gap-6 text-sm ml-auto">
+              <div>
+                <div className="text-muted-foreground text-xs">24h High</div>
+                <div className="font-mono font-medium">$46,500.00</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-xs">24h Low</div>
+                <div className="font-mono font-medium">$44,100.00</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-xs">24h Volume</div>
+                <div className="font-mono font-medium">2.4B USDT</div>
+              </div>
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowChart(!showChart)}
-            className="ml-2"
+            className="flex-shrink-0"
             data-testid="button-toggle-chart-spot"
           >
-            {showChart ? <FiX className="w-5 h-5" /> : <FiBarChart2 className="w-5 h-5" />}
+            {showChart ? <FiX className="w-4 h-4 md:w-5 md:h-5" /> : <FiBarChart2 className="w-4 h-4 md:w-5 md:h-5" />}
           </Button>
         </div>
       </div>

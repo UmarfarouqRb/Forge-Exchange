@@ -42,49 +42,51 @@ export default function Futures() {
   return (
     <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
       {/* Price Header */}
-      <div className="border-b border-border bg-card px-6 py-3 flex-shrink-0">
-        <div className="flex items-center gap-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold font-mono" data-testid="text-futures-symbol">
-                {selectedPair}
-              </h1>
-              <Badge variant="default" className="text-xs">Perpetual</Badge>
-            </div>
-            <div className="text-xs text-muted-foreground">Futures Trading</div>
-          </div>
-          <div>
-            <div className="text-lg font-bold font-mono text-chart-2" data-testid="text-futures-price">
-              $45,234.56
-            </div>
-            <PriceChange value={2.34} />
-          </div>
-          <div className="ml-auto grid grid-cols-4 gap-6 text-sm">
+      <div className="border-b border-border bg-card px-3 md:px-6 py-2 md:py-3 flex-shrink-0">
+        <div className="flex items-center justify-between gap-2 md:gap-6">
+          <div className="flex items-center gap-2 md:gap-6 flex-1 overflow-hidden">
             <div>
-              <div className="text-muted-foreground text-xs">Mark Price</div>
-              <div className="font-mono font-medium">$45,230.00</div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg md:text-2xl font-bold font-mono" data-testid="text-futures-symbol">
+                  {selectedPair}
+                </h1>
+                <Badge variant="default" className="text-xs">Perpetual</Badge>
+              </div>
+              <div className="text-xs text-muted-foreground">Futures Trading</div>
             </div>
             <div>
-              <div className="text-muted-foreground text-xs">Funding Rate</div>
-              <div className="font-mono font-medium text-chart-2">+0.0100%</div>
+              <div className="text-base md:text-lg font-bold font-mono text-chart-2" data-testid="text-futures-price">
+                $45,234.56
+              </div>
+              <PriceChange value={2.34} />
             </div>
-            <div>
-              <div className="text-muted-foreground text-xs">24h Volume</div>
-              <div className="font-mono font-medium">3.2B USDT</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground text-xs">Open Interest</div>
-              <div className="font-mono font-medium">1.8B USDT</div>
+            <div className="hidden xl:grid grid-cols-4 gap-6 text-sm ml-auto">
+              <div>
+                <div className="text-muted-foreground text-xs">Mark Price</div>
+                <div className="font-mono font-medium">$45,230.00</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-xs">Funding Rate</div>
+                <div className="font-mono font-medium text-chart-2">+0.0100%</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-xs">24h Volume</div>
+                <div className="font-mono font-medium">3.2B USDT</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-xs">Open Interest</div>
+                <div className="font-mono font-medium">1.8B USDT</div>
+              </div>
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowChart(!showChart)}
-            className="ml-2"
+            className="flex-shrink-0"
             data-testid="button-toggle-chart-futures"
           >
-            {showChart ? <FiX className="w-5 h-5" /> : <FiBarChart2 className="w-5 h-5" />}
+            {showChart ? <FiX className="w-4 h-4 md:w-5 md:h-5" /> : <FiBarChart2 className="w-4 h-4 md:w-5 md:h-5" />}
           </Button>
         </div>
       </div>

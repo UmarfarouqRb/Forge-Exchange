@@ -46,6 +46,6 @@ export const disconnectWallet = (): WalletState => {
   };
 };
 
-export const formatAddress = (address: string): string => {
-  return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+export const formatAddress = (address: string, chars: number = 4): string => {
+  return `${address.substring(0, chars + 2)}...${address.substring(address.length - chars)}`;
 };

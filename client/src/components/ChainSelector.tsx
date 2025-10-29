@@ -43,17 +43,18 @@ export function ChainSelector() {
   return (
     <Select value={selectedChain.id} onValueChange={handleChainChange}>
       <SelectTrigger 
-        className="w-[140px] bg-card border-border hover:bg-accent" 
+        className="w-[100px] sm:w-[120px] md:w-[140px] bg-card border-border hover:bg-accent text-xs sm:text-sm" 
         data-testid="select-chain"
       >
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="max-w-[200px]">
         {SUPPORTED_CHAINS.map((chain) => (
           <SelectItem 
             key={chain.id} 
             value={chain.id}
             data-testid={`select-chain-${chain.id}`}
+            className="text-xs sm:text-sm"
           >
             {chain.name}
           </SelectItem>

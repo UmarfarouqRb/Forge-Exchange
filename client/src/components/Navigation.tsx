@@ -36,19 +36,19 @@ export function Navigation() {
     <nav className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="flex items-center justify-between h-16 px-6">
         {/* Logo */}
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-3 hover-elevate px-3 py-2 rounded-md" data-testid="link-home-logo">
+        <div className="flex items-center gap-2 md:gap-8">
+          <Link href="/" className="flex items-center gap-2 md:gap-3 hover-elevate px-2 md:px-3 py-2 rounded-md" data-testid="link-home-logo">
             <img 
               src={forgeLightLogo} 
               alt="Forge Logo" 
-              className="w-12 h-12 object-contain dark:hidden"
+              className="w-14 h-14 md:w-16 md:h-16 object-contain dark:hidden"
             />
             <img 
               src={forgeDarkLogo} 
               alt="Forge Logo" 
-              className="w-12 h-12 object-contain hidden dark:block"
+              className="w-14 h-14 md:w-16 md:h-16 object-contain hidden dark:block"
             />
-            <span className="text-2xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">
+            <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">
               Forge
             </span>
           </Link>
@@ -76,13 +76,14 @@ export function Navigation() {
         </div>
 
         {/* Chain Selector and Wallet Connection */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <ChainSelector />
           {wallet.isConnected ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="default" data-testid="button-wallet-connected">
-                  <span className="font-mono">{formatAddress(wallet.address!)}</span>
+                <Button variant="default" size="sm" className="text-xs md:text-sm" data-testid="button-wallet-connected">
+                  <span className="font-mono hidden sm:inline">{formatAddress(wallet.address!)}</span>
+                  <span className="font-mono sm:hidden">{formatAddress(wallet.address!, 3)}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -101,11 +102,13 @@ export function Navigation() {
           ) : (
             <Button
               variant="default"
+              size="sm"
               onClick={connect}
               disabled={isConnecting}
+              className="text-xs md:text-sm px-2 md:px-4"
               data-testid="button-wallet-connect"
             >
-              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+              {isConnecting ? 'Connecting...' : 'Connect'}
             </Button>
           )}
         </div>
