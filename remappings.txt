@@ -1,0 +1,7 @@
+forge-std/=lib/forge-std/src/
+@openzeppelin/=lib/openzeppelin-contracts/
+@openzeppelin-contracts/=lib/openzeppelin-contracts/contracts/
+v3-periphery/=lib/v3-periphery/
+v2-periphery/=lib/v2-periphery/
+aave-v3-core/=lib/aave-v3-core/
+pancake-v3-core/=lib/pancake-v3-core/
