@@ -25,7 +25,7 @@ contract SpotRouter is Ownable, ReentrancyGuard {
         address indexed tokenOut,
         uint256 amountIn,
         uint256 amountOut,
-        bytes32 usedAdapter
+        string usedAdapter
     );
 
     /// @param _multisig The address for Ownable pattern (e.g., a Gnosis Safe).
@@ -81,7 +81,7 @@ contract SpotRouter is Ownable, ReentrancyGuard {
         IERC20(tokenIn).safeIncreaseAllowance(address(aggregator), amountAfterFee);
 
         // 5. Execute the swap via the aggregator.
-        (uint256 amountOut, bytes32 usedAdapter) = aggregator.swapBest(
+        (uint256 amountOut, string memory usedAdapter) = aggregator.swapBest(
             tokenIn,
             tokenOut,
             amountAfterFee,

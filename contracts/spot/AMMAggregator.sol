@@ -8,18 +8,18 @@ import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "./interfaces/IAdapter.sol";
 
 contract AMMAggregator is Ownable {
-    event AdapterRegistered(bytes32 indexed id, address adapter);
-    event AdapterUnregistered(bytes32 indexed id);
-    event BestQuote(address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 bestOut, bytes32 adapterId);
+    event AdapterRegistered(string id, address adapter);
+    event AdapterUnregistered(string id);
+    event BestQuote(address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 bestOut, string adapterId);
 
-    mapping(bytes32 => address) public adapters; // id -> adapter contract
-    bytes32[] public adapterList;
+    mapping(string => address) public adapters; // id -> adapter contract
+    string[] public adapterList;
 
     constructor(address initialOwner) Ownable(initialOwner) {}
 
     /* ========== ADMIN ========== */
 
-    function registerAdapter(bytes32 id, address adapter) external onlyOwner {
+    function registerAdapter(string memory id, address adapter) external onlyOwner {
         require(adapter != address(0), "AMMAgg: zero adapter");
         require(adapters[id] == address(0), "AMMAgg: id exists");
         adapters[id] = adapter;
@@ -27,13 +27,13 @@ contract AMMAggregator is Ownable {
         emit AdapterRegistered(id, adapter);
     }
 
-    function unregisterAdapter(bytes32 id) external onlyOwner {
+    function unregisterAdapter(string memory id) external onlyOwner {
         address a = adapters[id];
         require(a != address(0), "AMMAgg: not exist");
         adapters[id] = address(0);
         // remove from adapterList (cheap linear search ok: admin operation)
         for (uint256 i = 0; i < adapterList.length; i++) {
-            if (adapterList[i] == id) {
+            if (keccak256(abi.encodePacked(adapterList[i])) == keccak256(abi.encodePacked(id))) {
                 adapterList[i] = adapterList[adapterList.length - 1];
                 adapterList.pop();
                 break;
@@ -42,7 +42,7 @@ contract AMMAggregator is Ownable {
         emit AdapterUnregistered(id);
     }
 
-    function getAdapters() external view returns (bytes32[] memory) {
+    function getAdapters() external view returns (string[] memory) {
         return adapterList;
     }
 
@@ -50,11 +50,11 @@ contract AMMAggregator is Ownable {
 
     /// @notice Query adapters for the best amountOut given amountIn
     /// @dev Iterates registered adapters and calls quote. Some adapters may return 0.
-    function bestQuote(address tokenIn, address tokenOut, uint256 amountIn) public returns (uint256 bestOut, bytes32 bestAdapterId) {
+    function bestQuote(address tokenIn, address tokenOut, uint256 amountIn) public returns (uint256 bestOut, string memory bestAdapterId) {
         uint256 best = 0;
-        bytes32 bestId = bytes32(0);
+        string memory bestId = "";
         for (uint256 i = 0; i < adapterList.length; i++) {
-            bytes32 id = adapterList[i];
+            string memory id = adapterList[i];
             address adapter = adapters[id];
             if (adapter == address(0)) continue;
             uint256 out;
@@ -74,7 +74,7 @@ contract AMMAggregator is Ownable {
 
     /// @notice Execute swap via a specific adapter id. Returns amountOut.
     /// @dev Caller must ensure token transfers/approvals as per adapter expectations.
-    function swapViaAdapter(bytes32 adapterId, address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, bytes calldata data) external returns (uint256 amountOut) {
+    function swapViaAdapter(string memory adapterId, address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, bytes calldata data) external returns (uint256 amountOut) {
         address adapter = adapters[adapterId];
         require(adapter != address(0), "AMMAgg: adapter not found");
         // Forward call to adapter
@@ -83,9 +83,9 @@ contract AMMAggregator is Ownable {
     }
 
     /// @notice Convenience: pick best adapter and execute
-    function swapBest(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, bytes calldata data) external returns (uint256 amountOut, bytes32 usedAdapter) {
-        (uint256 bestOut, bytes32 bestId) = bestQuote(tokenIn, tokenOut, amountIn);
-        require(bestId != bytes32(0), "AMMAgg: no route");
+    function swapBest(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, bytes calldata data) external returns (uint256 amountOut, string memory usedAdapter) {
+        (uint256 bestOut, string memory bestId) = bestQuote(tokenIn, tokenOut, amountIn);
+        require(bytes(bestId).length > 0, "AMMAgg: no route");
         // Emit a hint for off-chain logging
         emit BestQuote(tokenIn, tokenOut, amountIn, bestOut, bestId);
         usedAdapter = bestId;

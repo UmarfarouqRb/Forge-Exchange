@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // DUTs (Contracts Under Test)
@@ -54,13 +54,9 @@ contract SpotIntegrationTest is Test {
         uniV3Adapter = new UniswapV3Adapter(UNI_V3_QUOTER, UNI_V3_ROUTER);
         pancakeV3Adapter = new PancakeV3Adapter(PANCAKE_V3_QUOTER, PANCAKE_V3_ROUTER);
 
-        aggregator.registerAdapter(bytes32('SushiV2'), address(sushiV2Adapter));
-        aggregator.registerAdapter(bytes32('UniswapV3'), address(uniV3Adapter));
-        aggregator.registerAdapter(bytes32('PancakeV3'), address(pancakeV3Adapter));
-
-        // --- Configure V3 Adapters ---
-        uniV3Adapter.setFee(WETH, USDBC, 500);
-        pancakeV3Adapter.setFee(WETH, USDBC, 500);
+        aggregator.registerAdapter("SushiV2", address(sushiV2Adapter));
+        aggregator.registerAdapter("UniswapV3", address(uniV3Adapter));
+        aggregator.registerAdapter("PancakeV3", address(pancakeV3Adapter));
 
         // --- Authorize Router in Vault ---
         vault.setRouterAllowed(address(router), true);
