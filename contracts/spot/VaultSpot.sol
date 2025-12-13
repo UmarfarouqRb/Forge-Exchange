@@ -80,8 +80,8 @@ contract VaultSpot is Ownable, ReentrancyGuard, Pausable {
     /// @notice Move fee to treasury (only router can call). Router should compute fee amounts via FeeController
     function transferFeeToTreasury(address token, uint256 amount) external onlyRouter {
         require(treasury != address(0), "Vault: no treasury");
-        // vault's own balance is sum(all user balances) but fees are protocol-owned tokens held on vault
-        IERC20(token).safeTransfer(treasury, amount);
+        // The router (msg.sender) has approved this contract to spend the fee amount.
+        IERC20(token).safeTransferFrom(msg.sender, treasury, amount);
     }
 
     // ========== ADMIN ==========

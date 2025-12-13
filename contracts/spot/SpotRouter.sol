@@ -74,7 +74,6 @@ contract SpotRouter is Ownable, ReentrancyGuard {
         if (protocolAmount > 0) {
             IERC20(tokenIn).safeIncreaseAllowance(address(vault), protocolAmount);
             vault.transferFeeToTreasury(tokenIn, protocolAmount);
-            IERC20(tokenIn).safeDecreaseAllowance(address(vault), protocolAmount);
         }
 
         // 4. Approve the aggregator to spend the remaining tokens.
@@ -89,13 +88,14 @@ contract SpotRouter is Ownable, ReentrancyGuard {
             data
         );
 
-        IERC20(tokenIn).safeDecreaseAllowance(address(aggregator), amountAfterFee);
-
         // 6. Credit the user's vault balance with the output token.
-        // The aggregator will have sent the output tokens to this router contract.
-        IERC20(tokenOut).safeIncreaseAllowance(address(vault), amountOut);
-        vault.credit(msg.sender, tokenOut, amountOut);
-        IERC20(tokenOut).safeDecreaseAllowance(address(vault), amountOut);
+        if (amountOut > 0) {
+            // The aggregator sends output tokens to this router contract.
+            // Transfer them to the vault for custody.
+            IERC20(tokenOut).safeTransfer(address(vault), amountOut);
+            // Update the user's internal balance record in the vault.
+            vault.credit(msg.sender, tokenOut, amountOut);
+        }
 
         emit Swap(msg.sender, tokenIn, tokenOut, amountIn, amountOut, usedAdapter);
     }

@@ -1,94 +1,75 @@
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-/// @notice Aggregator that routes swaps across multiple adapters (UniswapV2/UniV3/PancakeV3/Aerodrome)
-/// @dev Adapters implement IAdapter and are registered by admin. The aggregator does NOT pull tokens itself;
-///      SpotRouter should handle token transfer to aggregator or adapters as appropriate (or adapters should pull).
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
-import "./interfaces/IAdapter.sol";
+import {IAdapter} from "./interfaces/IAdapter.sol";
+import {Ownable} from "@openzeppelin-contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin-contracts/token/ERC20/IERC20.sol";
 
 contract AMMAggregator is Ownable {
-    event AdapterRegistered(string id, address adapter);
-    event AdapterUnregistered(string id);
+    event AdapterAdded(string indexed adapterId, address indexed adapterAddress);
+    event AdapterRemoved(string indexed adapterId);
     event BestQuote(address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 bestOut, string adapterId);
 
-    mapping(string => address) public adapters; // id -> adapter contract
-    string[] public adapterList;
+    mapping(string => IAdapter) public adapters;
+    string[] public adapterIds;
 
     constructor(address initialOwner) Ownable(initialOwner) {}
 
-    /* ========== ADMIN ========== */
-
-    function registerAdapter(string memory id, address adapter) external onlyOwner {
-        require(adapter != address(0), "AMMAgg: zero adapter");
-        require(adapters[id] == address(0), "AMMAgg: id exists");
-        adapters[id] = adapter;
-        adapterList.push(id);
-        emit AdapterRegistered(id, adapter);
+    function addAdapter(string calldata adapterId, address adapterAddress) external onlyOwner {
+        require(adapterAddress != address(0), "Invalid address");
+        adapters[adapterId] = IAdapter(adapterAddress);
+        adapterIds.push(adapterId);
+        emit AdapterAdded(adapterId, adapterAddress);
     }
 
-    function unregisterAdapter(string memory id) external onlyOwner {
-        address a = adapters[id];
-        require(a != address(0), "AMMAgg: not exist");
-        adapters[id] = address(0);
-        // remove from adapterList (cheap linear search ok: admin operation)
-        for (uint256 i = 0; i < adapterList.length; i++) {
-            if (keccak256(abi.encodePacked(adapterList[i])) == keccak256(abi.encodePacked(id))) {
-                adapterList[i] = adapterList[adapterList.length - 1];
-                adapterList.pop();
+    function removeAdapter(string calldata adapterId) external onlyOwner {
+        require(address(adapters[adapterId]) != address(0), "Adapter not found");
+        delete adapters[adapterId];
+        for (uint i = 0; i < adapterIds.length; i++) {
+            if (keccak256(abi.encodePacked(adapterIds[i])) == keccak256(abi.encodePacked(adapterId))) {
+                adapterIds[i] = adapterIds[adapterIds.length - 1];
+                adapterIds.pop();
                 break;
             }
         }
-        emit AdapterUnregistered(id);
+        emit AdapterRemoved(adapterId);
     }
 
-    function getAdapters() external view returns (string[] memory) {
-        return adapterList;
-    }
-
-    /* ========== QUOTE / ROUTING ========== */
-
-    /// @notice Query adapters for the best amountOut given amountIn
-    /// @dev Iterates registered adapters and calls quote. Some adapters may return 0.
-    function bestQuote(address tokenIn, address tokenOut, uint256 amountIn) public returns (uint256 bestOut, string memory bestAdapterId) {
-        uint256 best = 0;
-        string memory bestId = "";
-        for (uint256 i = 0; i < adapterList.length; i++) {
-            string memory id = adapterList[i];
-            address adapter = adapters[id];
-            if (adapter == address(0)) continue;
-            uint256 out;
-            // try/catch to avoid revert propagation from non-compatible adapters
-            try IAdapter(adapter).quote(tokenIn, tokenOut, amountIn) returns (uint256 amtOut) {
-                out = amtOut;
-            } catch {
-                out = 0;
-            }
-            if (out > best) {
-                best = out;
-                bestId = id;
-            }
+    function bestQuote(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn
+    ) public returns (uint256 bestOut, string memory bestAdapterId) {
+        for (uint i = 0; i < adapterIds.length; i++) {
+            try adapters[adapterIds[i]].quote(tokenIn, tokenOut, amountIn) returns (uint256 amountOut) {
+                if (amountOut > bestOut) {
+                    bestOut = amountOut;
+                    bestAdapterId = adapterIds[i];
+                }
+            } catch {}
         }
-        return (best, bestId);
+        emit BestQuote(tokenIn, tokenOut, amountIn, bestOut, bestAdapterId);
     }
 
-    /// @notice Execute swap via a specific adapter id. Returns amountOut.
-    /// @dev Caller must ensure token transfers/approvals as per adapter expectations.
-    function swapViaAdapter(string memory adapterId, address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, bytes calldata data) external returns (uint256 amountOut) {
-        address adapter = adapters[adapterId];
-        require(adapter != address(0), "AMMAgg: adapter not found");
-        // Forward call to adapter
-        amountOut = IAdapter(adapter).swap(tokenIn, tokenOut, amountIn, minAmountOut, data);
-        return amountOut;
-    }
+    function swapBest(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        bytes calldata data
+    ) external returns (uint256 amountOut, string memory usedAdapter) {
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
 
-    /// @notice Convenience: pick best adapter and execute
-    function swapBest(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, bytes calldata data) external returns (uint256 amountOut, string memory usedAdapter) {
-        (uint256 bestOut, string memory bestId) = bestQuote(tokenIn, tokenOut, amountIn);
+        (, string memory bestId) = bestQuote(tokenIn, tokenOut, amountIn);
         require(bytes(bestId).length > 0, "AMMAgg: no route");
-        // Emit a hint for off-chain logging
-        emit BestQuote(tokenIn, tokenOut, amountIn, bestOut, bestId);
         usedAdapter = bestId;
-        amountOut = IAdapter(adapters[bestId]).swap(tokenIn, tokenOut, amountIn, minAmountOut, data);
+
+        if (IERC20(tokenIn).allowance(address(this), address(adapters[bestId])) > 0) {
+            IERC20(tokenIn).approve(address(adapters[bestId]), 0);
+        }
+        IERC20(tokenIn).approve(address(adapters[bestId]), amountIn);
+        
+        amountOut = adapters[bestId].swap(tokenIn, tokenOut, amountIn, minAmountOut, data);
     }
 }
