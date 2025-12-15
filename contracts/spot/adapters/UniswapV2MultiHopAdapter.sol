@@ -15,6 +15,10 @@ contract UniswapV2MultiHopAdapter is IAdapter {
         router = IUniswapV2Router02(_router);
     }
 
+    function getRouter() external view override returns (address) {
+        return address(router);
+    }
+
     function quote(address tokenIn, address tokenOut, uint256 amountIn) external view override returns (uint256 amountOut) {
         address[] memory path = new address[](3);
         path[0] = tokenIn;
@@ -36,9 +40,6 @@ contract UniswapV2MultiHopAdapter is IAdapter {
         uint256 minAmountOut,
         bytes calldata /*data*/
     ) external override returns (uint256 amountOut) {
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-        IERC20(tokenIn).safeIncreaseAllowance(address(router), amountIn);
-
         address[] memory path = new address[](3);
         path[0] = tokenIn;
         path[1] = 0xd988097FB8612CC35EEc14542143924fb94d7c4d; // axlUSDC on Base
@@ -51,8 +52,6 @@ contract UniswapV2MultiHopAdapter is IAdapter {
             msg.sender,
             block.timestamp
         );
-
-        IERC20(tokenIn).safeDecreaseAllowance(address(router), amountIn);
 
         return amounts[amounts.length - 1];
     }

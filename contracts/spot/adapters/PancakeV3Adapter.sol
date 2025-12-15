@@ -1,85 +1,83 @@
-
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-import {IQuoterV2} from "pancake-v3-periphery/contracts/interfaces/IQuoterV2.sol";
-import {ISwapRouter} from "pancake-v3-periphery/contracts/interfaces/ISwapRouter.sol";
-import {IERC20} from "@openzeppelin-contracts/token/ERC20/IERC20.sol";
+pragma solidity ^0.8.20;
 
 import {IAdapter} from "../interfaces/IAdapter.sol";
+import {IPancakeV3Factory} from "@pancakeswap/v3-core/contracts/interfaces/IPancakeV3Factory.sol";
+import {IPancakeV3Pool} from "@pancakeswap/v3-core/contracts/interfaces/IPancakeV3Pool.sol";
+import {IPancakeV3SwapCallback} from "@pancakeswap/v3-core/contracts/interfaces/callback/IPancakeV3SwapCallback.sol";
+import {IQuoterV2} from "pancake-v3-periphery/contracts/interfaces/IQuoterV2.sol";
+import {ISwapRouter} from "pancake-v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import {SafeERC20} from "@openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin-contracts/token/ERC20/IERC20.sol";
 
-contract PancakeV3Adapter is IAdapter {
+contract PancakeV3Adapter is IAdapter, IPancakeV3SwapCallback {
+    using SafeERC20 for IERC20;
 
-    ISwapRouter internal constant ROUTER = ISwapRouter(0x1b81D678ffb9C0263b24A97847620C99d213eB14);
-    IQuoterV2 internal constant QUOTER = IQuoterV2(0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997);
-    uint24[] internal feeTiers; // 100, 500, 2500, 10000
+    IPancakeV3Factory public constant FACTORY = IPancakeV3Factory(0x0BFbCF9fa4f9C56B0F40a671Ad40E0805A091865);
+    ISwapRouter public constant ROUTER = ISwapRouter(0x1b81D678ffb9C0263b24A97847620C99d213eB14);
+    IQuoterV2 public constant QUOTER = IQuoterV2(0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997);
 
-    constructor() {
-        feeTiers = [100, 500, 2500, 10000];
+    uint24[4] public feeTiers = [100, 500, 2500, 10000];
+
+    struct SwapCallbackData {
+        address tokenIn;
+        address tokenOut;
+        address payer;
     }
 
-    function quote(address tokenIn, address tokenOut, uint256 amountIn) external override returns (uint256 bestAmountOut) {
-        for (uint256 i = 0; i < feeTiers.length; i++) {
-            try QUOTER.quoteExactInputSingle(IQuoterV2.QuoteExactInputSingleParams({
-                tokenIn: tokenIn,
-                tokenOut: tokenOut,
-                amountIn: amountIn,
-                fee: feeTiers[i],
-                sqrtPriceLimitX96: 0
-            })) returns (uint256 amountOutQuote, uint160, uint32, uint256) {
-                if (amountOutQuote > bestAmountOut) {
-                    bestAmountOut = amountOutQuote;
-                }
-            } catch {}
+    function getRouter() external pure override returns (address) {
+        return address(ROUTER);
+    }
+
+    function quote(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn
+    ) external override returns (uint256 amountOut) {
+        bytes memory path;
+        for (uint i = 0; i < feeTiers.length; i++) {
+            uint24 fee = feeTiers[i];
+            address pool = FACTORY.getPool(tokenIn, tokenOut, fee);
+            if (pool != address(0)) {
+                path = abi.encodePacked(tokenIn, fee, tokenOut);
+                break;
+            }
         }
+        require(path.length > 0, "No pool found");
+
+        (uint256 quoteAmountOut, , , ) = QUOTER.quoteExactInput(path, amountIn);
+        return quoteAmountOut;
     }
 
     function swap(
         address tokenIn,
-        address tokenOut,
+        address,
         uint256 amountIn,
-        uint256 minAmountOut,
-        bytes calldata
+        bytes calldata data
     ) external override returns (uint256 amountOut) {
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
-        
-        if (IERC20(tokenIn).allowance(address(this), address(ROUTER)) > 0) {
-            IERC20(tokenIn).approve(address(ROUTER), 0);
-        }
+        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(tokenIn).approve(address(ROUTER), amountIn);
-
-        (uint24 bestFee, ) = _findBestFee(tokenIn, tokenOut, amountIn);
-
-        amountOut = ROUTER.exactInputSingle(ISwapRouter.ExactInputSingleParams({
-            tokenIn: tokenIn,
-            tokenOut: tokenOut,
-            fee: bestFee,
-            recipient: msg.sender,
-            deadline: block.timestamp,
-            amountIn: amountIn,
-            amountOutMinimum: minAmountOut,
-            sqrtPriceLimitX96: 0
-        }));
-
-        if (amountOut < minAmountOut) {
-            revert("Amount out too low");
-        }
+        return ROUTER.exactInput(
+            ISwapRouter.ExactInputParams({
+                path: data,
+                recipient: msg.sender,
+                deadline: block.timestamp,
+                amountIn: amountIn,
+                amountOutMinimum: 0
+            })
+        );
     }
 
-    function _findBestFee(address tokenIn, address tokenOut, uint256 amountIn) internal returns (uint24 bestFee, uint256 bestAmountOut) {
-        for (uint256 i = 0; i < feeTiers.length; i++) {
-            try QUOTER.quoteExactInputSingle(IQuoterV2.QuoteExactInputSingleParams({
-                tokenIn: tokenIn,
-                tokenOut: tokenOut,
-                amountIn: amountIn,
-                fee: feeTiers[i],
-                sqrtPriceLimitX96: 0
-            })) returns (uint256 amountOutQuote, uint160, uint32, uint256) {
-                if (amountOutQuote > bestAmountOut) {
-                    bestAmountOut = amountOutQuote;
-                    bestFee = feeTiers[i];
-                }
-            } catch {}
+    function pancakeV3SwapCallback(
+        int256 amount0Delta,
+        int256 amount1Delta,
+        bytes calldata data
+    ) external {
+        SwapCallbackData memory callbackData = abi.decode(data, (SwapCallbackData));
+        if (amount0Delta > 0) {
+            IERC20(callbackData.tokenIn).safeTransferFrom(callbackData.payer, msg.sender, uint256(amount0Delta));
+        } else if (amount1Delta > 0) {
+            IERC20(callbackData.tokenOut).safeTransferFrom(callbackData.payer, msg.sender, uint256(amount1Delta));
         }
     }
 }

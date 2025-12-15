@@ -7,3 +7,4 @@ aave-v3-core/=lib/aave-v3-core/
 pancake-v3-core/=lib/pancake-v3-contracts/projects/v3-core/
 pancake-v3-periphery/=lib/pancake-v3-contracts/projects/v3-periphery/
 @pancakeswap/v3-core/=lib/pancake-v3-contracts/projects/v3-core/
+aerodrome/=lib/Aerodrome/
