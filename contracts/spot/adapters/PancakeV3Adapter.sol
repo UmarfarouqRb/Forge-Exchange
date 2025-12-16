@@ -34,32 +34,53 @@ contract PancakeV3Adapter is IAdapter, IPancakeV3SwapCallback {
         address tokenOut,
         uint256 amountIn
     ) external override returns (uint256 amountOut) {
-        bytes memory path;
+        uint256 bestQuote = 0;
         for (uint i = 0; i < feeTiers.length; i++) {
             uint24 fee = feeTiers[i];
             address pool = FACTORY.getPool(tokenIn, tokenOut, fee);
             if (pool != address(0)) {
-                path = abi.encodePacked(tokenIn, fee, tokenOut);
-                break;
+                bytes memory path = abi.encodePacked(tokenIn, fee, tokenOut);
+                try QUOTER.quoteExactInput(path, amountIn) returns (uint256 quoteAmountOut, uint160[] memory, uint32[] memory, uint256) {
+                    if (quoteAmountOut > bestQuote) {
+                        bestQuote = quoteAmountOut;
+                    }
+                }
+                catch {}
             }
         }
-        require(path.length > 0, "No pool found");
-
-        (uint256 quoteAmountOut, , , ) = QUOTER.quoteExactInput(path, amountIn);
-        return quoteAmountOut;
+        return bestQuote;
     }
 
     function swap(
         address tokenIn,
-        address,
+        address tokenOut,
         uint256 amountIn,
-        bytes calldata data
+        bytes calldata
     ) external override returns (uint256 amountOut) {
+        uint256 bestQuote = 0;
+        uint24 bestFee = 0;
+        for (uint i = 0; i < feeTiers.length; i++) {
+            uint24 fee = feeTiers[i];
+            address pool = FACTORY.getPool(tokenIn, tokenOut, fee);
+            if (pool != address(0)) {
+                bytes memory currentPath = abi.encodePacked(tokenIn, fee, tokenOut);
+                try QUOTER.quoteExactInput(currentPath, amountIn) returns (uint256 quoteAmountOut, uint160[] memory, uint32[] memory, uint256) {
+                    if (quoteAmountOut > bestQuote) {
+                        bestQuote = quoteAmountOut;
+                        bestFee = fee;
+                    }
+                }
+                catch {}
+            }
+        }
+        require(bestFee != 0, "No pool found");
+
+        bytes memory path = abi.encodePacked(tokenIn, bestFee, tokenOut);
         IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
         IERC20(tokenIn).approve(address(ROUTER), amountIn);
         return ROUTER.exactInput(
             ISwapRouter.ExactInputParams({
-                path: data,
+                path: path,
                 recipient: msg.sender,
                 deadline: block.timestamp,
                 amountIn: amountIn,

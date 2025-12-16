@@ -39,3 +39,100 @@ This checklist defines the core safety guarantees of the vault. These properties
 - **SP-2: Admin Cannot Drain Funds:** The contract owner (admin) cannot directly access, transfer, or arbitrarily modify any user'''s funds or internal balances.
 - **SP-3: Unstoppable Emergency Exit:** Users can always withdraw their funds via `emergencyWithdraw` when the system is in emergency mode. This action cannot be blocked by the admin.
 
+# SpotRouter: A Resilient and Intelligent DeFi Aggregator
+
+## Overview
+
+The `SpotRouter` is a sophisticated and resilient DeFi aggregator designed to provide users with the best possible swap rates by intelligently routing trades through a variety of decentralized exchanges (DEXs). The `SpotRouter` is built with a fallback mechanism that ensures a high level of reliability, even in the event of a single liquidity source becoming unavailable.
+
+## Core Logic and Functionality
+
+The `SpotRouter`'s core logic is centered around the `swap` function. This function takes in the input token, output token, input amount, and a list of adapters to use for the swap. The `SpotRouter` then iterates through the adapters, gets a quote from each one, and executes the swap on the adapter that provides the best quote.
+
+### Fallback Mechanism
+
+A key feature of the `SpotRouter` is its fallback mechanism. If an adapter fails to provide a quote or execute a swap, the `SpotRouter` will gracefully handle the error and move on to the next adapter in the list. This ensures that the user's swap will not fail if a single liquidity source is unavailable.
+
+### Intelligent Adapters
+
+The `SpotRouter` interacts with DEXs through a system of intelligent adapters. Each adapter is responsible for handling the specific implementation details of a single DEX. This modular design allows for new DEXs to be easily integrated into the `SpotRouter` without requiring any changes to the core logic.
+
+#### PancakeV3Adapter
+
+The `PancakeV3Adapter` is designed to interact with the PancakeSwap V3 DEX. The adapter intelligently iterates through all of the available fee tiers to find the best possible quote for a given swap. This ensures that the user always gets the best possible rate, regardless of the liquidity distribution on the DEX.
+
+#### AerodromeAdapter
+
+The `AerodromeAdapter` is designed to interact with the Aerodrome DEX. The adapter is capable of handling both stable and volatile swaps, making it a versatile tool for routing trades through the Aerodrome ecosystem.
+
+## Swap Details from the `EdgeCaseTest`
+
+### cbBTC to WETH Swap
+
+*   **Input Token:** cbBTC
+*   **Output Token:** WETH
+*   **Input Amount:** 1 cbBTC
+*   **Adapter Used:** Aerodrome
+*   **Total Amount Out (WETH):** 27
+*   **Amount to User (WETH):** 27
+*   **Fee Collected (WETH):** 0
+
+### USDC to AERO Swaps (Aerodrome)
+
+*   **Swap for 5 USDC:**
+    *   **Amount to User:** 9 AERO
+    *   **Fee Collected:** 0
+*   **Swap for 10 USDC:**
+    *   **Amount to User:** 18 AERO
+    *   **Fee Collected:** 0
+*   **Swap for 100 USDC:**
+    *   **Amount to User:** 185 AERO
+    *   **Fee Collected:** 0
+*   **Swap for 150 USDC:**
+    *   **Amount to User:** 278 AERO
+    *   **Fee Collected:** 0
+
+### USDC to DAI Swaps (Aerodrome Stable)
+
+*   **Swap for 5 USDC:**
+    *   **Amount to User:** 4 DAI
+    *   **Fee Collected:** 0
+*   **Swap for 10 USDC:**
+    *   **Amount to User:** 9 DAI
+    *   **Fee Collected:** 0
+*   **Swap for 100 USDC:**
+    *   **Amount to User:** 99 DAI
+    *   **Fee Collected:** 0
+*   **Swap for 150 USDC:**
+    *   **Amount to User:** 149 DAI
+    *   **Fee Collected:** 0
+
+### USDC to SOL Swaps (Multi-DEX)
+
+*   **Swap for 5 USDC:**
+    *   **Amount to User:** 0 SOL
+    *   **Fee Collected:** 0
+*   **Swap for 10 USDC:**
+    *   **Amount to User:** 0 SOL
+    *   **Fee Collected:** 0
+*   **Swap for 100 USDC:**
+    *   **Amount to User:** 0 SOL
+    *   **Fee Collected:** 0
+*   **Swap for 150 USDC:**
+    *   **Amount to User:** 1 SOL
+    *   **Fee Collected:** 0
+
+### USDC to TRUMP Swaps (Multi-DEX)
+
+*   **Swap for 5 USDC:**
+    *   **Amount to User:** 0 TRUMP
+    *   **Fee Collected:** 0
+*   **Swap for 10 USDC:**
+    *   **Amount to User:** 1 TRUMP
+    *   **Fee Collected:** 0
+*   **Swap for 100 USDC:**
+    *   **Amount to User:** 6 TRUMP
+    *   **Fee Collected:** 0
+*   **Swap for 150 USDC:**
+    *   **Amount to User:** 4 TRUMP
+    *   **Fee Collected:** 0
