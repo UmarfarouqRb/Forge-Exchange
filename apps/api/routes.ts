@@ -1,11 +1,11 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertOrderSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Trading Pairs Routes
-  app.get("/api/trading-pairs", async (req, res) => {
+  app.get("/api/trading-pairs", async (req: Request, res: Response) => {
     try {
       const { category } = req.query;
       const pairs = await storage.getAllTradingPairs(category as string);
@@ -15,7 +15,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/trading-pairs/trending", async (req, res) => {
+  app.get("/api/trading-pairs/trending", async (req: Request, res: Response) => {
     try {
       const pairs = await storage.getTrendingPairs(6);
       res.json(pairs);
@@ -24,7 +24,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/trading-pairs/top-gainers", async (req, res) => {
+  app.get("/api/trading-pairs/top-gainers", async (req: Request, res: Response) => {
     try {
       const pairs = await storage.getTopGainers(10);
       res.json(pairs);
@@ -33,7 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/trading-pairs/top-losers", async (req, res) => {
+  app.get("/api/trading-pairs/top-losers", async (req: Request, res: Response) => {
     try {
       const pairs = await storage.getTopLosers(10);
       res.json(pairs);
@@ -42,7 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/trading-pairs/:symbol", async (req, res) => {
+  app.get("/api/trading-pairs/:symbol", async (req: Request, res: Response) => {
     try {
       const { symbol } = req.params;
       const pair = await storage.getTradingPairBySymbol(symbol);
@@ -56,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Market Data Routes
-  app.get("/api/market-data/:symbol", async (req, res) => {
+  app.get("/api/market-data/:symbol", async (req: Request, res: Response) => {
     try {
       const { symbol } = req.params;
       const { limit } = req.query;
@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Order Book Route (simulated data)
-  app.get("/api/order-book/:symbol", async (req, res) => {
+  app.get("/api/order-book/:symbol", async (req: Request, res: Response) => {
     try {
       const { symbol } = req.params;
       const pair = await storage.getTradingPairBySymbol(symbol);
@@ -102,7 +102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Orders Routes
-  app.get("/api/orders/:walletAddress", async (req, res) => {
+  app.get("/api/orders/:walletAddress", async (req: Request, res: Response) => {
     try {
       const { walletAddress } = req.params;
       const { category } = req.query;
@@ -116,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/orders", async (req, res) => {
+  app.post("/api/orders", async (req: Request, res: Response) => {
     try {
       const validatedData = insertOrderSchema.parse(req.body);
       const order = await storage.createOrder(validatedData);
@@ -129,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/orders/:id/status", async (req, res) => {
+  app.patch("/api/orders/:id/status", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Assets Routes
-  app.get("/api/assets/:walletAddress", async (req, res) => {
+  app.get("/api/assets/:walletAddress", async (req: Request, res: Response) => {
     try {
       const { walletAddress } = req.params;
       const assets = await storage.getAssetsByWallet(walletAddress);
@@ -160,7 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Transactions Routes
-  app.get("/api/transactions/:walletAddress", async (req, res) => {
+  app.get("/api/transactions/:walletAddress", async (req: Request, res: Response) => {
     try {
       const { walletAddress } = req.params;
       const { limit } = req.query;
@@ -174,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/transactions", async (req, res) => {
+  app.post("/api/transactions", async (req: Request, res: Response) => {
     try {
       const transaction = await storage.createTransaction(req.body);
       res.status(201).json(transaction);
@@ -184,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Deposit Route
-  app.post("/api/transactions/deposit", async (req, res) => {
+  app.post("/api/transactions/deposit", async (req: Request, res: Response) => {
     try {
       const { walletAddress, asset, amount } = req.body;
       const MINIMUM_DEPOSIT = 10;
@@ -245,7 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Withdrawal Route
-  app.post("/api/transactions/withdraw", async (req, res) => {
+  app.post("/api/transactions/withdraw", async (req: Request, res: Response) => {
     try {
       const { walletAddress, asset, amount } = req.body;
       const MINIMUM_WITHDRAWAL = 10;

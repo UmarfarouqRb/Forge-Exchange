@@ -1,0 +1,87 @@
+
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'contracts/**'
+      - 'test/**'
+      - 'script/**'
+      - 'apps/frontend/**'
+      - 'apps/api/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'contracts/**'
+      - 'test/**'
+      - 'script/**'
+      - 'apps/frontend/**'
+      - 'apps/api/**'
+
+jobs:
+  foundry-tests:
+    name: "Run Smart Contract Tests"
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+
+    steps:
+    - name: "Checkout code"
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: "Install Foundry"
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: "nightly"
+
+    - name: "Install dependencies"
+      run: forge install
+
+    - name: "Run tests"
+      run: forge test
+
+  frontend-check:
+    name: "Run Frontend Checks"
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+
+    steps:
+    - name: "Checkout code"
+      uses: actions/checkout@v4
+
+    - name: "Setup Node.js"
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: "Install dependencies"
+      run: npm install
+      working-directory: ./apps/frontend
+
+    - name: "Run build"
+      run: npm run build
+      working-directory: ./apps/frontend
+
+  backend-check:
+    name: "Run Backend Checks"
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+
+    steps:
+    - name: "Checkout code"
+      uses: actions/checkout@v4
+
+    - name: "Setup Node.js"
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: "Install dependencies"
+      run: npm install
+      working-directory: ./apps/api
+
+    - name: "Run checks"
+      run: npm run check
+      working-directory: ./apps/api

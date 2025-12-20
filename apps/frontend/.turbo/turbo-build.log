@@ -1,0 +1,863 @@
+
+> frontend@1.0.0 build
+> vite build
+
+vite v6.4.1 building for production...
+transforming...
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (1:62044): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (1:71023): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (1:73246): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (1:75339): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (1:76017): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (3:245): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:7134): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:13553): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:21104): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:21570): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:21859): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:22120): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:22488): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:23215): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:25586): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:40913): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:45640): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:48166): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:48384): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:48946): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:49584): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:50290): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:52608): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:56715): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:57886): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:58315): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (4:61919): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (5:65562): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (6:14329): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (6:14581): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/index.mjs (6:15277): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/index.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:15476): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:20059): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:30021): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:31107): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:32092): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:33076): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:46344): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:90854): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:100715): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:101494): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (1:106349): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (3:300): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (3:2887): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (3:2950): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (3:3022): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (3:3081): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (3:3773): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (3:6066): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (3:6464): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (4:1397): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (11:914): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (11:1058): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (11:1156): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (11:4619): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (11:4755): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (12:268): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (13:3117): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (13:4100): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (13:4309): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (13:4550): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (14:325): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (14:482): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (14:2697): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (16:13132): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (16:16201): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (16:16379): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (16:16558): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (17:1640): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (17:3983): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (17:6415): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (18:2771): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (18:4804): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (18:9540): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (18:10029): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (18:12549): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (18:15253): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (18:18821): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (18:19252): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (18:23008): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:692): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:831): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:1390): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:2340): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:27034): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:27887): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:28444): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:29738): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:31445): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:32849): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:33793): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:39687): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:40728): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:49147): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:50914): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:53607): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:53992): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:55024): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (19:61295): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (20:878): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (20:11597): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (20:25360): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (20:28167): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (20:28434): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (20:31845): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (20:32128): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (20:34134): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (20:38393): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (20:42383): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:0): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:132): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:204): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:1131): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:2020): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:4570): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:21549): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:21594): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:26234): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:28075): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (21:33696): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (22:6157): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:517): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:6429): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:6758): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:7316): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:12508): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:13344): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:13668): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:14467): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:18554): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:20259): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:22540): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:30688): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:34174): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:39664): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:41389): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:41978): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:42616): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:44813): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:45414): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:47554): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:47714): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:47872): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:47936): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48004): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48051): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48115): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48181): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48247): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48309): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48371): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48436): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48504): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48572): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48639): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48678): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:48815): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:50013): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:53063): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:56046): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:60705): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:61743): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:64702): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:66547): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:69581): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:73070): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:74448): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (24:78741): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (25:4876): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (25:6429): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs (25:8233): A comment
+
+"/*#__PURE__*/"
+
+in "../../node_modules/@privy-io/react-auth/dist/esm/SignRequestScreen-cNZ56bAg.mjs" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
