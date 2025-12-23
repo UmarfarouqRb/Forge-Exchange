@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
@@ -13,7 +13,7 @@ import {FeeController} from "./FeeController.sol";
 contract SpotRouter is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    // --- Events ---
+    // --- Events -- -
     event AdapterAdded(bytes32 indexed id, address indexed adapter);
     event AdapterRemoved(bytes32 indexed id);
     event Swap(
@@ -26,7 +26,7 @@ contract SpotRouter is Ownable, ReentrancyGuard {
         uint256 relayerFee
     );
 
-    // --- State Variables ---
+    // --- State Variables -- -
     VaultSpot public immutable vault;
     FeeController public immutable feeController;
     mapping(bytes32 => IAdapter) public adapters;
@@ -37,7 +37,7 @@ contract SpotRouter is Ownable, ReentrancyGuard {
         feeController = FeeController(_feeController);
     }
 
-    // --- Admin Functions ---
+    // --- Admin Functions -- -
     function addAdapter(bytes32 id, address adapter) external onlyOwner {
         require(adapters[id] == IAdapter(address(0)), "Adapter already exists");
         adapters[id] = IAdapter(adapter);
@@ -52,7 +52,7 @@ contract SpotRouter is Ownable, ReentrancyGuard {
         emit AdapterRemoved(id);
     }
 
-    // --- Public Swap Logic ---
+    // --- Public Swap Logic -- -
     function swap(
         address tokenIn,
         address tokenOut,
@@ -62,28 +62,35 @@ contract SpotRouter is Ownable, ReentrancyGuard {
     ) external nonReentrant returns (uint256 amountOut) {
         require(adapterIds.length > 0, "Must specify at least one adapter");
 
+        (uint256 feeAmount, address feeRecipient) = feeController.getSpotFee(
+            msg.sender,
+            tokenIn,
+            tokenOut,
+            amountIn,
+            // Since we don't know which adapter will be used, we pass address(0)
+            // The fee controller should be configured to handle this case
+            address(0)
+        );
+
         vault.debit(msg.sender, tokenIn, amountIn);
         _pullTokensFromVault(tokenIn, amountIn);
 
-        amountOut = _executeSwap(tokenIn, tokenOut, amountIn, adapterIds, data);
-
-        (uint256 amountAfterFee, uint256 protocolFee, ) = feeController.calculateFees(
-            tokenIn,
-            tokenOut,
-            amountOut
-        );
-
-        IERC20(tokenOut).safeTransfer(address(vault), amountOut);
-        vault.credit(msg.sender, tokenOut, amountAfterFee);
-        if (protocolFee > 0) {
-            vault.collectFee(tokenOut, protocolFee);
+        if (feeAmount > 0) {
+            IERC20(tokenIn).safeTransfer(feeRecipient, feeAmount);
         }
 
-        emit Swap(msg.sender, tokenIn, tokenOut, amountIn, amountOut, protocolFee, 0);
-        return amountAfterFee;
+        uint256 amountInAfterFee = amountIn - feeAmount;
+
+        amountOut = _executeSwap(tokenIn, tokenOut, amountInAfterFee, adapterIds, data);
+
+        IERC20(tokenOut).safeTransfer(address(vault), amountOut);
+        vault.credit(msg.sender, tokenOut, amountOut);
+
+        emit Swap(msg.sender, tokenIn, tokenOut, amountIn, amountOut, feeAmount, 0);
+        return amountOut;
     }
 
-    // --- Internal Swap Execution with Fallback ---
+    // --- Internal Swap Execution with Fallback -- -
     function _executeSwap(
         address tokenIn,
         address tokenOut,
@@ -119,7 +126,7 @@ contract SpotRouter is Ownable, ReentrancyGuard {
         return executedAmountOut;
     }
 
-    // --- Internal Helper Functions ---
+    // --- Internal Helper Functions -- -
     function _pullTokensFromVault(address token, uint256 amount) internal {
         vault.approveToken(token, address(this), amount);
         IERC20(token).safeTransferFrom(address(vault), address(this), amount);

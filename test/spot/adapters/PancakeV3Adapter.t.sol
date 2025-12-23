@@ -14,7 +14,7 @@ contract PancakeV3AdapterTest is Test {
     IERC20 internal constant USDC = IERC20(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913);
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("BASE_RPC_URL"));
+        vm.createSelectFork(vm.rpcUrl("base"));
         adapter = new PancakeV3Adapter();
         deal(address(WETH), address(this), 100 ether);
     }

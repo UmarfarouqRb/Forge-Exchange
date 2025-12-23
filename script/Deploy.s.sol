@@ -32,8 +32,8 @@ contract Deploy is Script {
         VaultSpot vault = new VaultSpot();
 
         // 2. Deploy FeeController
-        // Default fees: 0.3% swap fee, 50% to protocol, 0% to relayer
-        FeeController feeController = new FeeController(multisig, 30, 5000, 0);
+        // Default fees: 0.1% base fee, 1% max fee
+        FeeController feeController = new FeeController(deployerAddress, multisig, 20, 100);
 
         // 3. Deploy SpotRouter
         SpotRouter router = new SpotRouter(address(vault), address(feeController));

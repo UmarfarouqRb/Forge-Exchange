@@ -21,19 +21,16 @@ contract MockAdapter is IAdapter {
     }
 
     function swap(address tokenIn, address tokenOut, uint256 amountIn, bytes calldata) external returns (uint256) {
-        address vault = address(SpotRouter(msg.sender).vault());
-        address adapterRouter = getRouter();
-        uint256 allowance = IERC20(tokenIn).allowance(vault, adapterRouter);
+        // The router is msg.sender. It has approved this contract to take 'amountIn' of 'tokenIn'.
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
 
-        if (allowance >= amountIn) {
-            IERC20(tokenIn).transferFrom(vault, address(this), amountIn);
-            IERC20(tokenOut).transfer(vault, _fixedAmountOut);
-        }
+        // The adapter has been minted 'tokenOut' and now sends them to the router.
+        IERC20(tokenOut).transfer(msg.sender, _fixedAmountOut);
 
         return _fixedAmountOut;
     }
 
-    function getRouter() public view returns (address) {
+    function getRouter() external view returns (address) {
         return address(this);
     }
 }
@@ -52,9 +49,7 @@ contract ProtocolFeeTest is Test {
     uint256 internal constant SWAP_AMOUNT_IN = 1 ether;
     uint256 internal constant SIMULATED_AMOUNT_OUT = 3000 * 1e18;
 
-    uint24 internal constant SWAP_FEE_BPS = 100;
-    uint24 internal constant PROTOCOL_SHARE_BPS = 10000;
-    uint24 internal constant RELAYER_SHARE_BPS = 0;
+    uint256 internal constant SWAP_FEE_BPS = 100;
 
     event Swap(
         address indexed user,
@@ -67,13 +62,13 @@ contract ProtocolFeeTest is Test {
     );
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("BASE_RPC_URL"));
+        vm.createSelectFork(vm.rpcUrl("base"));
 
         vm.prank(MULTISIG);
         vault = new VaultSpot();
 
         vm.prank(MULTISIG);
-        feeController = new FeeController(MULTISIG, SWAP_FEE_BPS, PROTOCOL_SHARE_BPS, RELAYER_SHARE_BPS);
+        feeController = new FeeController(MULTISIG, MULTISIG, SWAP_FEE_BPS, 1000);
 
         // Corrected: Deploy the router with MULTISIG as the owner
         vm.prank(MULTISIG);
@@ -101,8 +96,8 @@ contract ProtocolFeeTest is Test {
     }
 
     function test_CollectsProtocolFee() public {
-        uint256 expectedProtocolFee = (SIMULATED_AMOUNT_OUT * SWAP_FEE_BPS) / 10000;
-        uint256 expectedUserAmount = SIMULATED_AMOUNT_OUT - expectedProtocolFee;
+        uint256 expectedProtocolFee = (SWAP_AMOUNT_IN * SWAP_FEE_BPS) / 10_000;
+        uint256 amountInAfterFee = SWAP_AMOUNT_IN - expectedProtocolFee;
 
         vm.expectEmit(true, true, true, true, address(router));
         emit Swap(
@@ -120,11 +115,11 @@ contract ProtocolFeeTest is Test {
         vm.prank(USER);
         router.swap(address(weth), address(usdc), SWAP_AMOUNT_IN, adapterIds, "");
 
-        uint256 multisigFeeBalance = vault.balances(MULTISIG, address(usdc));
+        uint256 multisigFeeBalance = IERC20(weth).balanceOf(MULTISIG);
         assertEq(multisigFeeBalance, expectedProtocolFee, "Multi-sig should have collected the protocol fee");
 
         uint256 userFinalBalance = vault.balances(USER, address(usdc));
-        assertEq(userFinalBalance, expectedUserAmount, "User should receive amount out minus protocol fee");
+        assertEq(userFinalBalance, SIMULATED_AMOUNT_OUT, "User should receive amount out minus protocol fee");
 
         uint256 userWethBalance = vault.balances(USER, address(weth));
         assertEq(userWethBalance, 0, "User WETH balance should be zero after swap");

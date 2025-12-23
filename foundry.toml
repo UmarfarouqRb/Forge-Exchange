@@ -1,12 +1,10 @@
 [profile.default]
-src = "src"
-out = "out"
-libs = ["lib"]
-remappings = ["forge-std/=lib/forge-std/src/", "@openzeppelin/=lib/openzeppelin-contracts/contracts/", "v3-periphery/=lib/v3-periphery/contracts/", "v2-periphery/=lib/v2-periphery/contracts/", "aerodrome/=lib/Aerodrome/contracts/"]
-solc_version = "0.8.20"
+src = 'src'
+out = 'out'
+libs = ['lib']
 
 [rpc_endpoints]
-localhost = "http://localhost:8545"
+base = "https://mainnet.base.org"
 
-[etherscan]
-mainnet = { key = "${ETHERSCAN_API_KEY}" }
+[profile.default.ir_optimizer]
+solvers = ["via-ir"]

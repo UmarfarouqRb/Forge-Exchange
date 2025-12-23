@@ -27,7 +27,7 @@ contract VaultSpotInvariantTest is StdInvariant, Test {
     function setUp() public {
         // --- Deploy Core Contracts ---
         vault = new VaultSpot();
-        feeController = new FeeController(multisig, 30, 5000, 0);
+        feeController = new FeeController(multisig, multisig, 10, 100);
         router = new SpotRouter(address(vault), address(feeController));
 
         // --- Set Contract Permissions ---

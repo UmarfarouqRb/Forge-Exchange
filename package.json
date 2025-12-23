@@ -5,16 +5,17 @@
   "license": "MIT",
   "workspaces": [
     "apps/*",
-    "packages/*",
     "services/*"
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "build": "turbo run build",
+    "build": "turbo run build --filter=!indexer",
     "start": "turbo run start",
     "check": "turbo run check",
     "db:push": "turbo run db:push",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "install:services": "npm install --workspaces --if-present",
+    "start:services": "turbo run start --filter='./services/*'"
   },
   "overrides": {
     "drizzle-kit": "latest",

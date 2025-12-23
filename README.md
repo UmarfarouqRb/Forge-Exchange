@@ -1,4 +1,4 @@
-# VaultSpot: Protocol-Grade Custody & Accounting System
+VaultSpot: Protocol-Grade Custody & Accounting System
 
 ## Overview
 
