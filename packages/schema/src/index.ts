@@ -11,6 +11,9 @@ export const Order = z.object({
   filled: z.string(),
   status: z.enum(['open', 'filled', 'canceled']),
   createdAt: z.string(),
+  symbol: z.string(),
+  total: z.string(),
+  leverage: z.string().optional(),
 });
 
 export type Order = z.infer<typeof Order>;

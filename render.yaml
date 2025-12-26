@@ -2,7 +2,7 @@ services:
   - type: web
     name: forge-exchange-frontend
     env: static
-    buildCommand: "npm install && npm run build"
+    buildCommand: "npm install && turbo run build --filter=frontend"
     staticPublishPath: ./apps/frontend/dist
     routes:
       - type: rewrite

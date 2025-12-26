@@ -7,15 +7,14 @@ import { TradingChart } from '@/components/TradingChart';
 import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
 import { useWallet } from '@/contexts/WalletContext';
-import { Button } from '@/components/ui/button';
-import { FiBarChart2, FiX } from 'react-icons/fi';
 import { getOrderBook, getOrders } from '@/lib/api';
 import type { Order } from '@shared/schema';
+import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 export default function Spot() {
-  const [selectedPair, setSelectedPair] = useState('BTCUSDT');
-  const [showChart, setShowChart] = useState(false);
+  const [selectedPair] = useState('BTCUSDT');
   const { wallet } = useWallet();
+  const isDesktop = useBreakpoint('md');
 
   const { data: orderBookData } = useQuery({
     queryKey: ['/api/order-book', selectedPair],
@@ -25,11 +24,97 @@ export default function Spot() {
 
   const { data: orders } = useQuery<Order[]>({
     queryKey: ['/api/orders', wallet.address],
-    queryFn: () => getOrders(wallet.address),
+    queryFn: async () => {
+      if (!wallet.address) return [];
+      return getOrders(wallet.address);
+    },
     enabled: wallet.isConnected && !!wallet.address,
   });
 
   const currentPrice = orderBookData?.bids?.[0]?.price || '0';
+
+  const renderOpenOrders = () => (
+    <TabsContent value={!isDesktop ? "orders" : "open"} className="flex-1 overflow-auto p-2 md:p-4 mt-0">
+      {wallet.isConnected ? (
+        <div className="overflow-auto">
+          {isDesktop && (
+            <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
+              <div>Date</div>
+              <div>Pair</div>
+              <div>Type</div>
+              <div className="text-right">Price</div>
+              <div className="text-right">Amount</div>
+              <div className="text-right">Total</div>
+              <div className="text-right">Action</div>
+            </div>
+          )}
+          {orders && orders.length > 0 ? (
+            orders
+              .filter((order) => order.status === 'open')
+              .map((order) => (
+                <div
+                  key={order.id}
+                  className={`grid ${!isDesktop ? 'grid-cols-2' : 'grid-cols-7'} gap-1 md:gap-2 text-xs py-2 border-b border-border hover-elevate`}
+                  data-testid={`row-open-order-${order.id}`}
+                >
+                  {!isDesktop ? (
+                    <>
+                      <div>
+                        <div className="font-medium">{order.symbol}</div>
+                        <div className="text-muted-foreground">{new Date(order.createdAt).toLocaleTimeString()}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`font-mono ${order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}`}>{order.side.toUpperCase()}</div>
+                        <div className="font-mono">${order.price}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Amount:</span> {order.amount}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-muted-foreground">Total:</span> ${order.total}
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <button className="text-destructive hover:underline text-xs">
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-muted-foreground md:table-cell">
+                        {new Date(order.createdAt).toLocaleTimeString()}
+                      </div>
+                      <div>{order.symbol}</div>
+                      <div
+                        className={order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}
+                      >
+                        {order.side.toUpperCase()}
+                      </div>
+                      <div className="md:text-right font-mono">${order.price}</div>
+                      <div className="md:text-right font-mono">{order.amount}</div>
+                      <div className="md:text-right font-mono">${order.total}</div>
+                      <div className="md:text-right">
+                        <button className="text-destructive hover:underline text-xs">
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No open orders
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center justify-center h-full text-muted-foreground">
+          Connect wallet to view orders
+        </div>
+      )}
+    </TabsContent>
+  );
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
@@ -64,121 +149,85 @@ export default function Spot() {
               </div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowChart(!showChart)}
-            className="flex-shrink-0"
-            data-testid="button-toggle-chart-spot"
-          >
-            {showChart ? <FiX className="w-4 h-4 md:w-5 md:h-5" /> : <FiBarChart2 className="w-4 h-4 md:w-5 md:h-5" />}
-          </Button>
         </div>
       </div>
 
       {/* Trading Interface */}
-      <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
-        {/* Main Trading Grid */}
-        <div className="flex-1 flex flex-col md:grid md:grid-cols-12 gap-2 overflow-hidden">
-          {/* Order Book - Left */}
-          <div className="h-64 md:h-full md:col-span-3 overflow-hidden">
+      {!isDesktop ? (
+        <Tabs defaultValue="chart" className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid grid-cols-4 rounded-none border-b border-border">
+            <TabsTrigger value="chart">Chart</TabsTrigger>
+            <TabsTrigger value="trade">Trade</TabsTrigger>
+            <TabsTrigger value="book">Book</TabsTrigger>
+            <TabsTrigger value="orders">Orders</TabsTrigger>
+          </TabsList>
+          <TabsContent value="chart" className="flex-1 overflow-hidden">
+            <TradingChart symbol={selectedPair} />
+          </TabsContent>
+          <TabsContent value="trade" className="overflow-auto">
+            <TradePanel symbol={selectedPair} currentPrice={currentPrice} type="spot" />
+          </TabsContent>
+          <TabsContent value="book" className="overflow-hidden">
             <OrderBook 
               bids={orderBookData?.bids || []} 
               asks={orderBookData?.asks || []}
               isLoading={!orderBookData}
             />
-          </div>
+          </TabsContent>
+          {renderOpenOrders()}
+        </Tabs>
+      ) : (
+        <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
+          {/* Main Trading Grid */}
+          <div className="flex-1 grid grid-cols-12 gap-2 overflow-hidden">
+            {/* Order Book - Left */}
+            <div className="col-span-3 overflow-hidden">
+              <OrderBook 
+                bids={orderBookData?.bids || []} 
+                asks={orderBookData?.asks || []}
+                isLoading={!orderBookData}
+              />
+            </div>
 
-          {/* Chart - Center (conditional) */}
-          <div className={`flex-1 ${showChart ? 'md:col-span-6' : 'hidden'} overflow-hidden`}>
-            {showChart && <TradingChart symbol={selectedPair} />}
-          </div>
-
-          {/* Trade Panel - Right */}
-          <div className={`h-auto md:h-full ${showChart ? 'md:col-span-3' : 'md:col-span-9'} overflow-hidden`}>
-            <TradePanel symbol={selectedPair} currentPrice={currentPrice} type="spot" />
-          </div>
-        </div>
-
-        {/* Bottom Section: Order History */}
-        <div className="h-80 flex-shrink-0 overflow-hidden mt-2">
-          <Card className="h-full flex flex-col">
-            <CardContent className="p-0 flex-1 overflow-hidden">
-              <Tabs defaultValue="open" className="h-full flex flex-col">
-                <TabsList className="w-full justify-start rounded-none border-b border-border px-2 md:px-4">
-                  <TabsTrigger value="open" className="text-xs md:text-sm" data-testid="tab-open-orders">Open Orders</TabsTrigger>
-                  <TabsTrigger value="history" className="text-xs md:text-sm" data-testid="tab-order-history">Order History</TabsTrigger>
-                  <TabsTrigger value="trades" className="text-xs md:text-sm" data-testid="tab-trade-history">Trade History</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="open" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-                  {wallet.isConnected ? (
-                    <div className="overflow-auto">
-                      <div className="hidden md:grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
-                        <div>Date</div>
-                        <div>Pair</div>
-                        <div>Type</div>
-                        <div className="text-right">Price</div>
-                        <div className="text-right">Amount</div>
-                        <div className="text-right">Total</div>
-                        <div className="text-right">Action</div>
-                      </div>
-                      {orders && orders.length > 0 ? (
-                        orders
-                          .filter((order) => order.status === 'pending')
-                          .map((order) => (
-                            <div
-                              key={order.id}
-                              className="grid grid-cols-1 md:grid-cols-7 gap-1 md:gap-2 text-xs py-2 border-b border-border hover-elevate"
-                              data-testid={`row-open-order-${order.id}`}
-                            >
-                              <div className="md:hidden font-medium">{order.symbol}</div>
-                              <div className="text-muted-foreground md:table-cell">
-                                {new Date(order.createdAt).toLocaleTimeString()}
-                              </div>
-                              <div className="hidden md:block">{order.symbol}</div>
-                              <div
-                                className={order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}
-                              >
-                                {order.side.toUpperCase()}
-                              </div>
-                              <div className="md:text-right font-mono">${order.price}</div>
-                              <div className="md:text-right font-mono">{order.amount}</div>
-                              <div className="md:text-right font-mono">${order.total}</div>
-                              <div className="md:text-right">
-                                <button className="text-destructive hover:underline text-xs">
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No open orders
+            {/* Chart and Trade Panel - Center/Right */}
+            <div className="col-span-9 flex flex-col gap-2 overflow-hidden">
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="grid grid-cols-3 flex-1 gap-2 overflow-hidden">
+                        <div className="col-span-2 overflow-hidden">
+                          <TradingChart symbol={selectedPair} />
                         </div>
-                      )}
+                        <div className="overflow-hidden">
+                          <TradePanel symbol={selectedPair} currentPrice={currentPrice} type="spot" />
+                        </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      Connect wallet to view orders
+                    {/* Bottom Section: Order History */}
+                    <div className="h-80 flex-shrink-0 overflow-hidden mt-2">
+                      <Card className="h-full flex flex-col">
+                        <CardContent className="p-0 flex-1 overflow-hidden">
+                          <Tabs defaultValue="open" className="h-full flex flex-col">
+                            <TabsList className="w-full justify-start rounded-none border-b border-border px-2 md:px-4">
+                              <TabsTrigger value="open" className="text-xs md:text-sm" data-testid="tab-open-orders">Open Orders</TabsTrigger>
+                              <TabsTrigger value="history" className="text-xs md:text-sm" data-testid="tab-order-history">Order History</TabsTrigger>
+                              <TabsTrigger value="trades" className="text-xs md:text-sm" data-testid="tab-trade-history">Trade History</TabsTrigger>
+                            </TabsList>
+                            {renderOpenOrders()}
+                            <TabsContent value="history" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
+                              <div className="text-center py-8 text-muted-foreground">
+                                No order history
+                              </div>
+                            </TabsContent>
+                            <TabsContent value="trades" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
+                              <div className="text-center py-8 text-muted-foreground">No trade history</div>
+                            </TabsContent>
+                          </Tabs>
+                        </CardContent>
+                      </Card>
                     </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="history" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-                  <div className="text-center py-8 text-muted-foreground">
-                    No order history
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="trades" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-                  <div className="text-center py-8 text-muted-foreground">No trade history</div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+                </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
