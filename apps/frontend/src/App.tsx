@@ -1,3 +1,4 @@
+
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -7,6 +8,7 @@ import { PrivyProvider } from "@privy-io/react-auth";
 import { WalletProvider } from "@/contexts/WalletContext";
 import { ChainProvider } from "@/contexts/ChainContext";
 import { Navigation } from "@/components/Navigation";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Home from "@/pages/Home";
 import Market from "@/pages/Market";
 import Spot from "@/pages/Spot";
@@ -29,16 +31,25 @@ function Router() {
 
 function App() {
   const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
-  
+
   if (!privyAppId) {
-    console.error('VITE_PRIVY_APP_ID is not set. Please add it to your environment variables.');
+    return (
+      <div className="flex items-center justify-center h-screen bg-background text-white">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Privy App ID is not set.</h1>
+          <p className="text-muted-foreground">
+            Please set the VITE_PRIVY_APP_ID environment variable.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <PrivyProvider
-          appId={privyAppId || ""}
+          appId={privyAppId}
           config={{
             appearance: {
               theme: 'dark',
@@ -50,7 +61,9 @@ function App() {
             <WalletProvider>
               <div className="min-h-screen bg-background">
                 <Navigation />
-                <Router />
+                <ErrorBoundary>
+                  <Router />
+                </ErrorBoundary>
               </div>
               <Toaster />
             </WalletProvider>
