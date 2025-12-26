@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -16,9 +17,10 @@ interface TradePanelProps {
   symbol: string;
   currentPrice: string;
   type?: 'spot' | 'futures';
+  disabled?: boolean;
 }
 
-export function TradePanel({ symbol, currentPrice, type = 'spot' }: TradePanelProps) {
+export function TradePanel({ symbol, currentPrice, type = 'spot', disabled = false }: TradePanelProps) {
   const [orderType, setOrderType] = useState<'limit' | 'market'>('limit');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(currentPrice);
@@ -147,9 +149,9 @@ export function TradePanel({ symbol, currentPrice, type = 'spot' }: TradePanelPr
         <Button
           className="w-full"
           onClick={handleSubmit}
-          disabled={placeOrderMutation.isPending || !wallet.isConnected}
+          disabled={disabled || placeOrderMutation.isPending || !wallet.isConnected}
         >
-          Place Order
+          {disabled ? 'Coming Soon' : 'Place Order'}
         </Button>
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,7 +17,7 @@ export default function Futures() {
   const { wallet } = useWallet();
   const isDesktop = useBreakpoint('md');
 
-  const { data: orderBookData } = useQuery({
+  const { data: orderBookData, isLoading: isOrderBookLoading, isError: isOrderBookError } = useQuery({
     queryKey: ['/api/order-book', selectedPair],
     queryFn: async () => {
       const response = await fetch(`/api/order-book/${selectedPair}`);
@@ -26,7 +27,7 @@ export default function Futures() {
     refetchInterval: 3000,
   });
 
-  const { data: positions } = useQuery<Order[]>({
+  const { data: positions, isLoading: arePositionsLoading, isError: arePositionsError } = useQuery<Order[]>({
     queryKey: ['/api/orders', 'futures', wallet.address],
     queryFn: async () => {
       if (!wallet.address) return [];
@@ -53,7 +54,9 @@ export default function Futures() {
               <div className="text-right">Action</div>
             </div>
           )}
-          {positions && positions.length > 0 ? (
+          {arePositionsLoading && <div className="text-center py-8 text-muted-foreground">Loading positions...</div>}
+          {arePositionsError && <div className="text-center py-8 text-destructive">Failed to load positions.</div>}
+          {!arePositionsLoading && !arePositionsError && positions && positions.length > 0 ? (
             positions
               .filter((position) => position.status === 'open')
               .map((position) => (
@@ -195,14 +198,20 @@ export default function Futures() {
                 <TradingChart symbol={selectedPair} />
             </TabsContent>
             <TabsContent value="trade" className="overflow-auto">
-                <TradePanel symbol={selectedPair} currentPrice="45234.56" type="futures" />
+                <TradePanel symbol={selectedPair} currentPrice="45234.56" type="futures" disabled={true} />
             </TabsContent>
             <TabsContent value="book" className="overflow-hidden">
-                <OrderBook 
-                bids={orderBookData?.bids || []} 
-                asks={orderBookData?.asks || []}
-                isLoading={!orderBookData}
-                />
+                {isOrderBookError ? (
+                    <div className="flex items-center justify-center h-full text-destructive">
+                        Failed to load order book.
+                    </div>
+                ) : (
+                    <OrderBook 
+                    bids={orderBookData?.bids || []} 
+                    asks={orderBookData?.asks || []}
+                    isLoading={isOrderBookLoading}
+                    />
+                )}
             </TabsContent>
             {renderPositions()}
         </Tabs>
@@ -210,11 +219,17 @@ export default function Futures() {
         <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
             <div className="flex-1 grid grid-cols-12 gap-2 overflow-hidden">
                 <div className="col-span-3 overflow-hidden">
-                    <OrderBook 
-                    bids={orderBookData?.bids || []} 
-                    asks={orderBookData?.asks || []}
-                    isLoading={!orderBookData}
-                    />
+                  {isOrderBookError ? (
+                      <div className="flex items-center justify-center h-full text-destructive">
+                          Failed to load order book.
+                      </div>
+                  ) : (
+                      <OrderBook 
+                      bids={orderBookData?.bids || []} 
+                      asks={orderBookData?.asks || []}
+                      isLoading={isOrderBookLoading}
+                      />
+                  )}
                 </div>
                 <div className="col-span-9 flex flex-col gap-2 overflow-hidden">
                     <div className="grid grid-cols-3 flex-1 gap-2 overflow-hidden">
@@ -222,7 +237,7 @@ export default function Futures() {
                             <TradingChart symbol={selectedPair} />
                         </div>
                         <div className="overflow-hidden">
-                            <TradePanel symbol={selectedPair} currentPrice="45234.56" type="futures" />
+                            <TradePanel symbol={selectedPair} currentPrice="45234.56" type="futures" disabled={true} />
                         </div>
                     </div>
                     <div className="h-80 flex-shrink-0 overflow-hidden mt-2">
