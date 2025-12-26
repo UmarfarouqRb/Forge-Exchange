@@ -1,32 +1,36 @@
 import { Request, Response } from 'express';
-import { ethers } from 'ethers';
-import { GaslessTrader__factory } from '../../../../foundry/out/GaslessTrader.sol/GaslessTrader.json';
-
-const GASLESS_TRADER_ADDRESS = '0x...'; // Replace with the deployed address of GaslessTrader.sol
-
-async function getSigner() {
-    const provider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
-    const signer = provider.getSigner();
-    return signer;
-}
+import { relayerConfig } from '../config';
+import { IntentSpotRouter__factory } from '../../../../out/IntentSpotRouter.sol/IntentSpotRouter.json';
+import { saveOrder, updateOrderStatus } from '../db/db';
 
 export const spot = async (req: Request, res: Response) => {
-    const { order, sessionKeySignature } = req.body;
+    const { intent, signature } = req.body;
+    const network = req.query.network as 'base' | 'local' || 'local';
 
-    if (!order || !sessionKeySignature) {
+    if (!intent || !signature) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const signer = await getSigner();
-    const gaslessTrader = GaslessTrader__factory.connect(GASLESS_TRADER_ADDRESS, signer);
+    // Save the initial order with PENDING status
+    await saveOrder(intent);
 
     try {
-        const tx = await gaslessTrader.executeTrade(order, sessionKeySignature);
-        await tx.wait();
+        const signer = await relayerConfig.getSigner(network);
+        const intentSpotRouterAddress = relayerConfig.networks[network].intentSpotRouterAddress;
+        const intentSpotRouter = IntentSpotRouter__factory.connect(intentSpotRouterAddress, signer);
+
+        const tx = await intentSpotRouter.executeSwap(intent, signature);
+        const receipt = await tx.wait();
+
+        // If tx.wait() does not throw, the transaction was successful
+        await updateOrderStatus(intent.id, 'SUCCESS');
 
         res.json({ success: true, txHash: tx.hash });
-    } catch (error) {
-        console.error('Failed to execute trade:', error);
-        res.status(500).json({ error: 'Failed to execute trade' });
+
+    } catch (error: any) {
+        console.error('Failed to execute swap:', error);
+        // Update order status to FAILED on error
+        await updateOrderStatus(intent.id, 'FAILED');
+        res.status(500).json({ error: `Failed to execute swap: ${error.message}` });
     }
 };

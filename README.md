@@ -1,3 +1,88 @@
+# Forge Exchange
+
+Forge is a high-performance, decentralized exchange (DEX) platform built with a modern tech stack. It features a React-based frontend, a Node.js/Express backend (`relayer`), and Solidity smart contracts managed with Foundry.
+
+---
+
+## 🚀 Getting Started
+
+This guide will walk you through setting up the Forge Exchange project for local development and testing.
+
+### Prerequisites
+
+Before you begin, ensure you have the following installed on your system:
+- [Node.js](httpss://nodejs.org/en/) (v18 or later recommended)
+- [Yarn](httpss://yarnpkg.com/getting-started/install) (as a package manager)
+- [Foundry](httpss://getfoundry.sh/) (for Solidity smart contract development and testing)
+
+### 1. Installation
+
+First, clone the repository to your local machine and install the required dependencies for all workspaces.
+
+```bash
+git clone <YOUR_REPOSITORY_URL>
+cd forge-exchange
+npm install
+```
+
+### 2. Running the Development Environment
+
+To run the full platform locally, you will need to run three separate processes in three different terminal windows: the blockchain, the backend relayer, and the frontend.
+
+Terminal 1: Start the Local Blockchain
+
+This command starts a local Anvil node, which is part of the Foundry toolset. It will also deploy your smart contracts.
+
+bash
+npm run chain
+
+
+Terminal 2: Start the Backend Relayer**
+
+This command starts the backend service that communicates with the smart contracts.
+
+bash
+npm run dev:relayer
+
+
+Terminal 3: Start the Frontend Application**
+
+This command starts the React frontend application.
+
+bash
+npm run dev:frontend
+
+
+After running these commands, you can access the frontend at `http://localhost:5173`.
+
+### 3. Building for Production
+
+To create an optimized production build of the applications:
+
+**Build the Frontend:**
+```bash
+# This will create a 'dist' folder in 'apps/frontend'
+npm run build:frontend
+```
+
+**Build the Relayer:**
+```bash
+# This will create a 'dist' folder in 'apps/relayer'
+npm run build:relayer
+```
+
+### 4. Running Tests
+
+The smart contracts are tested using Foundry's robust testing framework.
+
+To run the full suite of tests for the Solidity contracts:
+
+```bash
+npm test
+```
+
+---
+
 VaultSpot: Protocol-Grade Custody & Accounting System
 
 ## Overview
@@ -47,11 +132,11 @@ The `SpotRouter` is a sophisticated and resilient DeFi aggregator designed to pr
 
 ## Core Logic and Functionality
 
-The `SpotRouter`'s core logic is centered around the `swap` function. This function takes in the input token, output token, input amount, and a list of adapters to use for the swap. The `SpotRouter` then iterates through the adapters, gets a quote from each one, and executes the swap on the adapter that provides the best quote.
+The `SpotRouter`'''s core logic is centered around the `swap` function. This function takes in the input token, output token, input amount, and a list of adapters to use for the swap. The `SpotRouter` then iterates through the adapters, gets a quote from each one, and executes the swap on the adapter that provides the best quote.
 
 ### Fallback Mechanism
 
-A key feature of the `SpotRouter` is its fallback mechanism. If an adapter fails to provide a quote or execute a swap, the `SpotRouter` will gracefully handle the error and move on to the next adapter in the list. This ensures that the user's swap will not fail if a single liquidity source is unavailable.
+A key feature of the `SpotRouter` is its fallback mechanism. If an adapter fails to provide a quote or execute a swap, the `SpotRouter` will gracefully handle the error and move on to the next adapter in the list. This ensures that the user'''s swap will not fail if a single liquidity source is unavailable.
 
 ### Intelligent Adapters
 

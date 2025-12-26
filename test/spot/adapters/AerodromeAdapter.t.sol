@@ -61,6 +61,7 @@ contract AerodromeAdapterTest is Test {
         vm.stopPrank();
 
         uint256 balanceBefore = vault.balances(user, WETH);
+        console.log("Balance before swap:", balanceBefore);
 
         ISpotRouter.SwapIntent memory intent = ISpotRouter.SwapIntent({
             user: user,
@@ -77,9 +78,15 @@ contract AerodromeAdapterTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
+        console.log("Balance of user before swap (USDC):", IERC20(USDC).balanceOf(user));
+        console.log("Balance of adapter before swap (USDC):", IERC20(USDC).balanceOf(address(adapter)));
+
         router.executeSwap(intent, signature);
 
         uint256 balanceAfter = vault.balances(user, WETH);
+        console.log("Balance after swap:", balanceAfter);
+        console.log("Balance of user after swap (USDC):", IERC20(USDC).balanceOf(user));
+        console.log("Balance of adapter after swap (USDC):", IERC20(USDC).balanceOf(address(adapter)));
         assertTrue(balanceAfter > balanceBefore, "WETH balance should increase after swap");
     }
 

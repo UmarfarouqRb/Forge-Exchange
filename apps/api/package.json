@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
+    "@shared/schema": "*",
     "@supabase/supabase-js": "^2.88.0",
     "@upstash/redis": "^1.35.8",
     "connect-pg-simple": "^10.0.0",

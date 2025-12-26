@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertOrderSchema } from "@shared/schema";
+import { Order } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Trading Pairs Routes
@@ -118,7 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/orders", async (req: Request, res: Response) => {
     try {
-      const validatedData = insertOrderSchema.parse(req.body);
+      const validatedData = Order.parse(req.body);
       const order = await storage.createOrder(validatedData);
       res.status(201).json(order);
     } catch (error: any) {

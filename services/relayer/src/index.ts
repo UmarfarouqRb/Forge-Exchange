@@ -1,26 +1,21 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import { health } from './api/health';
-import { spot } from './api/spot';
-import { getOrderBook, addOrder } from './api/orderbook';
 import { authorizeSession } from './api/session';
+import { getOrders } from './api/orders';
+import { spot } from './api/spot';
+import { getTokens } from './api/tokens';
 
 const app = express();
+const port = 3001;
+
 app.use(bodyParser.json());
 
-app.get('/', (req, res) => {
-  res.send('Ok');
-});
+// API routes
+app.post('/api/session/authorize', authorizeSession);
+app.get('/api/orders/:address', getOrders);
+app.post('/api/spot', spot);
+app.get('/api/tokens/:chainId', getTokens);
 
-app.get('/health', health);
-app.post('/spot', spot);
-
-app.get('/orderbook', getOrderBook);
-app.post('/orderbook', addOrder);
-
-app.post('/session/authorize', authorizeSession);
-
-const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`Relayer listening on port ${port}`);
+    console.log(`Relayer server listening at http://localhost:${port}`);
 });

@@ -50,18 +50,25 @@ contract AerodromeAdapter is IAdapter {
         uint256 amountIn,
         bytes calldata data
     ) external override returns (uint256 amountOut) {
-        (bool isStable) = abi.decode(data, (bool));
-
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-        IERC20(tokenIn).approve(address(ROUTER), amountIn);
+        // The data is not a bool, it's the user address. We don't use it.
+        // (bool isStable) = abi.decode(data, (bool)); // This is the bug.
 
         IAerodromeRouter.Route[] memory routes = new IAerodromeRouter.Route[](1);
         routes[0] = IAerodromeRouter.Route({
             from: tokenIn,
             to: tokenOut,
-            stable: isStable,
+            stable: false, // Assume volatile first
             factory: address(FACTORY)
         });
+
+        try ROUTER.getAmountsOut(amountIn, routes) {
+            // isStable is already false
+        } catch {
+            routes[0].stable = true;
+        }
+        
+        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
+        IERC20(tokenIn).approve(address(ROUTER), amountIn);
 
         uint256[] memory amounts = ROUTER.swapExactTokensForTokens(
             amountIn,

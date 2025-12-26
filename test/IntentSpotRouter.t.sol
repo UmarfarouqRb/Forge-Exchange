@@ -150,7 +150,7 @@ contract IntentSpotRouterTest is Test {
             amountIn: amountIn,
             minAmountOut: expectedAmountOut,
             deadline: block.timestamp + 1 hours,
-            nonce: 1, // Adjusted nonce to avoid collision
+            nonce: 0, // Each test has its own state, so nonce starts at 0
             adapter: address(adapter)
         });
 

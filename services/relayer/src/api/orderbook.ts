@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
+import { MatchingEngine } from '../matching/engine';
 
 // This is a simplified in-memory order book. In a real-world application, you would use a more robust solution like Redis.
-const orderBook = {
+export const orderBook: {bids: any[], asks: any[]} = {
     bids: [],
     asks: [],
 };
@@ -25,3 +26,7 @@ export const addOrder = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true });
 };
+
+// Start the matching engine
+const matchingEngine = new MatchingEngine();
+matchingEngine.start();

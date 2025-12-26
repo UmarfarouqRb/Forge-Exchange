@@ -6,7 +6,9 @@
       "@shared/*": ["../../packages/shared-types/*"]
     },
     "target": "ES2020",
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "module": "CommonJS",
+    "moduleResolution": "node"
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

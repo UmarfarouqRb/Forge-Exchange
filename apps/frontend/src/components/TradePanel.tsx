@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useWallet } from '@/contexts/WalletContext';
-import { useSession } from '@/contexts/SessionContext';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { placeOrder, getTokens } from '@/lib/api';
+import { queryClient } from '@/lib/queryClient';
 import { ethers } from 'ethers';
 
 interface TradePanelProps {
@@ -25,26 +25,54 @@ export function TradePanel({ symbol, currentPrice, type = 'spot' }: TradePanelPr
   const [amount, setAmount] = useState('');
   const [leverage, setLeverage] = useState([1]);
   const { wallet } = useWallet();
-  const { sessionKey, isSessionAuthorized, authorizeSession } = useSession();
   const { toast } = useToast();
 
+  const { data: tokenAddresses } = useQuery({
+    queryKey: ['/api/tokens', wallet.chainId], 
+    queryFn: () => getTokens(wallet.chainId?.toString() || '8453'), 
+    enabled: !!wallet.chainId,
+  });
+
   const placeOrderMutation = useMutation({
-    mutationFn: async (orderData: any) => {
-        if (!sessionKey) throw new Error('Session key not available');
+    mutationFn: async () => {
+      if (!wallet.signer) throw new Error('Wallet not connected');
+      if (!tokenAddresses) throw new Error('Token addresses not loaded');
 
-        const order = {
-            user: wallet.address,
-            tokenIn: side === 'buy' ? 'USDT' : symbol.replace('USDT', ''),
-            tokenOut: side === 'buy' ? symbol.replace('USDT', '') : 'USDT',
-            amountIn: ethers.utils.parseUnits(amount, 6).toString(),
-            minAmountOut: '0', // You might want to calculate a proper slippage amount
-            nonce: Date.now(),
-        };
+      const [baseAsset, quoteAsset] = symbol.split('/');
 
-        const orderHash = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(['(address,address,address,uint256,uint256,uint256)'], [Object.values(order)]));
-        const sessionKeySignature = await sessionKey.signMessage(ethers.utils.arrayify(orderHash));
+      const tokenIn = side === 'buy' ? quoteAsset : baseAsset;
+      const tokenOut = side === 'buy' ? baseAsset : quoteAsset;
 
-        return apiRequest('POST', '/api/spot', { order, sessionKeySignature });
+      const intent = {
+        user: wallet.address,
+        tokenIn: tokenAddresses[tokenIn],
+        tokenOut: tokenAddresses[tokenOut],
+        amountIn: ethers.parseUnits(amount, 6).toString(),
+        price: ethers.parseUnits(price, 6).toString(),
+        nonce: Date.now(),
+      };
+
+      const domain = {
+        name: 'IntentSpotRouter',
+        version: '1',
+        chainId: await wallet.signer.getChainId(),
+        verifyingContract: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9', 
+      };
+
+      const types = {
+        Intent: [
+          { name: 'user', type: 'address' },
+          { name: 'tokenIn', type: 'address' },
+          { name: 'tokenOut', type: 'address' },
+          { name: 'amountIn', type: 'uint256' },
+          { name: 'price', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+        ],
+      };
+
+      const signature = await wallet.signer.signTypedData(domain, types, intent);
+
+      return placeOrder({ intent, signature });
     },
     onSuccess: () => {
       toast({
@@ -67,15 +95,10 @@ export function TradePanel({ symbol, currentPrice, type = 'spot' }: TradePanelPr
 
   const handleSubmit = async () => {
     if (!wallet.isConnected) {
-        toast({ title: 'Wallet Not Connected', variant: 'destructive' });
-        return;
+      toast({ title: 'Wallet Not Connected', variant: 'destructive' });
+      return;
     }
-
-    if (!isSessionAuthorized) {
-        await authorizeSession();
-    }
-
-    placeOrderMutation.mutate({});
+    placeOrderMutation.mutate();
   };
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
@@ -126,7 +149,7 @@ export function TradePanel({ symbol, currentPrice, type = 'spot' }: TradePanelPr
           onClick={handleSubmit}
           disabled={placeOrderMutation.isPending || !wallet.isConnected}
         >
-          {isSessionAuthorized ? 'Place Order' : 'Authorize Session'}
+          Place Order
         </Button>
       </CardContent>
     </Card>

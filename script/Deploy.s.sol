@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 import "../contracts/spot/VaultSpot.sol";
-import "../contracts/spot/SpotRouter.sol";
+import "../contracts/spot/IntentSpotRouter.sol";
 import "../contracts/spot/FeeController.sol";
 import "../contracts/spot/adapters/PancakeV3Adapter.sol";
 import "../contracts/spot/adapters/UniswapV2Adapter.sol";
@@ -35,8 +35,8 @@ contract Deploy is Script {
         // Default fees: 0.1% base fee, 1% max fee
         FeeController feeController = new FeeController(deployerAddress, multisig, 20, 100);
 
-        // 3. Deploy SpotRouter
-        SpotRouter router = new SpotRouter(address(vault), address(feeController));
+        // 3. Deploy IntentSpotRouter
+        IntentSpotRouter router = new IntentSpotRouter(address(vault), address(feeController), "IntentSpotRouter", "1.0");
 
         // 4. Deploy Adapters
         PancakeV3Adapter pancakeV3Adapter = new PancakeV3Adapter();

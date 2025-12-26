@@ -115,12 +115,11 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
 
         vault.debit(intent.user, intent.tokenIn, intent.amountIn);
 
+        _pullTokensFromVault(intent.tokenIn, intent.amountIn);
+
         if (feeAmount > 0) {
-            _pullTokensFromVault(intent.tokenIn, feeAmount);
             IERC20(intent.tokenIn).safeTransfer(feeRecipient, feeAmount);
         }
-
-        _pullTokensFromVault(intent.tokenIn, amountInAfterFee);
 
         IAdapter adapter = IAdapter(intent.adapter);
         IERC20(intent.tokenIn).approve(address(adapter), amountInAfterFee);
