@@ -1,12 +1,12 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { useWallet } from '@/contexts/WalletContext';
+import { useWallets, usePrivy } from '@privy-io/react-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { placeOrder, getTokens } from '@/lib/api';
@@ -25,20 +25,29 @@ export function TradePanel({ symbol, currentPrice, type = 'spot', disabled = fal
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(currentPrice);
   const [amount, setAmount] = useState('');
-  const [leverage, setLeverage] = useState([1]);
   const { wallet } = useWallet();
+  const { wallets } = useWallets();
+  const { ready, authenticated } = usePrivy();
   const { toast } = useToast();
 
+  const isWalletReady = ready && authenticated && wallets.length > 0;
+
   const { data: tokenAddresses } = useQuery({
-    queryKey: ['/api/tokens', wallet.chainId], 
-    queryFn: () => getTokens(wallet.chainId?.toString() || '8453'), 
+    queryKey: ['/api/tokens', wallet.chainId],
+    queryFn: () => getTokens(wallet.chainId?.toString() || '8453'),
     enabled: !!wallet.chainId,
   });
 
   const placeOrderMutation = useMutation({
     mutationFn: async () => {
-      if (!wallet.signer) throw new Error('Wallet not connected');
+      const connectedWallet = wallets[0];
+      if (!isWalletReady || !connectedWallet) throw new Error('Wallet not ready or not connected');
       if (!tokenAddresses) throw new Error('Token addresses not loaded');
+
+      const provider = await connectedWallet.getEthersProvider();
+      const signer = provider.getSigner();
+
+      const { chainId } = await provider.getNetwork();
 
       const [baseAsset, quoteAsset] = symbol.split('/');
 
@@ -46,7 +55,7 @@ export function TradePanel({ symbol, currentPrice, type = 'spot', disabled = fal
       const tokenOut = side === 'buy' ? baseAsset : quoteAsset;
 
       const intent = {
-        user: wallet.address,
+        user: connectedWallet.address,
         tokenIn: tokenAddresses[tokenIn],
         tokenOut: tokenAddresses[tokenOut],
         amountIn: ethers.parseUnits(amount, 6).toString(),
@@ -57,8 +66,8 @@ export function TradePanel({ symbol, currentPrice, type = 'spot', disabled = fal
       const domain = {
         name: 'IntentSpotRouter',
         version: '1',
-        chainId: await wallet.signer.getChainId(),
-        verifyingContract: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9', 
+        chainId: chainId,
+        verifyingContract: '0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9',
       };
 
       const types = {
@@ -72,7 +81,7 @@ export function TradePanel({ symbol, currentPrice, type = 'spot', disabled = fal
         ],
       };
 
-      const signature = await wallet.signer.signTypedData(domain, types, intent);
+      const signature = await signer.signTypedData(domain, types, intent);
 
       return placeOrder({ intent, signature });
     },
@@ -105,10 +114,17 @@ export function TradePanel({ symbol, currentPrice, type = 'spot', disabled = fal
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 
+  const getButtonText = () => {
+    if (disabled) return 'Coming Soon';
+    if (!ready || !authenticated) return 'Wallet Not Connected';
+    if (!isWalletReady) return 'Wallet Loading...';
+    return 'Place Order';
+  }
+
   return (
     <Card className="h-full">
       <CardContent className="p-4">
-        <Tabs value={side} onValueChange={(v) => setSide(v as any)} className="mb-4">
+        <Tabs value={side} onValueChange={(v) => setSide(v as 'buy' | 'sell')} className="mb-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="buy">Buy</TabsTrigger>
             <TabsTrigger value="sell">Sell</TabsTrigger>
@@ -116,19 +132,13 @@ export function TradePanel({ symbol, currentPrice, type = 'spot', disabled = fal
         </Tabs>
 
         <div className="mb-4">
-          <Tabs value={orderType} onValueChange={(v) => setOrderType(v as any)}>
+          <Tabs value={orderType} onValueChange={(v) => setOrderType(v as 'limit' | 'market')}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="limit">Limit</TabsTrigger>
               <TabsTrigger value="market">Market</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
-
-        {type === 'futures' && (
-          <div className="mb-4">
-            {/* ... Leverage UI ... */}
-          </div>
-        )}
 
         {orderType === 'limit' && (
           <div className="mb-4">
@@ -149,9 +159,9 @@ export function TradePanel({ symbol, currentPrice, type = 'spot', disabled = fal
         <Button
           className="w-full"
           onClick={handleSubmit}
-          disabled={disabled || placeOrderMutation.isPending || !wallet.isConnected}
+          disabled={disabled || placeOrderMutation.isPending || !isWalletReady}
         >
-          {disabled ? 'Coming Soon' : 'Place Order'}
+          {getButtonText()}
         </Button>
       </CardContent>
     </Card>
