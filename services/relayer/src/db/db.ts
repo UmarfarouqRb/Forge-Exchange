@@ -1,89 +1,122 @@
-import sqlite3 from 'sqlite3';
+import { Pool } from 'pg';
 
-const db = new sqlite3.Database('./db/database.sqlite');
-
-db.serialize(() => {
-    db.run("CREATE TABLE IF NOT EXISTS sessions (sessionKey TEXT, expiration INTEGER)");
-    db.run("CREATE TABLE IF NOT EXISTS users (address TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS chain (id INTEGER)");
-    db.run('CREATE TABLE IF NOT EXISTS orders (id TEXT, user TEXT, tokenIn TEXT, tokenOut TEXT, amountIn TEXT, minAmountOut TEXT, nonce INTEGER, status TEXT, symbol TEXT, side TEXT, price TEXT, amount TEXT, total TEXT, createdAt INTEGER)');
-
-    db.run("INSERT INTO users (address) VALUES ('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266')");
-    db.run("INSERT INTO chain (id) VALUES (1337)");
+const pool = new Pool({
+    // Replace with your PostgreSQL connection details
+    user: 'user',
+    host: 'localhost',
+    database: 'relayer',
+    password: 'password',
+    port: 5432,
 });
 
+export interface Order {
+    id: string;
+    user: string;
+    tokenIn: string;
+    tokenOut: string;
+    amountIn: string;
+    minAmountOut: string;
+    nonce: number;
+    status: string;
+    symbol: string;
+    side: string;
+    price: string;
+    amount: string;
+    total: string;
+    createdAt: number;
+}
+
+const initializeDatabase = async () => {
+    const client = await pool.connect();
+    try {
+        await client.query("CREATE TABLE IF NOT EXISTS sessions (sessionKey TEXT, expiration INTEGER)");
+        await client.query("CREATE TABLE IF NOT EXISTS users (address TEXT)");
+        await client.query("CREATE TABLE IF NOT EXISTS chain (id INTEGER)");
+        await client.query('CREATE TABLE IF NOT EXISTS orders (id TEXT, user TEXT, tokenIn TEXT, tokenOut TEXT, amountIn TEXT, minAmountOut TEXT, nonce INTEGER, status TEXT, symbol TEXT, side TEXT, price TEXT, amount TEXT, total TEXT, createdAt INTEGER)');
+
+        // Clear existing data before inserting new data
+        await client.query("DELETE FROM users");
+        await client.query("DELETE FROM chain");
+
+        await client.query("INSERT INTO users (address) VALUES ('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266')");
+        await client.query("INSERT INTO chain (id) VALUES (1337)");
+    } catch (err) {
+        console.error("Error initializing database:", err);
+    } finally {
+        client.release();
+    }
+};
+
+initializeDatabase();
+
 export const getChainId = async (): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        db.get("SELECT id FROM chain", (err, row: any) => {
-            if (err) {
-                reject(err);
-            }
-            resolve(row.id);
-        });
-    });
+    try {
+        const res = await pool.query("SELECT id FROM chain");
+        if (res.rows.length > 0) {
+            return res.rows[0].id;
+        } else {
+            throw new Error("Chain ID not found in database.");
+        }
+    } catch (err) {
+        console.error("Error getting chain ID from DB:", err);
+        throw new Error("Failed to get chain ID from database.");
+    }
 };
 
 export const getUserAddress = async (): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        db.get("SELECT address FROM users", (err, row: any) => {
-            if (err) {
-                reject(err);
-            }
-            resolve(row.address);
-        });
-    });
+    try {
+        const res = await pool.query("SELECT address FROM users");
+        if (res.rows.length > 0) {
+            return res.rows[0].address;
+        } else {
+            throw new Error("User address not found in database.");
+        }
+    } catch (err) {
+        console.error("Error getting user address from DB:", err);
+        throw new Error("Failed to get user address from database.");
+    }
 };
 
 export const saveSession = async (sessionKey: string, expiration: number): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        db.run("INSERT INTO sessions (sessionKey, expiration) VALUES (?, ?)", [sessionKey, expiration], (err) => {
-            if (err) {
-                reject(err);
-            }
-            resolve();
-        });
-    });
+    try {
+        await pool.query("INSERT INTO sessions (sessionKey, expiration) VALUES ($1, $2)", [sessionKey, expiration]);
+    } catch (err) {
+        console.error("Error saving session to DB:", err);
+        throw new Error("Failed to save session to database.");
+    }
 };
 
-export const getOrders = async (address: string): Promise<any[]> => {
-    return new Promise((resolve, reject) => {
-        db.all("SELECT * FROM orders WHERE user = ?", [address], (err, rows) => {
-            if (err) {
-                reject(err);
-            }
-            resolve(rows);
-        });
-    });
+export const getOrders = async (address: string): Promise<Order[]> => {
+    try {
+        const res = await pool.query("SELECT * FROM orders WHERE user = $1", [address]);
+        return res.rows;
+    } catch (err) {
+        console.error("Error getting orders from DB:", err);
+        throw new Error("Failed to get orders from database.");
+    }
 };
 
 export const saveOrder = async (intent: any): Promise<void> => {
     const { id, user, tokenIn, tokenOut, amountIn, minAmountOut, nonce } = intent;
-    // NOTE: The other fields (status, symbol, etc.) are not part of the core intent
-    // and would be added based on context or execution results.
     const status = "PENDING"; 
     const createdAt = Math.floor(Date.now() / 1000);
     
-    return new Promise((resolve, reject) => {
-        db.run(
-            "INSERT INTO orders (id, user, tokenIn, tokenOut, amountIn, minAmountOut, nonce, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [id, user, tokenIn, tokenOut, amountIn.toString(), minAmountOut.toString(), nonce, status, createdAt], 
-            (err) => {
-                if (err) {
-                    reject(err);
-                }
-                resolve();
-            }
+    try {
+        await pool.query(
+            "INSERT INTO orders (id, user, tokenIn, tokenOut, amountIn, minAmountOut, nonce, status, createdAt) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+            [id, user, tokenIn, tokenOut, amountIn.toString(), minAmountOut.toString(), nonce, status, createdAt]
         );
-    });
+    } catch (err) {
+        console.error("Error saving order to DB:", err);
+        throw new Error("Failed to save order to database.");
+    }
 };
 
 export const updateOrderStatus = async (orderId: string, status: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        db.run("UPDATE orders SET status = ? WHERE id = ?", [status, orderId], (err) => {
-            if (err) {
-                reject(err);
-            }
-            resolve();
-        });
-    });
+    try {
+        await pool.query("UPDATE orders SET status = $1 WHERE id = $2", [status, orderId]);
+    } catch (err) {
+        console.error("Error updating order status in DB:", err);
+        throw new Error("Failed to update order status in database.");
+    }
 };

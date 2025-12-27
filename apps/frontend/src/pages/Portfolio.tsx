@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getAssets } from '@/lib/api';
 import { useWallet } from '@/contexts/WalletContext';
+import { Deposit } from '@/components/Deposit';
+import { Withdraw } from '@/components/Withdraw';
 
 // Define a type for our asset object
 interface Asset {
@@ -41,25 +43,31 @@ export default function Portfolio() {
 
   return (
     <div className="container mx-auto p-4">
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle>Portfolio Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <p className="text-muted-foreground">Total Balance</p>
-              <p className="text-2xl font-bold">${totalValue.toLocaleString()}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <p className="text-muted-foreground">Total Balance</p>
+                <p className="text-2xl font-bold">${totalValue.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">24h Change</p>
+                <p className={`text-2xl font-bold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                  {change >= 0 ? '+' : ''}${change.toFixed(2)}%
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-muted-foreground">24h Change</p>
-              <p className={`text-2xl font-bold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {change >= 0 ? '+' : ''}${change.toFixed(2)}%
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        <div className="grid grid-cols-1 gap-4">
+            <Deposit />
+            <Withdraw />
+        </div>
+      </div>
 
       <Tabs defaultValue="spot">
         <TabsList>

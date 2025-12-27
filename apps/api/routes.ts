@@ -1,9 +1,31 @@
+
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { Order } from "@shared/schema";
+import { Relayer } from "../relayer"; // Import the Relayer
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const relayer = new Relayer(); // Instantiate the Relayer
+
+  // --- Spot Trading Route ---
+  app.post("/api/spot/trade", async (req: Request, res: Response) => {
+    try {
+      const { intent, signature } = req.body;
+      // Basic validation
+      if (!intent || !signature) {
+        return res.status(400).json({ error: "Missing intent or signature" });
+      }
+      const txHash = await relayer.executeSpotTrade(intent, signature);
+      res.status(201).json({ message: "Trade executed successfully", txHash });
+    } catch (error: any) {
+      console.error("Spot trade execution failed:", error);
+      res.status(500).json({ error: error.message || "Failed to execute trade" });
+    }
+  });
+
+  // --- Original Routes ---
+  // ... (all the other routes from the original file)
   // Trading Pairs Routes
   app.get("/api/trading-pairs", async (req: Request, res: Response) => {
     try {
@@ -82,7 +104,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const basePrice = parseFloat(pair.currentPrice);
       
-      // Generate simulated order book data
       const bids = Array.from({ length: 20 }, (_, i) => ({
         price: (basePrice - i * (basePrice * 0.0002)).toFixed(2),
         amount: (Math.random() * 2).toFixed(4),

@@ -30,7 +30,11 @@ function Router() {
 }
 
 function App() {
-  const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
+  // For debugging deployment issues, you can temporarily hardcode your Privy App ID here.
+  // IMPORTANT: Do NOT commit your real App ID to the repository.
+  const hardcodedPrivyAppId = "cmjnclmna01p3jp0cnq2kjlfr"; // PASTE YOUR PRIVY APP ID HERE FOR TESTING
+  
+  const privyAppId = import.meta.env.VITE_PRIVY_APP_ID || hardcodedPrivyAppId;
 
   if (!privyAppId) {
     return (
@@ -38,7 +42,7 @@ function App() {
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Privy App ID is not set.</h1>
           <p className="text-muted-foreground">
-            Please set the VITE_PRIVY_APP_ID environment variable.
+            Please set the VITE_PRIVY_APP_ID environment variable or hardcode it in App.tsx for testing.
           </p>
         </div>
       </div>

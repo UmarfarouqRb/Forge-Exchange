@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { ethers } from 'ethers';
-import { relayerConfig } from '../config/config';
+import { relayerConfig } from '../config';
 import { getChainId, getUserAddress, saveSession } from '../db/db';
 
 export async function authorizeSession(req: Request, res: Response) {
