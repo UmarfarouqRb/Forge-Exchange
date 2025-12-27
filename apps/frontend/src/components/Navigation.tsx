@@ -17,8 +17,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import forgeLightLogo from '@assets/1761614392004_1761638995733.jpg';
-import forgeDarkLogo from '@assets/1761614576584_1761638995664.jpg';
 
 const navItems = [
   { path: '/', label: 'Home', icon: FiHome },
@@ -39,12 +37,12 @@ export function Navigation() {
         <div className="flex items-center gap-2 md:gap-8">
           <Link href="/" className="flex items-center gap-2 md:gap-3 hover-elevate px-2 md:px-3 py-2 rounded-md" data-testid="link-home-logo">
             <img 
-              src={forgeLightLogo} 
+              src="/assets/1761614392004_1761638995733.jpg" 
               alt="Forge Logo" 
               className="w-24 h-24 md:w-16 md:h-16 object-contain dark:hidden"
             />
             <img 
-              src={forgeDarkLogo} 
+              src="/assets/1761614576584_1761638995664.jpg" 
               alt="Forge Logo" 
               className="w-14 h-14 md:w-16 md:h-16 object-contain hidden dark:block"
             />
@@ -108,7 +106,7 @@ export function Navigation() {
               className="text-xs md:text-sm px-2 md:px-4"
               data-testid="button-wallet-connect"
             >
-              {isConnecting ? 'Connecting...' : 'Connect'}
+              {isConnecting ? 'Connecting...' : 'Connecting'}
             </Button>
           )}
         </div>

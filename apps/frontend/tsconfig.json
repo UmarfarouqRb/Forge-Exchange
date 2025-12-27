@@ -4,7 +4,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@assets/*": ["../attached_assets/*"],
       "@shared/*": ["../../packages/shared-types/*"]
     },
     "jsx": "react-jsx"
