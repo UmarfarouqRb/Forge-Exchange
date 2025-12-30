@@ -1,0 +1,13 @@
+{
+  "name": "@forge/crypto",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@noble/secp256k1": "2.0.0",
+    "viem": "2.43.1"
+  }
+}

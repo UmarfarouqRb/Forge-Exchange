@@ -1,10 +1,7 @@
 {
-  "include": ["apps/frontend/src/**/*", "packages/shared-types/**/*", "apps/api/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
-    "noEmit": true,
     "module": "ESNext",
     "strict": true,
     "lib": ["esnext", "dom", "dom.iterable"],
@@ -12,11 +9,6 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "baseUrl": ".",
-    "types": ["node", "vite/client"],
-    "paths": {
-      "@/*": ["./apps/frontend/src/*"],
-      "@shared/*": ["./packages/shared-types/*"]
-    }
+    "baseUrl": "."
   }
 }

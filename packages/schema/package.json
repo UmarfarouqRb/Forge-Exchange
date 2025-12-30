@@ -1,8 +1,13 @@
 {
-  "name": "@shared/schema",
+  "name": "@forge/db",
   "version": "1.0.0",
-  "main": "src/index.ts",
+  "main": "./schema.ts",
+  "types": "./schema.ts",
+  "scripts": {
+    "check": "tsc --noEmit"
+  },
   "dependencies": {
-    "zod": "^3.24.2"
+    "drizzle-orm": "0.38.4",
+    "drizzle-zod": "0.6.0"
   }
 }

@@ -5,18 +5,17 @@
   "license": "MIT",
   "workspaces": [
     "apps/*",
-    "services/*",
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --",
     "build": "turbo run build --filter=!indexer",
     "start": "turbo run start",
     "check": "turbo run check",
     "db:push": "turbo run db:push",
     "lint": "turbo run lint",
     "install:services": "npm install --workspaces --if-present",
-    "start:services": "turbo run start --filter='./services/*'"
+    "start:services": "turbo run start --filter='./apps/relayer'"
   },
   "overrides": {
     "drizzle-kit": "latest",
@@ -25,7 +24,8 @@
     "drizzle-zod": "0.6.0"
   },
   "devDependencies": {
-    "turbo": "^2.6.3"
+    "turbo": "^2.6.3",
+    "@typechain/ethers-v6": "^0.5.1"
   },
   "packageManager": "npm@10.8.1",
   "dependencies": {

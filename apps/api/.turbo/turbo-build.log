@@ -2,3 +2,24 @@
 > api@1.0.0 build
 > tsc
 
+db.ts(6,25): error TS2307: Cannot find module '../../packages/shared-types/schema' or its corresponding type declarations.
+routes.ts(6,25): error TS2307: Cannot find module '../relayer' or its corresponding type declarations.
+storage.ts(2,8): error TS2305: Module '"@shared/schema"' has no exported member 'TradingPair'.
+storage.ts(3,8): error TS2305: Module '"@shared/schema"' has no exported member 'InsertTradingPair'.
+storage.ts(4,8): error TS2305: Module '"@shared/schema"' has no exported member 'MarketData'.
+storage.ts(5,8): error TS2305: Module '"@shared/schema"' has no exported member 'InsertMarketData'.
+storage.ts(7,8): error TS2305: Module '"@shared/schema"' has no exported member 'InsertOrder'.
+storage.ts(8,8): error TS2305: Module '"@shared/schema"' has no exported member 'Asset'.
+storage.ts(9,8): error TS2305: Module '"@shared/schema"' has no exported member 'InsertAsset'.
+storage.ts(10,8): error TS2305: Module '"@shared/schema"' has no exported member 'Transaction'.
+storage.ts(11,8): error TS2305: Module '"@shared/schema"' has no exported member 'InsertTransaction'.
+storage.ts(328,24): error TS2339: Property 'walletAddress' does not exist on type '{ symbol: string; user: string; id: string; pair: string; side: "buy" | "sell"; status: "filled" | "open" | "canceled"; type: "limit" | "market"; price: string; amount: string; filled: string; createdAt: string; total: string; leverage?: string | undefined; }'.
+storage.ts(331,45): error TS2339: Property 'category' does not exist on type '{ symbol: string; user: string; id: string; pair: string; side: "buy" | "sell"; status: "filled" | "open" | "canceled"; type: "limit" | "market"; price: string; amount: string; filled: string; createdAt: string; total: string; leverage?: string | undefined; }'.
+storage.ts(358,7): error TS2322: Type 'string' is not assignable to type '"filled" | "open" | "canceled"'.
+npm error Lifecycle script `build` failed with error:
+npm error code 2
+npm error path /home/user/Forge-Exchange/apps/api
+npm error workspace api@1.0.0
+npm error location /home/user/Forge-Exchange/apps/api
+npm error command failed
+npm error command sh -c tsc

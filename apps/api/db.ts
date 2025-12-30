@@ -3,7 +3,7 @@ import { Redis } from '@upstash/redis';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import * as schema from '../../packages/shared-types/schema';
+import * as schema from '@shared/schema';
 
 // --- PostgreSQL (Supabase) Client ---
 

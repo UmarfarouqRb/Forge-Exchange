@@ -29,7 +29,7 @@ export interface IStorage {
   getOrdersByWallet(walletAddress: string, category?: string): Promise<Order[]>;
   getOrderById(id: string): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
-  updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
+  updateOrderStatus(id: string, status: "open" | "filled" | "canceled"): Promise<Order | undefined>;
 
   // Assets
   getAssetsByWallet(walletAddress: string): Promise<Asset[]>;
@@ -226,6 +226,7 @@ export class MemStorage implements IStorage {
         amount: "1.00000000",
         status: "completed",
         txHash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+        timestamp: new Date().toISOString(),
       },
       {
         walletAddress: sampleWallet,
@@ -234,6 +235,7 @@ export class MemStorage implements IStorage {
         amount: "5.00000000",
         status: "completed",
         txHash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+        timestamp: new Date().toISOString(),
       },
       {
         walletAddress: sampleWallet,
@@ -242,6 +244,7 @@ export class MemStorage implements IStorage {
         amount: "10000.00000000",
         status: "completed",
         txHash: "0x567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234",
+        timestamp: new Date().toISOString(),
       },
     ];
 
@@ -252,7 +255,7 @@ export class MemStorage implements IStorage {
         id,
         status: tx.status || "completed",
         txHash: tx.txHash || null,
-        timestamp: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+        timestamp: tx.timestamp,
       };
       this.transactions.set(id, transaction);
     });
@@ -315,7 +318,7 @@ export class MemStorage implements IStorage {
 
   async createMarketData(insertData: InsertMarketData): Promise<MarketData> {
     const id = randomUUID();
-    const data: MarketData = { ...insertData, id };
+    const data: MarketData = { ...insertData, id, timestamp: new Date() };
     const existing = this.marketData.get(insertData.symbol) || [];
     existing.push(data);
     this.marketData.set(insertData.symbol, existing);
@@ -325,10 +328,15 @@ export class MemStorage implements IStorage {
   // Orders
   async getOrdersByWallet(walletAddress: string, category?: string): Promise<Order[]> {
     const orders = Array.from(this.orders.values()).filter(
-      (order) => order.walletAddress === walletAddress
+      (order) => order.user === walletAddress
     );
     if (category) {
-      return orders.filter((order) => order.category === category);
+      const lowerCategory = category.toLowerCase();
+      if (lowerCategory === 'spot') {
+        return orders.filter((order) => !order.leverage);
+      } else if (lowerCategory === 'futures') {
+        return orders.filter((order) => !!order.leverage);
+      }
     }
     return orders;
   }
@@ -342,17 +350,15 @@ export class MemStorage implements IStorage {
     const order: Order = {
       ...insertOrder,
       id,
-      status: insertOrder.status || "pending",
-      category: insertOrder.category || "spot",
-      price: insertOrder.price || null,
-      leverage: insertOrder.leverage || null,
-      createdAt: new Date(),
+      status: "open",
+      filled: "0",
+      createdAt: new Date().toISOString(),
     };
     this.orders.set(id, order);
     return order;
   }
 
-  async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
+  async updateOrderStatus(id: string, status: "open" | "filled" | "canceled"): Promise<Order | undefined> {
     const order = this.orders.get(id);
     if (order) {
       order.status = status;
@@ -411,7 +417,7 @@ export class MemStorage implements IStorage {
   ): Promise<Transaction[]> {
     return Array.from(this.transactions.values())
       .filter((tx) => tx.walletAddress === walletAddress)
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, limit);
   }
 
@@ -422,7 +428,7 @@ export class MemStorage implements IStorage {
       id,
       status: insertTransaction.status || "completed",
       txHash: insertTransaction.txHash || null,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
     this.transactions.set(id, transaction);
     return transaction;

@@ -3,7 +3,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { Order } from "@shared/schema";
-import { Relayer } from "../relayer"; // Import the Relayer
+import Relayer from "relayer"; // Import the Relayer
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const relayer = new Relayer(); // Instantiate the Relayer
@@ -233,6 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: depositAmount.toString(),
         status: "completed",
         txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+        timestamp: new Date().toISOString(),
       });
 
       // Update asset balance
@@ -310,6 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: withdrawAmount.toString(),
         status: "completed",
         txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
+        timestamp: new Date().toISOString(),
       });
 
       // Update asset balance (deduct withdrawal + fee)
