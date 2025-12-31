@@ -8,6 +8,17 @@ interface TradingChartProps {
   symbol: string;
 }
 
+// Define a basic interface for the TradingView widget
+interface TradingViewWidget {
+  remove: () => void;
+  // Add other properties and methods as needed
+}
+
+// Define a basic interface for the TradingView object on the window
+interface TradingView {
+  widget: new (options: Record<string, unknown>) => TradingViewWidget;
+}
+
 let chartIdCounter = 0;
 let tradingViewScriptPromise: Promise<void> | null = null;
 
@@ -16,7 +27,7 @@ function loadTradingViewScript(): Promise<void> {
     return tradingViewScriptPromise;
   }
 
-  if ((window as any).TradingView) {
+  if ((window as { TradingView?: TradingView }).TradingView) {
     return Promise.resolve();
   }
 
@@ -35,7 +46,7 @@ function loadTradingViewScript(): Promise<void> {
 export function TradingChart({ symbol }: TradingChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [chartId] = useState(() => `tradingview_chart_${++chartIdCounter}`);
-  const widgetRef = useRef<any>(null);
+  const widgetRef = useRef<TradingViewWidget | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -44,7 +55,7 @@ export function TradingChart({ symbol }: TradingChartProps) {
       try {
         await loadTradingViewScript();
         
-        if (!isMounted || !containerRef.current || !(window as any).TradingView) {
+        if (!isMounted || !containerRef.current || !(window as { TradingView?: TradingView }).TradingView) {
           return;
         }
 
@@ -53,7 +64,7 @@ export function TradingChart({ symbol }: TradingChartProps) {
           widgetRef.current = null;
         }
 
-        widgetRef.current = new (window as any).TradingView.widget({
+        widgetRef.current = new ((window as { TradingView: TradingView }).TradingView.widget)({
           autosize: true,
           symbol: `BINANCE:${symbol}`,
           interval: '60',

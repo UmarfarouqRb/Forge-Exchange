@@ -1,76 +1,5 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-
-export type Chain = {
-  id: string;
-  name: string;
-  chainId: number;
-  rpcUrl: string;
-  nativeCurrency: {
-    name: string;
-    symbol: string;
-    decimals: number;
-  };
-  blockExplorerUrl: string;
-};
-
-export const SUPPORTED_CHAINS: Chain[] = [
-  {
-    id: "base",
-    name: "Base",
-    chainId: 8453,
-    rpcUrl: "https://mainnet.base.org",
-    nativeCurrency: {
-      name: "Ethereum",
-      symbol: "ETH",
-      decimals: 18,
-    },
-    blockExplorerUrl: "https://basescan.org",
-  },
-  {
-    id: "bnb",
-    name: "BNB Chain",
-    chainId: 56,
-    rpcUrl: "https://bsc-dataseed.binance.org",
-    nativeCurrency: {
-      name: "BNB",
-      symbol: "BNB",
-      decimals: 18,
-    },
-    blockExplorerUrl: "https://bscscan.com",
-  },
-  {
-    id: "arb",
-    name: "Arbitrum",
-    chainId: 42161,
-    rpcUrl: "https://arb1.arbitrum.io/rpc",
-    nativeCurrency: {
-      name: "Ethereum",
-      symbol: "ETH",
-      decimals: 18,
-    },
-    blockExplorerUrl: "https://arbiscan.io",
-  },
-  {
-    id: "sui",
-    name: "SUI (Coming Soon)",
-    chainId: 101,
-    rpcUrl: "https://fullnode.mainnet.sui.io",
-    nativeCurrency: {
-      name: "SUI",
-      symbol: "SUI",
-      decimals: 9,
-    },
-    blockExplorerUrl: "https://explorer.sui.io",
-  },
-];
-
-type ChainContextType = {
-  selectedChain: Chain;
-  setSelectedChain: (chain: Chain) => void;
-  switchChain: (chainId: string) => Promise<void>;
-};
-
-const ChainContext = createContext<ChainContextType | undefined>(undefined);
+import { useState, ReactNode, useEffect } from "react";
+import { ChainContext, SUPPORTED_CHAINS, Chain } from "./chain-context"
 
 export function ChainProvider({ children }: { children: ReactNode }) {
   const [selectedChain, setSelectedChainState] = useState<Chain>(SUPPORTED_CHAINS[0]);
@@ -107,8 +36,8 @@ export function ChainProvider({ children }: { children: ReactNode }) {
           params: [{ chainId: `0x${chain.chainId.toString(16)}` }],
         });
         setSelectedChain(chain);
-      } catch (error: any) {
-        if (error.code === 4902) {
+      } catch (error: unknown) {
+        if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: unknown }).code === 4902) {
           try {
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
@@ -139,11 +68,3 @@ export function ChainProvider({ children }: { children: ReactNode }) {
     </ChainContext.Provider>
   );
 }
-
-export const useChain = () => {
-  const context = useContext(ChainContext);
-  if (context === undefined) {
-    throw new Error("useChain must be used within a ChainProvider");
-  }
-  return context;
-};

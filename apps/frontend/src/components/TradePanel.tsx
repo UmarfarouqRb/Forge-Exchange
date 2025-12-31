@@ -13,11 +13,10 @@ import { useSubmitIntent } from '@/hooks/useSubmitIntent';
 interface TradePanelProps {
   symbol: string;
   currentPrice: string;
-  type?: 'spot' | 'futures';
   disabled?: boolean;
 }
 
-export function TradePanel({ symbol, currentPrice, type = 'spot', disabled = false }: TradePanelProps) {
+export function TradePanel({ symbol, currentPrice, disabled = false }: TradePanelProps) {
   const [orderType, setOrderType] = useState<'limit' | 'market'>('limit');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(currentPrice);

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/hooks/use-wallet';
 import { formatAddress } from '@/lib/wallet';
 import { ChainSelector } from '@/components/ChainSelector';
 import {

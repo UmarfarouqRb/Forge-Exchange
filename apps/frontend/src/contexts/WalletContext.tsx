@@ -1,52 +1,75 @@
-import { createContext, useContext, useEffect, ReactNode } from 'react';
+import { useEffect, ReactNode, useState, useCallback } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useToast } from '@/hooks/use-toast';
-
-export type WalletState = {
-  address: string | null;
-  isConnected: boolean;
-  chainId: string | null;
-  balance: string | null;
-};
-
-type WalletContextType = {
-  wallet: WalletState;
-  connect: () => Promise<void>;
-  disconnect: () => void;
-  isConnecting: boolean;
-};
-
-const WalletContext = createContext<WalletContextType | undefined>(undefined);
-
+import { ethers } from 'ethers';
+import { WalletContext, WalletState } from './wallet-context';
 export function WalletProvider({ children }: { children: ReactNode }) {
   const { ready, authenticated, login, logout } = usePrivy();
   const { wallets } = useWallets();
   const { toast } = useToast();
 
-  const wallet: WalletState = {
-    address: wallets[0]?.address || null,
-    isConnected: authenticated && wallets.length > 0,
-    chainId: wallets[0]?.chainId?.toString() || null,
+  const embeddedWallet = wallets.find((wallet) => wallet.walletClientType === 'privy');
+
+  const [wallet, setWallet] = useState<WalletState>({
+    address: null,
+    isConnected: false,
+    chainId: null,
     balance: null,
-  };
+    signer: null,
+  });
+
+  const getSigner = useCallback(async () => {
+    if (!embeddedWallet) return null;
+    await embeddedWallet.switchChain(1);
+    const provider = await embeddedWallet.getEthereumProvider();
+    
+    return new ethers.BrowserProvider(provider).getSigner();
+  }, [embeddedWallet]);
 
   useEffect(() => {
-    if (authenticated && wallets.length > 0) {
-      const address = wallets[0].address;
-      toast({
-        title: 'Wallet Connected',
-        description: `Connected to ${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
-      });
-    }
-  }, [authenticated, wallets]);
+    const updateUserWallet = async () => {
+      const isConnected = authenticated && !!embeddedWallet;
+      if (ready && isConnected) {
+        const address = embeddedWallet.address;
+        const signer = await getSigner();
+        setWallet({
+          address: address,
+          isConnected: true,
+          chainId: embeddedWallet.chainId.toString(),
+          balance: null, // or fetch balance
+          signer: signer,
+        });
+
+        toast({
+          title: 'Wallet Connected',
+          description: `Connected to ${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+        });
+      } else if (ready && !authenticated) {
+        setWallet({
+            address: null,
+            isConnected: false,
+            chainId: null,
+            balance: null,
+            signer: null,
+        });
+      }
+    };
+
+    updateUserWallet();
+  }, [ready, authenticated, embeddedWallet, getSigner, toast]);
+
 
   const connect = async () => {
     try {
       await login();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      let errorMessage = 'Failed to connect wallet';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       toast({
         title: 'Connection Failed',
-        description: error.message || 'Failed to connect wallet',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
@@ -66,11 +89,3 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     </WalletContext.Provider>
   );
 }
-
-export const useWallet = () => {
-  const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error('useWallet must be used within a WalletProvider');
-  }
-  return context;
-};

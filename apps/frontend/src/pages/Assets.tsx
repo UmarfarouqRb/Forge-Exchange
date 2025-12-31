@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +9,7 @@ import { FiSearch, FiDownload, FiUpload, FiEye, FiEyeOff } from 'react-icons/fi'
 import { useState } from 'react';
 import { DepositDialog } from '@/components/DepositDialog';
 import { WithdrawDialog } from '@/components/WithdrawDialog';
-import type { Asset, Transaction } from '@shared/schema';
+import type { Asset, Transaction } from '../types';
 
 export default function Assets() {
   const { wallet } = useWallet();

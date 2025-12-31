@@ -9,13 +9,13 @@ import {
   type InsertAsset,
   type Transaction,
   type InsertTransaction,
-} from "@shared/schema";
+} from "@forge/db";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
   // Trading Pairs
   getAllTradingPairs(category?: string): Promise<TradingPair[]>;
-  getTradingPairBySymbol(symbol: string): Promise<TradingPair | undefined>;
+  getTradingPairBySymbol(symbol: string, category?: string): Promise<TradingPair | undefined>;
   getTrendingPairs(limit?: number): Promise<TradingPair[]>;
   getTopGainers(limit?: number): Promise<TradingPair[]>;
   getTopLosers(limit?: number): Promise<TradingPair[]>;
@@ -55,6 +55,9 @@ export class MemStorage implements IStorage {
     this.assets = new Map();
     this.transactions = new Map();
     this.initializeMockData();
+
+    // Simulate a background price watcher daemon
+    setInterval(() => this.updateMockPrices(), 3000);
   }
 
   private initializeMockData() {
@@ -261,6 +264,17 @@ export class MemStorage implements IStorage {
     });
   }
 
+  // Simulate real-time price fluctuations
+  private updateMockPrices() {
+    this.tradingPairs.forEach((pair) => {
+      const price = parseFloat(pair.currentPrice);
+      // Fluctuate price by a maximum of 0.5%
+      const fluctuation = (Math.random() - 0.5) * 0.01; 
+      const newPrice = price * (1 + fluctuation);
+      pair.currentPrice = newPrice.toFixed(pair.quoteAsset === 'USDT' ? 2 : 8);
+    });
+  }
+
   // Trading Pairs
   async getAllTradingPairs(category?: string): Promise<TradingPair[]> {
     const pairs = Array.from(this.tradingPairs.values());
@@ -270,8 +284,13 @@ export class MemStorage implements IStorage {
     return pairs;
   }
 
-  async getTradingPairBySymbol(symbol: string): Promise<TradingPair | undefined> {
-    return Array.from(this.tradingPairs.values()).find((pair) => pair.symbol === symbol);
+  async getTradingPairBySymbol(
+    symbol: string,
+    category?: string
+  ): Promise<TradingPair | undefined> {
+    return Array.from(this.tradingPairs.values()).find(
+      (p) => p.symbol === symbol && (category ? p.category === category : true)
+    );
   }
 
   async getTrendingPairs(limit: number = 6): Promise<TradingPair[]> {

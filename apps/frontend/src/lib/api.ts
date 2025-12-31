@@ -1,7 +1,7 @@
 
 import { apiRequest } from './queryClient';
 import { ethers } from 'ethers';
-import { Order } from '@shared/schema';
+import type { Order } from '../types';
 
 export const getOrderBook = async (pair: string) => {
   const response = await fetch(`/api/order-book/${pair}`);
@@ -16,7 +16,20 @@ export const getOrders = async (address: string | undefined): Promise<Order[]> =
   return response.json();
 };
 
-export const placeOrder = async (orderData: any) => {
+export type PlaceOrderPayload = {
+    intent: {
+        user: string;
+        tokenIn: string;
+        tokenOut: string;
+        amountIn: string;
+        price: string;
+        amountOutMin: string;
+        nonce: string;
+    };
+    signature: string;
+};
+
+export const placeOrder = async (orderData: PlaceOrderPayload) => {
     return apiRequest('POST', '/api/spot', orderData);
 };
 

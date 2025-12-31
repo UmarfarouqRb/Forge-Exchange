@@ -66,9 +66,15 @@ export function Withdraw() {
       toast({ title: 'Withdrawal Successful', description: `You have successfully withdrawn ${amount} ETH.` });
       setAmount('');
 
-    } catch (error: any) { 
+    } catch (error: unknown) { 
         console.error(error);
-        toast({ title: 'Withdrawal Failed', description: error.reason || error.message || 'An unknown error occurred.', variant: 'destructive' });
+        let errorMessage = 'An unknown error occurred.';
+        if (error instanceof Error) {
+            errorMessage = error.message;
+        } else if (typeof error === 'object' && error !== null && 'reason' in error) {
+            errorMessage = (error as { reason: string }).reason;
+        }
+        toast({ title: 'Withdrawal Failed', description: errorMessage, variant: 'destructive' });
     } finally {
       setIsWithdrawing(false);
     }

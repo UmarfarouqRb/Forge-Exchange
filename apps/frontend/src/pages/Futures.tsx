@@ -9,7 +9,7 @@ import { TradingChart } from '@/components/TradingChart';
 import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
 import { useWallet } from '@/contexts/WalletContext';
-import type { Order } from '@shared/schema';
+import type { Order, TradingPair } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 export default function Futures() {
@@ -17,14 +17,25 @@ export default function Futures() {
   const { wallet } = useWallet();
   const isDesktop = useBreakpoint('md');
 
+  const { data: tradingPair } = useQuery<TradingPair>({
+    queryKey: ['/api/trading-pairs', selectedPair, 'futures'],
+    queryFn: async () => {
+      const response = await fetch(`/api/trading-pairs/${selectedPair}?category=futures`);
+      if (!response.ok) throw new Error('Failed to fetch trading pair');
+      return response.json();
+    },
+    refetchInterval: 3000,
+  });
+
   const { data: orderBookData, isLoading: isOrderBookLoading, isError: isOrderBookError } = useQuery({
     queryKey: ['/api/order-book', selectedPair],
     queryFn: async () => {
-      const response = await fetch(`/api/order-book/${selectedPair}`);
+      const response = await fetch(`/api/order-book/${selectedPair}?category=futures`);
       if (!response.ok) throw new Error('Failed to fetch order book');
       return response.json();
     },
     refetchInterval: 3000,
+    initialData: { bids: [], asks: [] },
   });
 
   const { data: positions, isLoading: arePositionsLoading, isError: arePositionsError } = useQuery<Order[]>({
@@ -36,7 +47,12 @@ export default function Futures() {
       return response.json();
     },
     enabled: wallet.isConnected && !!wallet.address,
+    initialData: [],
   });
+
+  const currentPrice = tradingPair?.currentPrice || '0';
+  const priceChange = tradingPair?.priceChange24h || '0';
+  const volume = tradingPair?.volume24h || '0';
 
   const renderPositions = () => (
     <TabsContent value={!isDesktop ? "positions" : "positions"} className="flex-1 overflow-auto p-2 md:p-4 mt-0">
@@ -110,7 +126,7 @@ export default function Futures() {
                         </div>
                         <div className="font-mono">{position.amount}</div>
                         <div className="md:text-right font-mono">${position.price}</div>
-                        <div className="md:text-right font-mono">$45,234.56</div>
+                        <div className="md:text-right font-mono">${currentPrice}</div>
                         <div className="md:text-right font-mono text-destructive">
                             $40,123.45
                         </div>
@@ -158,15 +174,18 @@ export default function Futures() {
               <div className="text-xs text-muted-foreground">Futures Trading</div>
             </div>
             <div>
-              <div className="text-base md:text-lg font-bold font-mono text-chart-2" data-testid="text-futures-price">
-                $45,234.56
+              <div 
+                className={`text-base md:text-lg font-bold font-mono ${parseFloat(priceChange) >= 0 ? 'text-chart-2' : 'text-chart-1'}`}
+                data-testid="text-futures-price"
+              >
+                ${currentPrice}
               </div>
-              <PriceChange value={2.34} />
+              <PriceChange value={parseFloat(priceChange)} />
             </div>
             <div className="hidden xl:grid grid-cols-4 gap-6 text-sm ml-auto">
               <div>
                 <div className="text-muted-foreground text-xs">Mark Price</div>
-                <div className="font-mono font-medium">$45,230.00</div>
+                <div className="font-mono font-medium">${currentPrice}</div>
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">Funding Rate</div>
@@ -174,7 +193,7 @@ export default function Futures() {
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">24h Volume</div>
-                <div className="font-mono font-medium">3.2B USDT</div>
+                <div className="font-mono font-medium">{(parseFloat(volume) / 1e9).toFixed(2)}B USDT</div>
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">Open Interest</div>
@@ -198,7 +217,7 @@ export default function Futures() {
                 <TradingChart symbol={selectedPair} />
             </TabsContent>
             <TabsContent value="trade" className="overflow-auto">
-                <TradePanel symbol={selectedPair} currentPrice="45234.56" type="futures" disabled={true} />
+                <TradePanel symbol={selectedPair} currentPrice={currentPrice} />
             </TabsContent>
             <TabsContent value="book" className="overflow-hidden">
                 {isOrderBookError ? (
@@ -237,7 +256,7 @@ export default function Futures() {
                             <TradingChart symbol={selectedPair} />
                         </div>
                         <div className="overflow-hidden">
-                            <TradePanel symbol={selectedPair} currentPrice="45234.56" type="futures" disabled={true} />
+                            <TradePanel symbol={selectedPair} currentPrice={currentPrice} />
                         </div>
                     </div>
                     <div className="h-80 flex-shrink-0 overflow-hidden mt-2">

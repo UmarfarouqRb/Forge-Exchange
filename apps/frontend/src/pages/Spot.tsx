@@ -8,8 +8,8 @@ import { TradingChart } from '@/components/TradingChart';
 import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
 import { useWallet } from '@/contexts/WalletContext';
-import { getOrderBook, getOrders } from '@/lib/api';
-import type { Order } from '@shared/schema';
+import { getOrders } from '@/lib/api';
+import type { Order, TradingPair } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 export default function Spot() {
@@ -17,22 +17,41 @@ export default function Spot() {
   const { wallet } = useWallet();
   const isDesktop = useBreakpoint('md');
 
+  const { data: tradingPair } = useQuery<TradingPair>({
+    queryKey: ['/api/trading-pairs', selectedPair, 'spot'],
+    queryFn: async () => {
+      const response = await fetch(`/api/trading-pairs/${selectedPair}?category=spot`);
+      if (!response.ok) throw new Error('Failed to fetch trading pair');
+      return response.json();
+    },
+    refetchInterval: 3000,
+  });
+
   const { data: orderBookData, isLoading: isOrderBookLoading, isError: isOrderBookError } = useQuery({
-    queryKey: ['/api/order-book', selectedPair],
-    queryFn: () => getOrderBook(selectedPair),
+    queryKey: ['/api/order-book', selectedPair, 'spot'],
+    queryFn: async () => {
+        const response = await fetch(`/api/order-book/${selectedPair}?category=spot`);
+        if (!response.ok) throw new Error('Failed to fetch order book');
+        return response.json();
+    },
     refetchInterval: 3000,
   });
 
   const { data: orders, isLoading: areOrdersLoading, isError: areOrdersError } = useQuery<Order[]>({
-    queryKey: ['/api/orders', wallet.address],
+    queryKey: ['/api/orders', wallet.address, 'spot'],
     queryFn: async () => {
       if (!wallet.address) return [];
       return getOrders(wallet.address);
     },
     enabled: wallet.isConnected && !!wallet.address,
+    initialData: [],
   });
 
-  const currentPrice = orderBookData?.bids?.[0]?.price || '0';
+  const currentPrice = tradingPair?.currentPrice || '0';
+  const priceChange = tradingPair?.priceChange24h || '0';
+  const high = tradingPair?.high24h || '0';
+  const low = tradingPair?.low24h || '0';
+  const volume = tradingPair?.volume24h || '0';
 
   const renderOpenOrders = () => (
     <TabsContent value={!isDesktop ? "orders" : "open"} className="flex-1 overflow-auto p-2 md:p-4 mt-0">
@@ -64,7 +83,7 @@ export default function Spot() {
                     <>
                       <div>
                         <div className="font-medium">{order.symbol}</div>
-                        <div className="text-muted-foreground">{new Date(order.createdAt).toLocaleTimeString()}</div>
+                        <div className="text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}</div>
                       </div>
                       <div className="text-right">
                         <div className={`font-mono ${order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}`}>{order.side.toUpperCase()}</div>
@@ -85,7 +104,7 @@ export default function Spot() {
                   ) : (
                     <>
                       <div className="text-muted-foreground md:table-cell">
-                        {new Date(order.createdAt).toLocaleTimeString()}
+                        {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}
                       </div>
                       <div>{order.symbol}</div>
                       <div
@@ -132,23 +151,26 @@ export default function Spot() {
               <div className="text-xs text-muted-foreground">Spot Trading</div>
             </div>
             <div>
-              <div className="text-base md:text-lg font-bold font-mono text-chart-2" data-testid="text-spot-price">
+              <div 
+                className={`text-base md:text-lg font-bold font-mono ${parseFloat(priceChange) >= 0 ? 'text-chart-2' : 'text-chart-1'}`}
+                data-testid="text-spot-price"
+              >
                 ${currentPrice}
               </div>
-              <PriceChange value={2.34} />
+              <PriceChange value={parseFloat(priceChange)} />
             </div>
             <div className="hidden lg:grid grid-cols-3 gap-6 text-sm ml-auto">
               <div>
                 <div className="text-muted-foreground text-xs">24h High</div>
-                <div className="font-mono font-medium">$46,500.00</div>
+                <div className="font-mono font-medium">${high}</div>
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">24h Low</div>
-                <div className="font-mono font-medium">$44,100.00</div>
+                <div className="font-mono font-medium">${low}</div>
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">24h Volume</div>
-                <div className="font-mono font-medium">2.4B USDT</div>
+                <div className="font-mono font-medium">{(parseFloat(volume) / 1e9).toFixed(2)}B USDT</div>
               </div>
             </div>
           </div>
@@ -168,7 +190,7 @@ export default function Spot() {
             <TradingChart symbol={selectedPair} />
           </TabsContent>
           <TabsContent value="trade" className="overflow-auto">
-            <TradePanel symbol={selectedPair} currentPrice={currentPrice} type="spot" />
+            <TradePanel symbol={selectedPair} currentPrice={currentPrice} />
           </TabsContent>
           <TabsContent value="book" className="overflow-hidden">
             {isOrderBookError ? (
@@ -212,7 +234,7 @@ export default function Spot() {
                           <TradingChart symbol={selectedPair} />
                         </div>
                         <div className="overflow-hidden">
-                          <TradePanel symbol={selectedPair} currentPrice={currentPrice} type="spot" />
+                          <TradePanel symbol={selectedPair} currentPrice={currentPrice} />
                         </div>
                     </div>
                     {/* Bottom Section: Order History */}
@@ -232,7 +254,9 @@ export default function Spot() {
                               </div>
                             </TabsContent>
                             <TabsContent value="trades" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-                              <div className="text-center py-8 text-muted-foreground">No trade history</div>
+                              <div className="text-center py-8 text-muted-foreground">
+                                No trade history
+                              </div>
                             </TabsContent>
                           </Tabs>
                         </CardContent>

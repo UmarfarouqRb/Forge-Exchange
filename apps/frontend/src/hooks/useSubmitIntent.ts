@@ -3,10 +3,10 @@ import { useMutation } from '@tanstack/react-query';
 import { useWallets, usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useToast } from '@/hooks/use-toast';
-import { placeOrder, getTokens } from '@/lib/api';
+import { placeOrder, getTokens, PlaceOrderPayload } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@/lib/contracts';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/wallet-context';
 import { useQuery } from '@tanstack/react-query';
 
 interface UseSubmitIntentProps {
@@ -81,7 +81,7 @@ export function useSubmitIntent() {
         amountIn: ethers.parseUnits(amountInString, tokenIn.decimals).toString(),
         price: orderType === 'limit' ? ethers.parseUnits(price, quoteToken.decimals).toString() : '0',
         amountOutMin: amountOutMin,
-        nonce: Date.now(),
+        nonce: BigInt(Date.now()),
       };
 
       const domain = {
@@ -105,7 +105,15 @@ export function useSubmitIntent() {
 
       const signature = await signer.signTypedData(domain, types, intent);
 
-      return placeOrder({ intent, signature });
+      const payload: PlaceOrderPayload = {
+        intent: {
+          ...intent,
+          nonce: intent.nonce.toString(),
+        },
+        signature,
+      };
+
+      return placeOrder(payload);
     },
     onSuccess: (_, variables) => {
       toast({
@@ -116,10 +124,14 @@ export function useSubmitIntent() {
         queryClient.invalidateQueries({ queryKey: ['/api/orders', wallet.address] });
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      let errorMessage = 'Failed to place order';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
       toast({
         title: 'Order Failed',
-        description: error.message || 'Failed to place order',
+        description: errorMessage,
         variant: 'destructive',
       });
     },

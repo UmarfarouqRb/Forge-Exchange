@@ -164,7 +164,7 @@ export interface IQuoterV2 extends BaseContract {
         gasEstimate: bigint;
       }
     ],
-    "view"
+    "nonpayable"
   >;
 
   quoteExactInputSingle: TypedContractMethod<
@@ -177,7 +177,7 @@ export interface IQuoterV2 extends BaseContract {
         gasEstimate: bigint;
       }
     ],
-    "view"
+    "nonpayable"
   >;
 
   quoteExactOutput: TypedContractMethod<
@@ -190,7 +190,7 @@ export interface IQuoterV2 extends BaseContract {
         gasEstimate: bigint;
       }
     ],
-    "view"
+    "nonpayable"
   >;
 
   quoteExactOutputSingle: TypedContractMethod<
@@ -203,7 +203,7 @@ export interface IQuoterV2 extends BaseContract {
         gasEstimate: bigint;
       }
     ],
-    "view"
+    "nonpayable"
   >;
 
   getFunction<T extends ContractMethod = ContractMethod>(
@@ -222,7 +222,7 @@ export interface IQuoterV2 extends BaseContract {
         gasEstimate: bigint;
       }
     ],
-    "view"
+    "nonpayable"
   >;
   getFunction(
     nameOrSignature: "quoteExactInputSingle"
@@ -236,7 +236,7 @@ export interface IQuoterV2 extends BaseContract {
         gasEstimate: bigint;
       }
     ],
-    "view"
+    "nonpayable"
   >;
   getFunction(
     nameOrSignature: "quoteExactOutput"
@@ -250,7 +250,7 @@ export interface IQuoterV2 extends BaseContract {
         gasEstimate: bigint;
       }
     ],
-    "view"
+    "nonpayable"
   >;
   getFunction(
     nameOrSignature: "quoteExactOutputSingle"
@@ -264,7 +264,7 @@ export interface IQuoterV2 extends BaseContract {
         gasEstimate: bigint;
       }
     ],
-    "view"
+    "nonpayable"
   >;
 
   filters: {};

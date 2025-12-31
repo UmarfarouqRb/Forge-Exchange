@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";

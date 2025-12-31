@@ -1,26 +1,22 @@
-
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { Order } from "@shared/schema";
-import Relayer from "relayer"; // Import the Relayer
+import { Order, AuthorizeSessionPayload } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  const relayer = new Relayer(); // Instantiate the Relayer
 
-  // --- Spot Trading Route ---
-  app.post("/api/spot/trade", async (req: Request, res: Response) => {
+  // --- Session Authorization Route ---
+  app.post("/api/session/authorize", async (req: Request, res: Response) => {
     try {
-      const { intent, signature } = req.body;
-      // Basic validation
-      if (!intent || !signature) {
-        return res.status(400).json({ error: "Missing intent or signature" });
-      }
-      const txHash = await relayer.executeSpotTrade(intent, signature);
-      res.status(201).json({ message: "Trade executed successfully", txHash });
+      const validatedData = AuthorizeSessionPayload.parse(req.body);
+      // For now, just log the data and return success
+      console.log("Authorized session with data:", validatedData);
+      res.status(200).json({ message: "Session authorized successfully" });
     } catch (error: any) {
-      console.error("Spot trade execution failed:", error);
-      res.status(500).json({ error: error.message || "Failed to execute trade" });
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Invalid session data", details: error.errors });
+      }
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -67,7 +63,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/trading-pairs/:symbol", async (req: Request, res: Response) => {
     try {
       const { symbol } = req.params;
-      const pair = await storage.getTradingPairBySymbol(symbol);
+      const { category } = req.query;
+      const pair = await storage.getTradingPairBySymbol(symbol, category as string);
       if (!pair) {
         return res.status(404).json({ error: "Trading pair not found" });
       }
@@ -96,7 +93,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/order-book/:symbol", async (req: Request, res: Response) => {
     try {
       const { symbol } = req.params;
-      const pair = await storage.getTradingPairBySymbol(symbol);
+      const { category } = req.query;
+      const pair = await storage.getTradingPairBySymbol(symbol, category as string);
       
       if (!pair) {
         return res.status(404).json({ error: "Trading pair not found" });

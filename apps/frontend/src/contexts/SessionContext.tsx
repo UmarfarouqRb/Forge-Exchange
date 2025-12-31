@@ -1,15 +1,8 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { ethers } from 'ethers';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/hooks/use-wallet';
 import { authorizeSession as apiAuthorizeSession } from '@/lib/api';
-
-interface SessionContextType {
-  sessionKey: ethers.Wallet | null;
-  isSessionAuthorized: boolean;
-  authorizeSession: () => Promise<void>;
-}
-
-const SessionContext = createContext<SessionContextType | undefined>(undefined);
+import { SessionContext } from './session-context';
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const { wallet } = useWallet();
@@ -17,7 +10,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [isSessionAuthorized, setIsSessionAuthorized] = useState(false);
 
   useEffect(() => {
-    const newSessionKey = ethers.Wallet.createRandom();
+    const newSessionKey = new ethers.Wallet(ethers.Wallet.createRandom().privateKey);
     setSessionKey(newSessionKey);
   }, []);
 
@@ -25,7 +18,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (!wallet.signer || !sessionKey) return;
 
     try {
-      await apiAuthorizeSession(sessionKey, wallet.signer);
+      await apiAuthorizeSession(sessionKey, wallet.signer as ethers.Signer);
       setIsSessionAuthorized(true);
     } catch (error) {
       console.error('Failed to authorize session:', error);
@@ -38,12 +31,4 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       {children}
     </SessionContext.Provider>
   );
-}
-
-export function useSession() {
-  const context = useContext(SessionContext);
-  if (context === undefined) {
-    throw new Error('useSession must be used within a SessionProvider');
-  }
-  return context;
 }

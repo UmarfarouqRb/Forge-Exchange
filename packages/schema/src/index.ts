@@ -72,6 +72,12 @@ export const Transaction = z.object({
 
 export const InsertTransaction = Transaction.omit({ id: true });
 
+export const AuthorizeSessionPayload = z.object({
+  sessionKey: z.string(),
+  expiration: z.number(),
+  signature: z.string(),
+});
+
 export type Order = z.infer<typeof Order>;
 export type InsertOrder = z.infer<typeof InsertOrder>;
 export type TradingPair = z.infer<typeof TradingPair>;
@@ -82,3 +88,4 @@ export type Asset = z.infer<typeof Asset>;
 export type InsertAsset = z.infer<typeof InsertAsset>;
 export type Transaction = z.infer<typeof Transaction>;
 export type InsertTransaction = z.infer<typeof InsertTransaction>;
+export type AuthorizeSessionPayload = z.infer<typeof AuthorizeSessionPayload>;

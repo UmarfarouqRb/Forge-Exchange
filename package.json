@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev": "turbo run dev --",
-    "build": "turbo run build --filter=!indexer",
+    "build": "turbo run build",
     "start": "turbo run start",
     "check": "turbo run check",
     "db:push": "turbo run db:push",

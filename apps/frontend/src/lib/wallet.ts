@@ -9,7 +9,7 @@ export type WalletState = {
 
 declare global {
   interface Window {
-    ethereum?: any;
+    ethereum?: ethers.Eip1193Provider;
   }
 }
 
@@ -22,7 +22,6 @@ export const connectWallet = async (): Promise<WalletState> => {
     const provider = new ethers.BrowserProvider(window.ethereum);
     const accounts = await provider.send('eth_requestAccounts', []);
     const network = await provider.getNetwork();
-    const signer = await provider.getSigner();
     const balance = await provider.getBalance(accounts[0]);
 
     return {

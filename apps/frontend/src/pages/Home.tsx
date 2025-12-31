@@ -16,11 +16,13 @@ import {
   FiDollarSign,
   FiClock
 } from 'react-icons/fi';
-import type { TradingPair } from '@shared/schema';
+import type { TradingPair } from '../types';
 
 declare global {
   interface Window {
-    TradingView?: any;
+    TradingView?: {
+        widget: new (options: Record<string, unknown>) => void;
+    };
   }
 }
 

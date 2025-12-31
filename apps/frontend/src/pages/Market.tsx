@@ -9,7 +9,7 @@ import { MiniChart } from '@/components/MiniChart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'wouter';
 import { FiSearch, FiStar } from 'react-icons/fi';
-import type { TradingPair } from '@shared/schema';
+import type { TradingPair } from '../types';
 
 export default function Market() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,7 +44,7 @@ export default function Market() {
         <Card className="mb-6">
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <Tabs value={category} onValueChange={(v) => setCategory(v as any)}>
+              <Tabs value={category} onValueChange={(v) => setCategory(v as 'all' | 'spot' | 'futures')}>
                 <TabsList>
                   <TabsTrigger value="all" data-testid="tab-all">All</TabsTrigger>
                   <TabsTrigger value="spot" data-testid="tab-spot">Spot</TabsTrigger>

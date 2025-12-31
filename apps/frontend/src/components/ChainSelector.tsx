@@ -1,4 +1,5 @@
-import { useChain, SUPPORTED_CHAINS } from "@/contexts/ChainContext";
+import { useChain } from "@/hooks/use-chain";
+import { SUPPORTED_CHAINS } from "@/contexts/chain-context";
 import {
   Select,
   SelectContent,
@@ -31,10 +32,14 @@ export function ChainSelector() {
         title: "Chain Switched",
         description: `Switched to ${chain?.name}`,
       });
-    } catch (error: any) {
+    } catch (error) {
+      let description = "Could not switch to the selected chain";
+      if (error instanceof Error) {
+        description = error.message;
+      }
       toast({
         title: "Failed to Switch Chain",
-        description: error.message || "Could not switch to the selected chain",
+        description,
         variant: "destructive",
       });
     }
