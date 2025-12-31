@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/wallet-context';
 import { usePrivy } from '@privy-io/react-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useSubmitIntent } from '@/hooks/useSubmitIntent';

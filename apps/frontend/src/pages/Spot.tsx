@@ -7,7 +7,7 @@ import { OrderBook } from '@/components/OrderBook';
 import { TradingChart } from '@/components/TradingChart';
 import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/wallet-context';
 import { getOrders } from '@/lib/api';
 import type { Order, TradingPair } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';

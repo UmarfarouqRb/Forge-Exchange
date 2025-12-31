@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useWallet } from '@/contexts/WalletContext';
+import { useWallet } from '@/contexts/wallet-context';
 import { FiSearch, FiDownload, FiUpload, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useState } from 'react';
 import { DepositDialog } from '@/components/DepositDialog';
