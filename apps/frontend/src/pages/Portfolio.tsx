@@ -1,10 +1,9 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getAssets } from '@/lib/api';
-import { useWallet } from '@/contexts/WalletContext';
+import { usePrivy } from '@privy-io/react-auth';
 import { Deposit } from '@/components/Deposit';
 import { Withdraw } from '@/components/Withdraw';
 
@@ -17,16 +16,29 @@ interface Asset {
 }
 
 export default function Portfolio() {
-  const { wallet } = useWallet();
+  const { user, authenticated } = usePrivy();
+  const wallet = user?.wallet;
+  const [change] = useState(2.5); // Mock change
+
   const { data: assets = [], isLoading, isError } = useQuery<Asset[]>({
-    queryKey: ['/api/assets', wallet.address],
-    queryFn: () => getAssets(wallet.address),
-    enabled: !!wallet.address,
+    queryKey: ['/api/assets', wallet?.address],
+    queryFn: async () => {
+      if (!wallet?.address) return [];
+      return getAssets(wallet.address);
+    },
+    enabled: authenticated && !!wallet?.address,
   });
+
+  if (!authenticated) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-lg text-muted-foreground">Please connect your wallet to view your portfolio.</p>
+      </div>
+    );
+  }
 
   // Add explicit types for the reducer and the handler
   const totalValue = assets.reduce((acc: number, asset: Asset) => acc + asset.value, 0);
-  const [change] = useState(2.5); // Mock change
 
   const handleTrade = (symbol: string) => {
     // For now, just log to console. We can implement navigation later.

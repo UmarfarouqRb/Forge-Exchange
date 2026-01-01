@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,13 +7,14 @@ import { OrderBook } from '@/components/OrderBook';
 import { TradingChart } from '@/components/TradingChart';
 import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
-import { useWallet } from '@/contexts/wallet-context';
+import { usePrivy } from '@privy-io/react-auth';
 import type { Order, TradingPair } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 export default function Futures() {
   const [selectedPair] = useState('BTCUSDT');
-  const { wallet } = useWallet();
+  const { user, authenticated } = usePrivy();
+  const wallet = user?.wallet;
   const isDesktop = useBreakpoint('md');
 
   const { data: tradingPair } = useQuery<TradingPair>({
@@ -28,7 +28,7 @@ export default function Futures() {
   });
 
   const { data: orderBookData, isLoading: isOrderBookLoading, isError: isOrderBookError } = useQuery({
-    queryKey: ['/api/order-book', selectedPair],
+    queryKey: ['/api/order-book', selectedPair, 'futures'],
     queryFn: async () => {
       const response = await fetch(`/api/order-book/${selectedPair}?category=futures`);
       if (!response.ok) throw new Error('Failed to fetch order book');
@@ -39,14 +39,14 @@ export default function Futures() {
   });
 
   const { data: positions, isLoading: arePositionsLoading, isError: arePositionsError } = useQuery<Order[]>({
-    queryKey: ['/api/orders', 'futures', wallet.address],
+    queryKey: ['/api/orders', 'futures', wallet?.address],
     queryFn: async () => {
-      if (!wallet.address) return [];
+      if (!wallet?.address) return [];
       const response = await fetch(`/api/orders/${wallet.address}?category=futures`);
       if (!response.ok) throw new Error('Failed to fetch positions');
       return response.json();
     },
-    enabled: wallet.isConnected && !!wallet.address,
+    enabled: authenticated && !!wallet?.address,
     initialData: [],
   });
 
@@ -56,7 +56,7 @@ export default function Futures() {
 
   const renderPositions = () => (
     <TabsContent value={!isDesktop ? "positions" : "positions"} className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-      {wallet.isConnected ? (
+      {authenticated ? (
         <div className="overflow-auto">
           {isDesktop && (
             <div className="grid grid-cols-8 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">

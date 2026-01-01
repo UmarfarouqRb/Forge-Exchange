@@ -25,25 +25,22 @@ export default function Market() {
       if (!response.ok) throw new Error('Failed to fetch trading pairs');
       return response.json();
     },
+    refetchInterval: 3000,
   });
-
-  const generateMockChartData = () => {
-    return Array.from({ length: 20 }, () => Math.random() * 100 + 50);
-  };
 
   const filteredPairs = pairs?.filter((pair) =>
     pair.symbol.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="container mx-auto max-w-7xl">
-        <h1 className="text-3xl font-bold mb-6 text-foreground">Markets</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-foreground">Markets</h1>
 
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
               <Tabs value={category} onValueChange={(v) => setCategory(v as 'all' | 'spot' | 'futures')}>
                 <TabsList>
                   <TabsTrigger value="all" data-testid="tab-all">All</TabsTrigger>
@@ -52,10 +49,10 @@ export default function Market() {
                 </TabsList>
               </Tabs>
 
-              <div className="relative w-full md:w-80">
+              <div className="relative w-full sm:w-auto sm:max-w-xs">
                 <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search trading pairs..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -69,14 +66,14 @@ export default function Market() {
         {/* Trading Pairs Table */}
         <Card>
           <CardContent className="p-0">
-            {/* Table Header */}
-            <div className="grid grid-cols-12 gap-4 p-4 border-b border-border text-xs font-medium text-muted-foreground">
+            {/* Table Header (Desktop) */}
+            <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-border text-xs font-medium text-muted-foreground">
               <div className="col-span-1"></div>
-              <div className="col-span-2">Pair</div>
+              <div className="col-span-3 lg:col-span-2">Pair</div>
               <div className="col-span-2 text-right">Price</div>
               <div className="col-span-2 text-right">24h Change</div>
-              <div className="col-span-2 text-right">24h Volume</div>
-              <div className="col-span-3">Chart</div>
+              <div className="hidden lg:block col-span-2 text-right">24h Volume</div>
+              <div className="col-span-2">Chart</div>
             </div>
 
             {/* Table Body */}
@@ -102,7 +99,7 @@ export default function Market() {
                     <div className="col-span-1">
                       <Skeleton className="h-4 w-4" />
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-3 lg:col-span-2">
                       <Skeleton className="h-5 w-20" />
                     </div>
                     <div className="col-span-2">
@@ -111,21 +108,20 @@ export default function Market() {
                     <div className="col-span-2">
                       <Skeleton className="h-5 w-16 ml-auto" />
                     </div>
-                    <div className="col-span-2">
+                    <div className="hidden lg:block col-span-2">
                       <Skeleton className="h-5 w-20 ml-auto" />
                     </div>
-                    <div className="col-span-3">
+                    <div className="col-span-4 lg:col-span-2">
                       <Skeleton className="h-10 w-full" />
                     </div>
                   </div>
                 ))
               ) : filteredPairs && filteredPairs.length > 0 ? (
                 filteredPairs.map((pair) => (
-                  <Link key={pair.id} href={`/spot?pair=${pair.symbol}`}>
+                  <Link key={pair.id} href={`/${pair.category}?pair=${pair.symbol}`}>
                     <div
                       className="grid grid-cols-12 gap-4 p-4 items-center hover-elevate cursor-pointer"
-                      data-testid={`row-market-${pair.symbol}`}
-                    >
+                      data-testid={`row-market-${pair.symbol}`}>
                       <div className="col-span-1">
                         <Button
                           variant="ghost"
@@ -135,35 +131,34 @@ export default function Market() {
                             e.preventDefault();
                             e.stopPropagation();
                           }}
-                          data-testid={`button-favorite-${pair.symbol}`}
-                        >
+                          data-testid={`button-favorite-${pair.symbol}`}>
                           <FiStar
-                            className={`w-4 h-4 ${pair.isFavorite ? 'fill-primary text-primary' : ''}`}
-                          />
+                            className={`w-4 h-4 ${pair.isFavorite ? 'fill-primary text-primary' : ''}`}>
+                          </FiStar>
                         </Button>
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-5 sm:col-span-3 lg:col-span-2">
                         <div className="font-medium text-foreground">{pair.symbol}</div>
                         <div className="text-xs text-muted-foreground">
-                          {pair.baseAsset}/{pair.quoteAsset}
+                          {pair.category === 'futures' ? 'Perps' : 'Spot'}
                         </div>
                       </div>
-                      <div className="col-span-2 text-right">
+                      <div className="col-span-3 sm:col-span-2 text-right">
                         <div className="font-mono font-medium text-foreground" data-testid={`text-price-${pair.symbol}`}>
                           ${parseFloat(pair.currentPrice).toLocaleString()}
                         </div>
                       </div>
-                      <div className="col-span-2 flex justify-end">
+                      <div className="col-span-3 sm:col-span-2 flex justify-end">
                         <PriceChange value={parseFloat(pair.priceChange24h)} />
                       </div>
-                      <div className="col-span-2 text-right">
+                      <div className="hidden lg:block col-span-2 text-right">
                         <div className="font-mono text-sm text-foreground">
                           ${parseFloat(pair.volume24h).toLocaleString()}
                         </div>
                       </div>
-                      <div className="col-span-3">
+                      <div className="hidden sm:block col-span-12 sm:col-span-3 lg:col-span-2">
                         <MiniChart
-                          data={generateMockChartData()}
+                          data={pair.historicalData || []}
                           isPositive={parseFloat(pair.priceChange24h) >= 0}
                         />
                       </div>

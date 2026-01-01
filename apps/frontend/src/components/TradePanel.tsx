@@ -5,9 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useWallet } from '@/contexts/wallet-context';
 import { usePrivy } from '@privy-io/react-auth';
-import { useToast } from '@/hooks/use-toast';
 import { useSubmitIntent } from '@/hooks/useSubmitIntent';
 
 interface TradePanelProps {
@@ -22,14 +20,11 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
   const [price, setPrice] = useState(currentPrice);
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState('0.5'); // Default slippage percentage
-  const { wallet } = useWallet();
   const { ready, authenticated } = usePrivy();
-  const { toast } = useToast();
   const submitIntent = useSubmitIntent();
 
   const handleSubmit = async () => {
-    if (!wallet.isConnected) {
-      toast({ title: 'Wallet Not Connected', variant: 'destructive' });
+    if (!authenticated) {
       return;
     }
 

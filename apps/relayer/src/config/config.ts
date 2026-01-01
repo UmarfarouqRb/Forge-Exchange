@@ -1,5 +1,5 @@
 export const config = {
-    provider: 'http://localhost:8545',
+    provider: 'wss://base-mainnet.g.alchemy.com/v2/_rq09Uz--vhSNI9x6BGOb',
     networks: {
         'base': {
             chainId: 8453,

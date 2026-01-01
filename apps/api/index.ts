@@ -1,9 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
 import http from "http";
 import { registerRoutes } from "./routes";
+import { createWebSocketServer } from "./websocket";
 
 const app = express();
 const server = http.createServer(app);
+
+// Initialize WebSocket server
+createWebSocketServer(server);
 
 declare module 'http' {
   interface IncomingMessage {

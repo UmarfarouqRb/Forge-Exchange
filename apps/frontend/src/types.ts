@@ -48,6 +48,7 @@ export type Order = {
     low24h: string;
     isFavorite: boolean;
     category: string;
+    historicalData?: number[];
   };
 
   export type TradingPair = Market & {

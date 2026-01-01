@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,25 +6,20 @@ import { OrderBook } from '@/components/OrderBook';
 import { TradingChart } from '@/components/TradingChart';
 import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
-import { useWallet } from '@/contexts/wallet-context';
+import { usePrivy } from '@privy-io/react-auth';
 import { getOrders } from '@/lib/api';
-import type { Order, TradingPair } from '../types';
+import type { Order } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
+import { useMarket } from '@/hooks/use-market';
 
 export default function Spot() {
   const [selectedPair] = useState('BTCUSDT');
-  const { wallet } = useWallet();
+  const { user, authenticated } = usePrivy();
+  const wallet = user?.wallet;
   const isDesktop = useBreakpoint('md');
+  const { tradingPairs } = useMarket();
 
-  const { data: tradingPair } = useQuery<TradingPair>({
-    queryKey: ['/api/trading-pairs', selectedPair, 'spot'],
-    queryFn: async () => {
-      const response = await fetch(`/api/trading-pairs/${selectedPair}?category=spot`);
-      if (!response.ok) throw new Error('Failed to fetch trading pair');
-      return response.json();
-    },
-    refetchInterval: 3000,
-  });
+  const tradingPair = tradingPairs.get(selectedPair);
 
   const { data: orderBookData, isLoading: isOrderBookLoading, isError: isOrderBookError } = useQuery({
     queryKey: ['/api/order-book', selectedPair, 'spot'],
@@ -38,12 +32,12 @@ export default function Spot() {
   });
 
   const { data: orders, isLoading: areOrdersLoading, isError: areOrdersError } = useQuery<Order[]>({
-    queryKey: ['/api/orders', wallet.address, 'spot'],
+    queryKey: ['/api/orders', wallet?.address, 'spot'],
     queryFn: async () => {
-      if (!wallet.address) return [];
+      if (!wallet?.address) return [];
       return getOrders(wallet.address);
     },
-    enabled: wallet.isConnected && !!wallet.address,
+    enabled: authenticated && !!wallet?.address,
     initialData: [],
   });
 
@@ -55,7 +49,7 @@ export default function Spot() {
 
   const renderOpenOrders = () => (
     <TabsContent value={!isDesktop ? "orders" : "open"} className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-      {wallet.isConnected ? (
+      {authenticated ? (
         <div className="overflow-auto">
           {isDesktop && (
             <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">

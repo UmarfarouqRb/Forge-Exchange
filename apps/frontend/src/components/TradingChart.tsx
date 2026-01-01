@@ -79,8 +79,8 @@ export function TradingChart({ symbol }: TradingChartProps) {
           container_id: chartId,
           toolbar_bg: 'hsl(var(--card))',
           allow_symbol_change: true,
-        });
-      } catch (error) {
+        } as Record<string, unknown>);
+      } catch (error) { 
         console.error('Failed to initialize TradingView chart:', error);
       }
     };

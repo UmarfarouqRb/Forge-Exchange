@@ -1,6 +1,5 @@
 
 import { apiRequest } from './queryClient';
-import { ethers } from 'ethers';
 import type { Order } from '../types';
 
 export const getOrderBook = async (pair: string) => {
@@ -39,54 +38,9 @@ export const getTokens = async (chainId: string) => {
     return response.json();
 }
 
-// New getAssets function
 export const getAssets = async (address: string | null) => {
     if (!address) return [];
-    // For now, we'll return a mock list of assets.
-    // In a real application, you would fetch this from your backend.
-    return [
-      { symbol: 'BTC', name: 'Bitcoin', balance: 0.5, value: 32500 },
-      { symbol: 'ETH', name: 'Ethereum', balance: 10, value: 20000 },
-      { symbol: 'USDT', name: 'Tether', balance: 5000, value: 5000 },
-    ];
+    const response = await fetch(`/api/assets/${address}`);
+    if (!response.ok) throw new Error('Failed to fetch assets');
+    return response.json();
   };
-
-
-  export const authorizeSession = async (sessionKey: ethers.Wallet, signer: ethers.Signer) => {
-    if (!signer.provider) throw new Error("Signer does not have a provider");
-
-    const expiration = Math.floor(Date.now() / 1000) + 86400; // 24 hours
-    const { chainId } = await signer.provider.getNetwork();
-
-    const typedData = {
-        domain: {
-            name: 'SessionKeyManager',
-            version: '1',
-            chainId: chainId,
-            verifyingContract: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
-        },
-        types: {
-            Authorization: [
-                { name: 'sessionKey', type: 'address' },
-                { name: 'expiration', type: 'uint256' },
-            ],
-        },
-        primaryType: 'Authorization',
-        message: {
-            sessionKey: sessionKey.address,
-            expiration: expiration,
-        },
-    };
-
-    const signature = await signer.signTypedData(
-        typedData.domain,
-        typedData.types,
-        typedData.message
-    );
-
-    await apiRequest('POST', '/api/session/authorize', {
-        sessionKey: sessionKey.address,
-        expiration,
-        signature,
-    });
-};

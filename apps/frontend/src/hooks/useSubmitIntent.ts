@@ -1,13 +1,11 @@
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useWallets, usePrivy } from '@privy-io/react-auth';
 import { ethers } from 'ethers';
 import { useToast } from '@/hooks/use-toast';
 import { placeOrder, getTokens, PlaceOrderPayload } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@/lib/contracts';
-import { useWallet } from '@/contexts/wallet-context';
-import { useQuery } from '@tanstack/react-query';
 
 interface UseSubmitIntentProps {
   symbol: string;
@@ -20,24 +18,23 @@ interface UseSubmitIntentProps {
 }
 
 export function useSubmitIntent() {
-  const { wallet } = useWallet();
   const { wallets } = useWallets();
   const { ready, authenticated } = usePrivy();
   const { toast } = useToast();
 
-  const isWalletReady = ready && authenticated && wallets.length > 0;
+  const connectedWallet = wallets[0];
+  const isWalletReady = ready && authenticated && !!connectedWallet;
 
   const { data: tokens } = useQuery<{ [symbol: string]: { address: `0x${string}`; decimals: number } }>({
-    queryKey: ['/api/tokens', wallet.chainId],
-    queryFn: () => getTokens(wallet.chainId?.toString() || '8453'),
-    enabled: !!wallet.chainId,
+    queryKey: ['/api/tokens', connectedWallet?.chainId],
+    queryFn: () => getTokens(connectedWallet?.chainId?.toString() || '8453'),
+    enabled: !!connectedWallet?.chainId,
   });
 
   return useMutation({
     mutationFn: async (props: UseSubmitIntentProps) => {
       const { symbol, orderType, side, price, currentPrice, amount, slippage } = props;
 
-      const connectedWallet = wallets[0];
       if (!isWalletReady || !connectedWallet) throw new Error('Wallet not ready or not connected');
       if (!tokens) throw new Error('Token data not loaded');
 
@@ -81,7 +78,7 @@ export function useSubmitIntent() {
         amountIn: ethers.parseUnits(amountInString, tokenIn.decimals).toString(),
         price: orderType === 'limit' ? ethers.parseUnits(price, quoteToken.decimals).toString() : '0',
         amountOutMin: amountOutMin,
-        nonce: BigInt(Date.now()),
+        nonce: BigInt(Date.now()).toString(), // Corrected nonce
       };
 
       const domain = {
@@ -103,13 +100,16 @@ export function useSubmitIntent() {
         ],
       };
 
-      const signature = await signer.signTypedData(domain, types, intent);
+      // Construct the object with BigInt for signing
+      const signingIntent = {
+        ...intent,
+        nonce: BigInt(intent.nonce),
+      };
+
+      const signature = await signer.signTypedData(domain, types, signingIntent);
 
       const payload: PlaceOrderPayload = {
-        intent: {
-          ...intent,
-          nonce: intent.nonce.toString(),
-        },
+        intent: intent,
         signature,
       };
 
@@ -120,8 +120,8 @@ export function useSubmitIntent() {
         title: 'Order Placed',
         description: `${variables.side.toUpperCase()} order for ${variables.amount} ${variables.symbol} placed successfully`,
       });
-      if (wallet.address) {
-        queryClient.invalidateQueries({ queryKey: ['/api/orders', wallet.address] });
+      if (connectedWallet?.address) {
+        queryClient.invalidateQueries({ queryKey: ['/api/orders', connectedWallet.address] });
       }
     },
     onError: (error: unknown) => {
