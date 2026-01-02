@@ -1,9 +1,0 @@
-
-> forge-exchange-relayer@1.0.0 build
-> npm run typechain && tsc
-
-
-> forge-exchange-relayer@1.0.0 typechain
-> typechain --target ethers-v6 --out-dir src/contracts '../../out/*.sol/*.json'
-
-Successfully generated 231 typings!
