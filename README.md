@@ -19,11 +19,11 @@ Before you begin, ensure you have the following installed on your system:
 
 First, clone the repository to your local machine and install the required dependencies for all workspaces.
 
-```bash
+bash
 git clone <YOUR_REPOSITORY_URL>
 cd forge-exchange
 npm install
-```
+
 
 ### 2. Running the Development Environment
 
@@ -37,7 +37,7 @@ bash
 npm run chain
 
 
-Terminal 2: Start the Backend Relayer**
+Terminal 2: Start the Backend Relayer
 
 This command starts the backend service that communicates with the smart contracts.
 
@@ -45,7 +45,7 @@ bash
 npm run dev:relayer
 
 
-Terminal 3: Start the Frontend Application**
+Terminal 3: Start the Frontend Application
 
 This command starts the React frontend application.
 
@@ -59,17 +59,17 @@ After running these commands, you can access the frontend at `http://localhost:5
 
 To create an optimized production build of the applications:
 
-**Build the Frontend:**
-```bash
+Build the Frontend:
+bash
 # This will create a 'dist' folder in 'apps/frontend'
 npm run build:frontend
-```
 
-**Build the Relayer:**
-```bash
+
+Build the Relayer:
+bash
 # This will create a 'dist' folder in 'apps/relayer'
 npm run build:relayer
-```
+
 
 ### 4. Running Tests
 
@@ -77,9 +77,9 @@ The smart contracts are tested using Foundry's robust testing framework.
 
 To run the full suite of tests for the Solidity contracts:
 
-```bash
+bash
 npm test
-```
+
 
 ---
 
@@ -91,29 +91,29 @@ VaultSpot: Protocol-Grade Custody & Accounting System
 
 ## Core Architecture
 
-- **Direct Ledger Accounting:** The vault uses a `mapping(address => mapping(address => uint256))` to track user balances. This simple, direct approach avoids complex share calculations and makes the system inherently immune to common DeFi exploits like inflation attacks.
+-Direct Ledger Accounting: The vault uses a `mapping(address => mapping(address => uint256))` to track user balances. This simple, direct approach avoids complex share calculations and makes the system inherently immune to common DeFi exploits like inflation attacks.
 
-- **Emergency State Machine:** The contract operates in one of two states: `Normal` or `Emergency`. This allows administrators to instantly freeze all risky operations (deposits, swaps) in a crisis while always leaving a secure exit path open for users.
+-Emergency State Machine: The contract operates in one of two states: `Normal` or `Emergency`. This allows administrators to instantly freeze all risky operations (deposits, swaps) in a crisis while always leaving a secure exit path open for users.
 
-- **User Escape Hatch:** The `emergencyWithdraw` function guarantees users can always retrieve their funds. It is a purpose-built function with minimal external interactions, designed to work even if other parts of the protocol (like the router or DEXs) are compromised.
+-User Escape Hatch: The `emergencyWithdraw` function guarantees users can always retrieve their funds. It is a purpose-built function with minimal external interactions, designed to work even if other parts of the protocol (like the router or DEXs) are compromised.
 
 ## Formal Invariant Checklist
 
-This checklist defines the core safety guarantees of the vault. These properties are rigorously enforced by the contract'''s design and are the primary focus of audits and formal verification.
+This checklist defines the core safety guarantees of the vault. These properties are rigorously enforced by the contracts design and are the primary focus of audits and formal verification.
 
 --- 
 
 ### State Invariants (SI)
-*Properties that must always hold for the contract'''s state.*
+Properties that must always hold for the contract's state.
 
-- **SI-1: Solvency:** The sum of all internal user balances for a given token must never exceed the total balance of that token held by this contract.
-- **SI-2: Positive Balances:** A user'''s internal balance of any token can never be negative.
-- **SI-3: Sole Custody:** Only the vault contract itself should custody user funds intended for trading.
+- SI-1: Solvency: The sum of all internal user balances for a given token must never exceed the total balance of that token held by this contract.
+- SI-2: Positive Balances:** A user'''s internal balance of any token can never be negative.
+- SI-3: Sole Custody:** Only the vault contract itself should custody user funds intended for trading.
 
 ### Execution Invariants (EI)
 *Guarantees about how specific functions must execute.*
 
-- **EI-1: Atomic Swaps:** Swaps must be atomic, with a user'''s balance being debited for the input token *before* the swap occurs and credited with the output token *after* the swap completes.
+-EI-1: Atomic Swaps:** Swaps must be atomic, with a user'''s balance being debited for the input token *before* the swap occurs and credited with the output token *after* the swap completes.
 - **EI-2: Slippage Protection:** The `SpotRouter` (not the vault) is responsible for ensuring that the final output amount of a swap is greater than or equal to a user-defined minimum.
 - **EI-3: Debit Precedes Credit:** The vault ensures that a user is debited before the router is approved to spend funds, and credited only after the swap is complete.
 
@@ -209,8 +209,8 @@ The `AerodromeAdapter` is designed to interact with the Aerodrome DEX. The adapt
 
 ### USDC to TRUMP Swaps (Multi-DEX)
 
-*   **Swap for 5 USDC:**
-    *   **Amount to User:** 0 TRUMP
+*   Swap for 5 USDC:
+    *   Amount to User: 0 TRUMP
     *   **Fee Collected:** 0
 *   **Swap for 10 USDC:**
     *   **Amount to User:** 1 TRUMP
