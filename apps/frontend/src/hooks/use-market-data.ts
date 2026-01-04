@@ -5,12 +5,16 @@ const WEBSOCKET_URL = (window.location.protocol === "https:" ? "wss://" : "ws://
 
 export function useMarketData() {
   const [tradingPairs, setTradingPairs] = useState<Map<string, TradingPair>>(new Map());
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
 
   useEffect(() => {
     const ws = new WebSocket(WEBSOCKET_URL);
 
     ws.onopen = () => {
       console.log('WebSocket connected');
+      setIsLoading(true);
+      setIsError(false);
     };
 
     ws.onmessage = (event) => {
@@ -21,6 +25,7 @@ export function useMarketData() {
           pairsMap.set(pair.symbol, pair);
         });
         setTradingPairs(pairsMap);
+        setIsLoading(false);
       } else if (message.type === 'priceUpdate') {
         setTradingPairs((prevPairs) => {
           const newPairs = new Map(prevPairs);
@@ -32,10 +37,13 @@ export function useMarketData() {
 
     ws.onclose = () => {
       console.log('WebSocket disconnected');
+      setIsLoading(false);
     };
 
     ws.onerror = () => {
       console.error('WebSocket connection to ' + WEBSOCKET_URL + ' failed. Please check if the server is running and the URL is correct.');
+      setIsError(true);
+      setIsLoading(false);
     };
 
     return () => {
@@ -43,5 +51,5 @@ export function useMarketData() {
     };
   }, []);
 
-  return { tradingPairs };
+  return { tradingPairs, isLoading, isError };
 }

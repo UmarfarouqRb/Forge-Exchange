@@ -2,7 +2,7 @@
 import { Request, Response } from 'express';
 import { relayerConfig } from '../config';
 import { IntentSpotRouter__factory } from '../contracts/factories/IntentSpotRouter__factory';
-import { saveOrder, updateOrderStatus } from '../db/db';
+import { repository } from '../db';
 import { ethers } from 'ethers';
 
 export const spot = async (req: Request, res: Response) => {
@@ -15,7 +15,7 @@ export const spot = async (req: Request, res: Response) => {
     const orderId = ethers.keccak256(signature); // Generate a unique ID for the order
 
     try {
-        await saveOrder({ ...intent, id: orderId, status: 'PENDING' });
+        await repository.saveOrder({ ...intent, id: orderId, status: 'PENDING' });
 
         const network = relayerConfig.getNetworkByChainId(intent.chainId);
         if (!network) {
@@ -34,7 +34,7 @@ export const spot = async (req: Request, res: Response) => {
                 throw new Error('Transaction reverted on-chain');
             }
 
-            await updateOrderStatus(orderId, 'SUCCESS');
+            await repository.updateOrderStatus(orderId, 'SUCCESS');
 
             res.json({ success: true, txHash: tx.hash });
         } else {
@@ -43,7 +43,7 @@ export const spot = async (req: Request, res: Response) => {
 
     } catch (error: any) {
         console.error('Failed to execute spot trade:', error);
-        await updateOrderStatus(orderId, 'FAILED');
+        await repository.updateOrderStatus(orderId, 'FAILED');
         res.status(500).json({ error: `Failed to execute spot trade: ${error.message}` });
     }
 };

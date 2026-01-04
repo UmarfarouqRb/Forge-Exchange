@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,15 +12,25 @@ import { getOrders } from '@/lib/api';
 import type { Order } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useMarket } from '@/hooks/use-market';
+import { AssetSelector } from "@/components/AssetSelector";
 
 export default function Spot() {
-  const [selectedPair] = useState('BTCUSDT');
+  const [selectedPair, setSelectedPair] = useState('BTCUSDT');
   const { user, authenticated } = usePrivy();
   const wallet = user?.wallet;
   const isDesktop = useBreakpoint('md');
   const { tradingPairs } = useMarket();
 
-  const tradingPair = tradingPairs.get(selectedPair);
+  useEffect(() => {
+    if (tradingPairs instanceof Map && tradingPairs.size > 0 && !tradingPairs.has(selectedPair)) {
+      const firstPair = tradingPairs.keys().next().value;
+      if (firstPair) {
+        setSelectedPair(firstPair);
+      }
+    }
+  }, [tradingPairs, selectedPair]);
+
+  const tradingPair = tradingPairs instanceof Map ? tradingPairs.get(selectedPair) : undefined;
 
   const { data: orders, isLoading: areOrdersLoading, isError: areOrdersError } = useQuery<Order[]>({
     queryKey: ['/api/orders', wallet?.address, 'spot'],
@@ -141,9 +152,7 @@ export default function Spot() {
         <div className="flex items-center justify-between gap-2 md:gap-6">
           <div className="flex items-center gap-2 md:gap-6 flex-1 overflow-hidden">
             <div>
-              <h1 className="text-lg md:text-2xl font-bold font-mono" data-testid="text-spot-symbol">
-                {selectedPair}
-              </h1>
+              <AssetSelector selectedPair={selectedPair} setSelectedPair={setSelectedPair} />
               <div className="text-xs text-muted-foreground">Spot Trading</div>
             </div>
             <div>

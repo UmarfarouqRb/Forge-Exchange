@@ -11,7 +11,10 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "composite": true,
+    "declaration": true,
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

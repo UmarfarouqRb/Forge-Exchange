@@ -19,7 +19,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(currentPrice);
   const [amount, setAmount] = useState('');
-  const [slippage, setSlippage] = useState('0.5'); // Default slippage percentage
+  const [slippage, setSlippage] = useState('0.05');
   const { ready, authenticated } = usePrivy();
   const submitIntent = useSubmitIntent();
 
@@ -42,7 +42,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 
   const getButtonText = () => {
-    if (disabled) return 'Coming Soon';
+    if (disabled) return 'Disabled';
     if (!ready || !authenticated) return 'Wallet Not Connected';
     return 'Place Order';
   }
@@ -54,8 +54,8 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
       <CardContent className="p-4">
         <Tabs value={side} onValueChange={(v) => setSide(v as 'buy' | 'sell')} className="mb-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="buy">Buy</TabsTrigger>
-            <TabsTrigger value="sell">Sell</TabsTrigger>
+            <TabsTrigger value="buy" className="data-[state=active]:bg-blue-500 data-[state=active]:text-primary-foreground">Buy</TabsTrigger>
+            <TabsTrigger value="sell" className="data-[state=active]:bg-orange-500 data-[state=active]:text-primary-foreground">Sell</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -92,7 +92,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
         </div>
 
         <Button
-          className="w-full"
+          className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}`}
           onClick={handleSubmit}
           disabled={disabled || submitIntent.isPending || !ready || !authenticated}
         >

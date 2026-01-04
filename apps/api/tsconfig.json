@@ -4,6 +4,7 @@
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
+      "@forge/db": ["../../packages/schema/src/index.ts"],
       "@shared/schema": ["../../packages/schema/src/index.ts"],
       "relayer": ["../relayer/src/index.ts"]
     },
@@ -11,7 +12,7 @@
     "declaration": true,
     "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["./**/*.ts"],
   "exclude": ["dist"],
   "references": [
     { "path": "../../packages/schema" },
