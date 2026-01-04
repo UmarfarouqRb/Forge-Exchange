@@ -3,15 +3,15 @@ pragma solidity ^0.8.19;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
-import {AerodromeAdapter} from "../../../contracts/spot/adapters/AerodromeAdapter.sol";
+import {AerodromeAdapter} from "contracts/spot/adapters/AerodromeAdapter.sol";
 import {IERC20} from "@openzeppelin-contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
 import {IRouter} from "aerodrome/contracts/interfaces/IRouter.sol";
 import {IFactoryRegistry} from "aerodrome/contracts/interfaces/factories/IFactoryRegistry.sol";
-import {IntentSpotRouter} from "../../../contracts/spot/IntentSpotRouter.sol";
-import {VaultSpot} from "../../../contracts/spot/VaultSpot.sol";
-import {FeeController} from "../../../contracts/spot/FeeController.sol";
-import {ISpotRouter} from "../../../contracts/spot/interfaces/ISpotRouter.sol";
+import {IntentSpotRouter} from "contracts/spot/IntentSpotRouter.sol";
+import {VaultSpot} from "contracts/spot/VaultSpot.sol";
+import {FeeController} from "contracts/spot/FeeController.sol";
+import {ISpotRouter} from "contracts/spot/interfaces/ISpotRouter.sol";
 
 contract AerodromeAdapterTest is Test {
     using SafeERC20 for IERC20;

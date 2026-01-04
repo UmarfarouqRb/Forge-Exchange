@@ -4,39 +4,39 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {ECDSA} from "@openzeppelin-contracts/utils/cryptography/ECDSA.sol";
-import {WETH} from "../../lib/universal-router/lib/solmate/src/tokens/WETH.sol";
+import {WETH} from "solmate/src/tokens/WETH.sol";
 
-import {IntentSpotRouter} from "../../contracts/spot/IntentSpotRouter.sol";
-import {VaultSpot} from "../../contracts/spot/VaultSpot.sol";
-import {FeeController} from "../../contracts/spot/FeeController.sol";
-import {ISpotRouter} from "../../contracts/spot/interfaces/ISpotRouter.sol";
-import {MockAdapter} from "../../test/mocks/MockAdapter.sol";
+import {IntentSpotRouter} from "contracts/spot/IntentSpotRouter.sol";
+import {VaultSpot} from "contracts/spot/VaultSpot.sol";
+import {FeeController} from "contracts/spot/FeeController.sol";
+import {ISpotRouter} from "contracts/spot/interfaces/ISpotRouter.sol";
+import {MockAdapter} from "test/mocks/MockAdapter.sol";
 import {IERC20} from "@openzeppelin-contracts/token/ERC20/IERC20.sol";
 
 contract IntentSpotRouterTest is Test {
-    // --- Constants ---
+    // --- Constants -- -
     string  MAINNET_RPC_URL = "https://mainnet.base.org";
     uint256 BASE_MAINNET_FORK_BLOCK = 38_000_000;
 
-    // --- Contracts ---
+    // --- Contracts -- -
     IntentSpotRouter internal router;
     VaultSpot internal vault;
     FeeController internal feeController;
     MockAdapter internal adapter;
 
-    // --- Tokens ---
+    // --- Tokens -- -
     WETH internal weth = WETH(payable(0x4200000000000000000000000000000000000006));
     IERC20 internal usdc = IERC20(0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913);
     IERC20 internal dai = IERC20(0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb);
 
-    // --- Users ---
+    // --- Users -- -
     address internal user;
     address internal relayer = address(0x2);
     address internal treasury = address(0x3);
     uint256 internal userPrivateKey = 0x123;
     uint256 internal invalidUserPrivateKey = 0x456;
 
-    // --- Setup ---
+    // --- Setup -- -
     function setUp() public {
         vm.createSelectFork(MAINNET_RPC_URL, BASE_MAINNET_FORK_BLOCK);
 
@@ -69,10 +69,10 @@ contract IntentSpotRouterTest is Test {
         vm.stopPrank();
     }
 
-    // --- Test Cases ---
+    // --- Test Cases -- -
 
     function test_executeSwap_withProtocolFee() public {
-        // --- Setup ---
+        // --- Setup -- -
         uint256 amountIn = 1 ether;
         uint256 expectedAmountOut = 2000 * 1e6; // 2000 USDC
         uint256 feeBps = 100; // 1%
@@ -107,17 +107,17 @@ contract IntentSpotRouterTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        // --- Execution ---
+        // --- Execution -- -
         uint256 treasuryBalanceBefore = weth.balanceOf(treasury);
         router.executeSwap(intent, signature);
         uint256 treasuryBalanceAfter = weth.balanceOf(treasury);
 
-        // --- Assertions ---
+        // --- Assertions -- -
         assertEq(treasuryBalanceAfter - treasuryBalanceBefore, expectedProtocolFee, "Incorrect protocol fee collected");
     }
 
     function test_executeSwap_largeAmount_withFee() public {
-        // --- Setup ---
+        // --- Setup -- -
         uint256 amountIn = 10000 ether;
         uint256 expectedAmountOut = 20000000 * 1e6; // 20,000,000 USDC
         uint256 feeBps = 50; // 0.5%
@@ -158,17 +158,17 @@ contract IntentSpotRouterTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        // --- Execution ---
+        // --- Execution -- -
         uint256 treasuryBalanceBefore = weth.balanceOf(treasury);
         router.executeSwap(intent, signature);
         uint256 treasuryBalanceAfter = weth.balanceOf(treasury);
 
-        // --- Assertions ---
+        // --- Assertions -- -
         assertEq(treasuryBalanceAfter - treasuryBalanceBefore, expectedProtocolFee, "Incorrect protocol fee collected for large amount");
     }
 
 
-    // --- Helper Functions ---
+    // --- Helper Functions -- -
 
     function getDigest(ISpotRouter.SwapIntent memory intent) internal view returns (bytes32) {
         bytes32 structHash = keccak256(abi.encode(

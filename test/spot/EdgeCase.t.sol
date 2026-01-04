@@ -2,12 +2,12 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import {VaultSpot} from "../../contracts/spot/VaultSpot.sol";
-import {SpotRouter} from "../../contracts/spot/SpotRouter.sol";
-import {FeeController} from "../../contracts/spot/FeeController.sol";
-import {AerodromeAdapter} from "../../contracts/spot/adapters/AerodromeAdapter.sol";
-import {PancakeV3Adapter} from "../../contracts/spot/adapters/PancakeV3Adapter.sol";
-import {IAdapter} from "../../contracts/spot/interfaces/IAdapter.sol";
+import {VaultSpot} from "contracts/spot/VaultSpot.sol";
+import {SpotRouter} from "contracts/spot/SpotRouter.sol";
+import {FeeController} from "contracts/spot/FeeController.sol";
+import {AerodromeAdapter} from "contracts/spot/adapters/AerodromeAdapter.sol";
+import {PancakeV3Adapter} from "contracts/spot/adapters/PancakeV3Adapter.sol";
+import {IAdapter} from "contracts/spot/interfaces/IAdapter.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract EdgeCaseTest is Test {
@@ -29,7 +29,7 @@ contract EdgeCaseTest is Test {
     uint256 internal constant CB_BTC_AMOUNT = 1 * 10 ** 8; // 1 cbBTC
     uint256 internal constant USDC_DEPOSIT_AMOUNT = 2000 * 10 ** 6; // 2000 USDC
 
-    // --- State ---
+    // --- State -- -
     VaultSpot internal vault;
     SpotRouter internal router;
     FeeController internal feeController;
@@ -58,7 +58,7 @@ contract EdgeCaseTest is Test {
         router.addAdapter(keccak256("aerodrome"), address(aerodromeAdapter));
         router.addAdapter(keccak256("pancake-v3"), address(pancakeAdapter));
 
-        // --- Fund user and deposit into vault ---
+        // --- Fund user and deposit into vault -- -
         // 1. cbBTC for the original test
         deal(cbBTC, USER, CB_BTC_AMOUNT);
         vm.startPrank(USER);

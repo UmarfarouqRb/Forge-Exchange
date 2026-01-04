@@ -107,13 +107,13 @@ This checklist defines the core safety guarantees of the vault. These properties
 Properties that must always hold for the contract's state.
 
 - SI-1: Solvency: The sum of all internal user balances for a given token must never exceed the total balance of that token held by this contract.
-- SI-2: Positive Balances:** A user'''s internal balance of any token can never be negative.
+- SI-2: Positive Balances:** A user's internal balance of any token can never be negative.
 - SI-3: Sole Custody:** Only the vault contract itself should custody user funds intended for trading.
 
 ### Execution Invariants (EI)
 *Guarantees about how specific functions must execute.*
 
--EI-1: Atomic Swaps:** Swaps must be atomic, with a user'''s balance being debited for the input token *before* the swap occurs and credited with the output token *after* the swap completes.
+-EI-1: Atomic Swaps:** Swaps must be atomic, with a user's balance being debited for the input token *before* the swap occurs and credited with the output token *after* the swap completes.
 - **EI-2: Slippage Protection:** The `SpotRouter` (not the vault) is responsible for ensuring that the final output amount of a swap is greater than or equal to a user-defined minimum.
 - **EI-3: Debit Precedes Credit:** The vault ensures that a user is debited before the router is approved to spend funds, and credited only after the swap is complete.
 
@@ -121,8 +121,26 @@ Properties that must always hold for the contract's state.
 *Rules governing permissions and access control.*
 
 - **SP-1: Router Authority:** Only the designated `SpotRouter` contract can trigger debits, credits, or token approvals on behalf of users.
-- **SP-2: Admin Cannot Drain Funds:** The contract owner (admin) cannot directly access, transfer, or arbitrarily modify any user'''s funds or internal balances.
+- **SP-2: Admin Cannot Drain Funds:** The contract owner (admin) cannot directly access, transfer, or arbitrarily modify any user's funds or internal balances.
 - **SP-3: Unstoppable Emergency Exit:** Users can always withdraw their funds via `emergencyWithdraw` when the system is in emergency mode. This action cannot be blocked by the admin.
+
+## IntentSpotRouter: Gasless Swaps with Ultimate Security & Flexibility
+
+### Overview
+
+The `IntentSpotRouter.sol` contract is a powerful extension of the protocol's trading capabilities, designed to process off-chain cryptographic signatures that represent a user's "intent" to swap. This enables a gas-less experience for the end-user, as a third-party "relayer" can submit the transaction on their behalf. The router is engineered with a novel security mechanism to find the best price while completely neutralizing the risk of relayer manipulation.
+
+### Core Architecture
+
+- **Signed Intents**: Instead of calling a `swap` function directly, users sign a `SwapIntent` message off-chain using their private key. This message specifies *what* they want to trade (e.g., "swap 1 WETH for at least 3000 USDC"), their deadline, and a unique nonce.
+
+- **Relayer-Proof Security through Hashing**: The router's most critical security feature is how it validates signatures. When generating the hash that a user signs, the contract deliberately uses `address(0)` as a placeholder for the DEX adapter. This means the user's signature authorizes the *trade itself*, but not *where* it executes. A relayer cannot alter the signature to force the trade through a specific, less-favorable DEX to extract value.
+
+- **Dual-Mode Execution**: When `executeSwap` is called with the user's intent and signature, it operates in one of two modes:
+    1.  **Best Price Mode (Default)**: If the user specifies `address(0)` as the adapter in their intent, the router will automatically query all whitelisted DEX adapters to find the one offering the best real-time `quote`. It then executes the trade on that optimal route, ensuring the user gets the best possible price at the moment of execution.
+    2.  **Direct Route Mode (Advanced)**: If the user specifies a particular adapter address in their intent, the router will honor that choice and execute the swap directly on the chosen DEX, bypassing the price-finding logic.
+
+This dual-mode system provides both maximum security and flexibility, making it a highly advanced and user-centric routing mechanism.
 
 # SpotRouter: A Resilient and Intelligent DeFi Aggregator
 
@@ -132,11 +150,11 @@ The `SpotRouter` is a sophisticated and resilient DeFi aggregator designed to pr
 
 ## Core Logic and Functionality
 
-The `SpotRouter`'''s core logic is centered around the `swap` function. This function takes in the input token, output token, input amount, and a list of adapters to use for the swap. The `SpotRouter` then iterates through the adapters, gets a quote from each one, and executes the swap on the adapter that provides the best quote.
+The `SpotRouter`'s core logic is centered around the `swap` function. This function takes in the input token, output token, input amount, and a list of adapters to use for the swap. The `SpotRouter` then iterates through the adapters, gets a quote from each one, and executes the swap on the adapter that provides the best quote.
 
 ### Fallback Mechanism
 
-A key feature of the `SpotRouter` is its fallback mechanism. If an adapter fails to provide a quote or execute a swap, the `SpotRouter` will gracefully handle the error and move on to the next adapter in the list. This ensures that the user'''s swap will not fail if a single liquidity source is unavailable.
+A key feature of the `SpotRouter` is its fallback mechanism. If an adapter fails to provide a quote or execute a swap, the `SpotRouter` will gracefully handle the error and move on to the next adapter in the list. This ensures that the user's swap will not fail if a single liquidity source is unavailable.
 
 ### Intelligent Adapters
 

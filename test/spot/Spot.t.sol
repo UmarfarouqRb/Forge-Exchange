@@ -2,15 +2,15 @@
 pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
-import {VaultSpot} from "../../contracts/spot/VaultSpot.sol";
-import {SpotRouter} from "../../contracts/spot/SpotRouter.sol";
-import {FeeController} from "../../contracts/spot/FeeController.sol";
-import {PancakeV3Adapter} from "../../contracts/spot/adapters/PancakeV3Adapter.sol";
-import {AerodromeAdapter} from "../../contracts/spot/adapters/AerodromeAdapter.sol";
-import {IAdapter} from "../../contracts/spot/interfaces/IAdapter.sol";
+import {VaultSpot} from "contracts/spot/VaultSpot.sol";
+import {SpotRouter} from "contracts/spot/SpotRouter.sol";
+import {FeeController} from "contracts/spot/FeeController.sol";
+import {PancakeV3Adapter} from "contracts/spot/adapters/PancakeV3Adapter.sol";
+import {AerodromeAdapter} from "contracts/spot/adapters/AerodromeAdapter.sol";
+import {IAdapter} from "contracts/spot/interfaces/IAdapter.sol";
 import {IERC20} from "@openzeppelin-contracts/token/ERC20/IERC20.sol";
-import {WETH} from "../../lib/universal-router/lib/solmate/src/tokens/WETH.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
+import {WETH} from "solmate/src/tokens/WETH.sol";
+import {MockERC20} from "test/mocks/MockERC20.sol";
 
 contract SpotTest is Test {
     VaultSpot vault;

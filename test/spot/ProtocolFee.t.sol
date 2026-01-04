@@ -2,11 +2,11 @@
 pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
-import {VaultSpot} from "../../contracts/spot/VaultSpot.sol";
-import {SpotRouter} from "../../contracts/spot/SpotRouter.sol";
-import {FeeController} from "../../contracts/spot/FeeController.sol";
-import {MockERC20} from "../mocks/MockERC20.sol";
-import {IAdapter} from "../../contracts/spot/interfaces/IAdapter.sol";
+import {VaultSpot} from "contracts/spot/VaultSpot.sol";
+import {SpotRouter} from "contracts/spot/SpotRouter.sol";
+import {FeeController} from "contracts/spot/FeeController.sol";
+import {MockERC20} from "test/mocks/MockERC20.sol";
+import {IAdapter} from "contracts/spot/interfaces/IAdapter.sol";
 import {IERC20} from "@openzeppelin-contracts/token/ERC20/IERC20.sol";
 
 contract MockAdapter is IAdapter {
