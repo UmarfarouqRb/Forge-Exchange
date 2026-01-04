@@ -1,6 +1,8 @@
+
 import { relayerConfig } from '@forge/common';
 import { IntentSpotRouter__factory } from '../contracts/factories/IntentSpotRouter__factory';
-import { orderBook } from '../api/orderbook';
+import { getOrders } from '@forge/database';
+import { Order } from '@forge/database';
 
 const MIN_PROFIT_BPS = 10; // 0.1%
 
@@ -40,7 +42,7 @@ export class MatchingEngine {
 
     start() {
         console.log('Starting matching engine...');
-        this.interval = setInterval(this.matchOrders.bind(this), 5000); // Check for matches every 5 seconds
+        this.interval = setInterval(() => this.matchOrders('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'), 5000); // Check for matches every 5 seconds
     }
 
     stop() {
@@ -50,42 +52,42 @@ export class MatchingEngine {
         }
     }
 
-    private async matchOrders() {
+    private async matchOrders(address: string) {
         console.log('Checking for matching orders...');
-        for (const bid of orderBook.bids) {
+        const orders: Order[] = await getOrders(address);
+        const bids = orders.filter(o => o.side === 'buy');
+        const asks = orders.filter(o => o.side === 'sell');
+
+        for (const bid of bids) {
             const marketPrice = await getMarketPrice(bid.tokenIn, bid.tokenOut);
-            const orderPrice = bid.amountIn / bid.minAmountOut;
+            const orderPrice = Number(bid.amountIn) / Number(bid.minAmountOut);
 
             if (marketPrice <= orderPrice) {
                 // Calculate potential profit
-                const expectedOutput = bid.amountIn * marketPrice;
-                const profit = expectedOutput - bid.minAmountOut;
-                const profitBps = (profit / bid.minAmountOut) * 10000;
+                const expectedOutput = Number(bid.amountIn) * marketPrice;
+                const profit = expectedOutput - Number(bid.minAmountOut);
+                const profitBps = (profit / Number(bid.minAmountOut)) * 10000;
 
                 if (profitBps >= MIN_PROFIT_BPS) {
                     console.log(`Found a profitable bid to fill:`, bid);
-                    await executeTrade(bid.intent, bid.signature, 'local');
-                    // Remove the filled order from the order book
-                    orderBook.bids = orderBook.bids.filter(b => b !== bid);
+                    await executeTrade(bid, 'signature', 'local');
                 }
             }
         }
 
-        for (const ask of orderBook.asks) {
+        for (const ask of asks) {
             const marketPrice = await getMarketPrice(ask.tokenIn, ask.tokenOut);
-            const orderPrice = ask.amountIn / ask.minAmountOut;
+            const orderPrice = Number(ask.amountIn) / Number(ask.minAmountOut);
 
             if (marketPrice >= orderPrice) {
                  // Calculate potential profit
-                 const expectedOutput = ask.amountIn * marketPrice;
-                 const profit = expectedOutput - ask.minAmountOut;
-                 const profitBps = (profit / ask.minAmountOut) * 10000;
+                 const expectedOutput = Number(ask.amountIn) * marketPrice;
+                 const profit = expectedOutput - Number(ask.minAmountOut);
+                 const profitBps = (profit / Number(ask.minAmountOut)) * 10000;
  
                  if (profitBps >= MIN_PROFIT_BPS) {
                     console.log(`Found a profitable ask to fill:`, ask);
-                    await executeTrade(ask.intent, ask.signature, 'local');
-                    // Remove the filled order from the order book
-                    orderBook.asks = orderBook.asks.filter(a => a !== ask);
+                    await executeTrade(ask, 'signature', 'local');
                  }
             }
         }

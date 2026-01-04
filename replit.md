@@ -4,14 +4,10 @@
 A professional CEX-style decentralized cryptocurrency exchange with multi-chain support. Users can trade crypto without KYC by connecting their Web3 wallet (MetaMask). The platform features a modern dark theme with gradient accents, TradingView integration for live market data, and full mobile responsiveness.
 
 ## Current Status
-**Production Ready - Netlify Serverless**: Full-stack application with serverless backend, ready for Netlify deployment
-- ✅ **Serverless Backend Conversion Complete**: Express API converted to Netlify Functions
-- ✅ **Professional Landing Page**: CEX-style design with gradient hero and features
-- ✅ **Multi-Chain Support**: BASE (default), BNB Chain, Arbitrum; SUI coming soon
+Multi-Chain Support**: BASE (default), BNB Chain, Arbitrum; SUI coming soon
 - ✅ **TradingView Integration**: Live market data and charts
 - ✅ **Full Mobile Responsiveness**: Optimized for all screen sizes including small phones
 - ✅ **Chart Hidden by Default**: Shows full-width at top when unhidden
-- ✅ **Netlify Configuration**: Complete serverless functions + SPA routing
 - ✅ **SEO Optimized**: Comprehensive meta tags and social sharing
 - ✅ **Complete UI**: All 5 pages fully implemented with mobile-first design
 - ✅ **Wallet Integration**: MetaMask connection ready

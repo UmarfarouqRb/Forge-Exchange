@@ -217,7 +217,7 @@ export default function Futures() {
                 <TradingChart symbol={selectedPair} />
             </TabsContent>
             <TabsContent value="trade" className="overflow-auto">
-                <TradePanel symbol={selectedPair} currentPrice={currentPrice} />
+                <TradePanel symbol={selectedPair} currentPrice={currentPrice} disabled />
             </TabsContent>
             <TabsContent value="book" className="overflow-hidden">
                 {isOrderBookError ? (
@@ -256,7 +256,7 @@ export default function Futures() {
                             <TradingChart symbol={selectedPair} />
                         </div>
                         <div className="overflow-hidden">
-                            <TradePanel symbol={selectedPair} currentPrice={currentPrice} />
+                            <TradePanel symbol={selectedPair} currentPrice={currentPrice} disabled />
                         </div>
                     </div>
                     <div className="h-80 flex-shrink-0 overflow-hidden mt-2">

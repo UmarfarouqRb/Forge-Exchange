@@ -15,7 +15,7 @@ interface TradePanelProps {
 }
 
 export function TradePanel({ symbol, currentPrice, disabled = false }: TradePanelProps) {
-  const [orderType, setOrderType] = useState<'limit' | 'market'>('limit');
+  const [orderType, setOrderType] = useState<'limit' | 'market'>('market');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(currentPrice);
   const [amount, setAmount] = useState('');
@@ -46,6 +46,8 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
     if (!ready || !authenticated) return 'Wallet Not Connected';
     return 'Place Order';
   }
+  
+  const baseCurrency = symbol.replace('USDT', '');
 
   return (
     <Card className="h-full">
@@ -60,8 +62,8 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
         <div className="mb-4">
           <Tabs value={orderType} onValueChange={(v) => setOrderType(v as 'limit' | 'market')}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="limit">Limit</TabsTrigger>
               <TabsTrigger value="market">Market</TabsTrigger>
+              <TabsTrigger value="limit">Limit</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -81,7 +83,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
         )}
 
         <div className="mb-4">
-          <Label htmlFor="amount">Amount</Label>
+          <Label htmlFor="amount">Amount ({baseCurrency})</Label>
           <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
         </div>
 

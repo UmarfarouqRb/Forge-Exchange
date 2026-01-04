@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
-interface OrderBookEntry {
+export interface OrderBookEntry {
   price: string;
   amount: string;
   total: string;
+  symbol: string;
 }
 
 interface OrderBookProps {
@@ -33,10 +34,11 @@ export function OrderBook({ bids, asks, isLoading }: OrderBookProps) {
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="text-sm">Order Book</CardTitle>
-        <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground mt-2">
+        <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground mt-2">
           <div>Price (USDT)</div>
           <div className="text-right">Amount</div>
           <div className="text-right">Total</div>
+          <div className="text-right">Symbol</div>
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-0 flex-1 overflow-auto">
@@ -45,7 +47,7 @@ export function OrderBook({ bids, asks, isLoading }: OrderBookProps) {
           {asks.slice(0, 12).reverse().map((ask, i) => (
             <div
               key={i}
-              className="grid grid-cols-3 gap-2 text-xs py-1 relative hover-elevate rounded"
+              className="grid grid-cols-4 gap-2 text-xs py-1 relative hover-elevate rounded"
               data-testid={`row-ask-${i}`}
             >
               <div
@@ -55,6 +57,7 @@ export function OrderBook({ bids, asks, isLoading }: OrderBookProps) {
               <div className="font-mono text-destructive relative z-10">{ask.price}</div>
               <div className="font-mono text-right relative z-10">{ask.amount}</div>
               <div className="font-mono text-right relative z-10">{ask.total}</div>
+              <div className="font-mono text-right relative z-10">{ask.symbol}</div>
             </div>
           ))}
         </div>
@@ -76,7 +79,7 @@ export function OrderBook({ bids, asks, isLoading }: OrderBookProps) {
           {bids.slice(0, 12).map((bid, i) => (
             <div
               key={i}
-              className="grid grid-cols-3 gap-2 text-xs py-1 relative hover-elevate rounded"
+              className="grid grid-cols-4 gap-2 text-xs py-1 relative hover-elevate rounded"
               data-testid={`row-bid-${i}`}
             >
               <div
@@ -86,6 +89,7 @@ export function OrderBook({ bids, asks, isLoading }: OrderBookProps) {
               <div className="font-mono text-chart-2 relative z-10">{bid.price}</div>
               <div className="font-mono text-right relative z-10">{bid.amount}</div>
               <div className="font-mono text-right relative z-10">{bid.total}</div>
+              <div className="font-mono text-right relative z-10">{bid.symbol}</div>
             </div>
           ))}
         </div>

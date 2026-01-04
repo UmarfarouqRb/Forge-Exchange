@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { OrderBook } from '@/components/OrderBook';
+import { OrderBook, OrderBookEntry } from '@/components/OrderBook';
 import { TradingChart } from '@/components/TradingChart';
 import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
@@ -21,16 +21,6 @@ export default function Spot() {
 
   const tradingPair = tradingPairs.get(selectedPair);
 
-  const { data: orderBookData, isLoading: isOrderBookLoading, isError: isOrderBookError } = useQuery({
-    queryKey: ['/api/order-book', selectedPair, 'spot'],
-    queryFn: async () => {
-        const response = await fetch(`/api/order-book/${selectedPair}?category=spot`);
-        if (!response.ok) throw new Error('Failed to fetch order book');
-        return response.json();
-    },
-    refetchInterval: 3000,
-  });
-
   const { data: orders, isLoading: areOrdersLoading, isError: areOrdersError } = useQuery<Order[]>({
     queryKey: ['/api/orders', wallet?.address, 'spot'],
     queryFn: async () => {
@@ -39,7 +29,19 @@ export default function Spot() {
     },
     enabled: authenticated && !!wallet?.address,
     initialData: [],
+    refetchInterval: 3000,
   });
+
+  const { bids, asks } = orders.reduce((acc: { bids: OrderBookEntry[], asks: OrderBookEntry[] }, order) => {
+    const { side, price, amount, total, symbol } = order;
+    const entry = { price, amount, total, symbol };
+    if (side === 'buy') {
+      acc.bids.push(entry);
+    } else {
+      acc.asks.push(entry);
+    }
+    return acc;
+  }, { bids: [], asks: [] });
 
   const currentPrice = tradingPair?.currentPrice || '0';
   const priceChange = tradingPair?.priceChange24h || '0';
@@ -187,15 +189,15 @@ export default function Spot() {
             <TradePanel symbol={selectedPair} currentPrice={currentPrice} />
           </TabsContent>
           <TabsContent value="book" className="overflow-hidden">
-            {isOrderBookError ? (
+            {areOrdersError ? (
                 <div className="flex items-center justify-center h-full text-destructive">
                     Failed to load order book.
                 </div>
             ) : (
                 <OrderBook 
-                  bids={orderBookData?.bids || []} 
-                  asks={orderBookData?.asks || []}
-                  isLoading={isOrderBookLoading}
+                  bids={bids} 
+                  asks={asks}
+                  isLoading={areOrdersLoading}
                 />
             )}
           </TabsContent>
@@ -207,15 +209,15 @@ export default function Spot() {
           <div className="flex-1 grid grid-cols-12 gap-2 overflow-hidden">
             {/* Order Book - Left */}
             <div className="col-span-3 overflow-hidden">
-              {isOrderBookError ? (
+              {areOrdersError ? (
                   <div className="flex items-center justify-center h-full text-destructive">
                       Failed to load order book.
                   </div>
               ) : (
                   <OrderBook 
-                    bids={orderBookData?.bids || []} 
-                    asks={orderBookData?.asks || []}
-                    isLoading={isOrderBookLoading}
+                    bids={bids} 
+                    asks={asks}
+                    isLoading={areOrdersLoading}
                   />
               )}
             </div>

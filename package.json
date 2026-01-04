@@ -16,7 +16,9 @@
     "lint": "turbo run lint",
     "install:services": "npm install --workspaces --if-present",
     "start:services": "turbo run start --filter='./apps/relayer'",
-    "start:price-engine": "node apps/price-engine/index.js"
+    "start:price-engine": "node apps/price-engine/index.js",
+    "test": "vitest",
+    "test:relayer": "dotenv -e apps/relayer/testing.env -- vitest run apps/relayer/test/integration"
   },
   "overrides": {
     "drizzle-kit": "latest",
@@ -29,13 +31,15 @@
   },
   "devDependencies": {
     "@typechain/ethers-v6": "^0.5.1",
-    "turbo": "^2.6.3"
+    "turbo": "^2.6.3",
+    "viem": "^2.43.5",
+    "vitest": "^4.0.16",
+    "dotenv-cli": "^7.4.2"
   },
   "packageManager": "npm@10.8.1",
   "dependencies": {
     "@types/pg": "^8.16.0",
     "pg": "^8.16.3",
-    "viem": "^2.43.4",
     "vite-tsconfig-paths": "^6.0.3"
   }
 }
