@@ -19,6 +19,7 @@ interface ISpotRouter {
         uint256 deadline;
         uint256 nonce;
         address adapter; // The single, pre-determined adapter for execution
+        uint256 relayerFee; // The fee paid to the relayer for executing the intent
     }
 
     /**
