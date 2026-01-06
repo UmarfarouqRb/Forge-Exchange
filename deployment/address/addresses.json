@@ -1,0 +1,9 @@
+{
+    "WETH": "0x4e5313b9ec1047f1c41eb6846c5b3c7ab13d0d31",
+    "VaultSpot": "0x5b5af2b5f71ebd1e738ebb2f05f15cba38b4cd80",
+    "FeeController": "0x019575382779a1f4012f27f6c3f932310b404105",
+    "IntentSpotRouter": "0x4194def5bf4af3ebec559ff705395ff4b7066267",
+    "PancakeV3Adapter": "0xec3584baa96ae3e33b2bcb45bc5522ce73f045e6",
+    "UniswapV2Adapter": "0x9174bdd2b7df25462608c294255db1eee82514a5",
+    "AerodromeAdapter": "0x428ff0a5d54c8bd70b591a37a5c8b8ea7b136591"
+}
