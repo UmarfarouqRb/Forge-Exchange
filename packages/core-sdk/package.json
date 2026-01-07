@@ -7,8 +7,11 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
-    "@forge/intent-types": "../intent-types",
-    "@forge/crypto": "../crypto",
+    "@forge/intent-types": "workspace:^",
+    "@forge/crypto": "workspace:^",
     "viem": "2.43.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
   }
 }

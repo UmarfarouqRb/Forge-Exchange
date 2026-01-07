@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
-    "@shared/schema": "../packages/schema",
+    "@shared/schema": "workspace:^",
     "@supabase/supabase-js": "^2.88.0",
     "@upstash/redis": "^1.35.8",
     "connect-pg-simple": "^10.0.0",
@@ -24,7 +24,7 @@
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "postgres": "^3.4.4",
-    "relayer": "file:../relayer",
+    "forge-exchange-relayer": "workspace:^",
     "viem": "2.43.1",
     "vite": "6.4.1",
     "ws": "^8.18.3",
