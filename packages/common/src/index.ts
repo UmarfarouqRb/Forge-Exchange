@@ -1,1 +1,1 @@
-export * from "./config";
+export { relayerConfig } from "./config";
