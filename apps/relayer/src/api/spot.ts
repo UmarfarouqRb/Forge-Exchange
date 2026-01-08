@@ -1,9 +1,42 @@
 
 import { Request, Response } from 'express';
-import { relayerConfig } from '../config';
-import { IntentSpotRouter__factory } from '../contracts/factories/IntentSpotRouter__factory';
-import { repository } from '../db';
-import { ethers } from 'ethers';
+import { relayerConfig } from '@forge/common';
+import { saveOrder, updateOrderStatus } from '@forge/database';
+import { createPublicClient, createWalletClient, http, keccak256, parseUnits, formatUnits } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { base } from 'viem/chains';
+import IntentSpotRouter from '../../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
+
+const intentSpotRouterABI = IntentSpotRouter.abi;
+
+async function getMarketPrice(tokenIn: string, tokenOut: string, chainId: number): Promise<number> {
+    const network = relayerConfig.getNetworkByChainId(chainId);
+    if (!network) {
+        throw new Error(`Unsupported chainId: ${chainId}`);
+    }
+
+    const publicClient = createPublicClient({
+        chain: base,
+        transport: http(network.providerUrl),
+    });
+
+    const intentSpotRouterAddress = network.intentSpotRouterAddress as `0x${string}`;
+
+    try {
+        const amountIn = parseUnits('1', 18);
+        const amountOut = await publicClient.readContract({
+            address: intentSpotRouterAddress,
+            abi: intentSpotRouterABI,
+            functionName: 'swap',
+            args: [tokenIn, tokenOut, amountIn, [], '0x'],
+        });
+
+        return parseFloat(formatUnits(amountOut as bigint, 18));
+    } catch (error) {
+        console.error(`Error fetching market price for ${tokenIn}/${tokenOut}:`, error);
+        return 0;
+    }
+}
 
 export const spot = async (req: Request, res: Response) => {
     const { intent, signature, orderType } = req.body;
@@ -12,38 +45,59 @@ export const spot = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const orderId = ethers.keccak256(signature); // Generate a unique ID for the order
+    const orderId = keccak256(signature);
 
     try {
-        await repository.saveOrder({ ...intent, id: orderId, status: 'PENDING' });
+        await saveOrder({ ...intent, id: orderId, status: 'PENDING' });
 
         const network = relayerConfig.getNetworkByChainId(intent.chainId);
         if (!network) {
             throw new Error(`Unsupported chainId: ${intent.chainId}`);
         }
 
-        const signer = await relayerConfig.getSigner(network.name);
-        const intentSpotRouterAddress = network.intentSpotRouterAddress;
-        const intentSpotRouter = IntentSpotRouter__factory.connect(intentSpotRouterAddress, signer);
+        const publicClient = createPublicClient({
+            chain: base,
+            transport: http(network.providerUrl),
+        });
+
+        const account = privateKeyToAccount(process.env.RELAYER_PRIVATE_KEY as `0x${string}`);
+
+        const walletClient = createWalletClient({
+            account,
+            chain: base,
+            transport: http(network.providerUrl),
+        });
+
+        const intentSpotRouterAddress = network.intentSpotRouterAddress as `0x${string}`;
+
+        const price = await getMarketPrice(intent.tokenIn, intent.tokenOut, intent.chainId);
 
         if (orderType === 'market' || orderType === 'limit') {
-            const tx = await intentSpotRouter.executeSwap(intent, signature);
-            const receipt = await tx.wait();
+            const { request } = await publicClient.simulateContract({
+                address: intentSpotRouterAddress,
+                abi: intentSpotRouterABI,
+                functionName: 'executeSwap',
+                args: [intent, signature],
+                account,
+            });
 
-            if (!receipt || receipt.status === 0) { // Transaction failed
+            const tx = await walletClient.writeContract(request);
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+
+            if (receipt.status === 'reverted') {
                 throw new Error('Transaction reverted on-chain');
             }
 
-            await repository.updateOrderStatus(orderId, 'SUCCESS');
+            await updateOrderStatus(orderId, 'SUCCESS');
 
-            res.json({ success: true, txHash: tx.hash });
+            res.json({ success: true, txHash: tx, price });
         } else {
             throw new Error(`Unsupported order type: ${orderType}`);
         }
 
     } catch (error: any) {
         console.error('Failed to execute spot trade:', error);
-        await repository.updateOrderStatus(orderId, 'FAILED');
+        await updateOrderStatus(orderId, 'FAILED');
         res.status(500).json({ error: `Failed to execute spot trade: ${error.message}` });
     }
 };

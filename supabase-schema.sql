@@ -7,6 +7,19 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- --- Tables ---
 
+CREATE TABLE "chain" (
+  "id" TEXT PRIMARY KEY
+);
+
+CREATE TABLE "users" (
+  "address" TEXT PRIMARY KEY
+);
+
+CREATE TABLE "sessions" (
+  "sessionKey" TEXT PRIMARY KEY,
+  "expiration" BIGINT NOT NULL
+);
+
 -- Table for storing available trading pairs and their market data
 CREATE TABLE "trading_pairs" (
   "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -36,18 +49,20 @@ CREATE TABLE "market_data" (
 
 -- Table for storing user orders (both spot and futures)
 CREATE TABLE "orders" (
-  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "wallet_address" TEXT NOT NULL,
+  "id" TEXT PRIMARY KEY,
+  "user" TEXT NOT NULL,
+  "tokenIn" TEXT NOT NULL,
+  "tokenOut" TEXT NOT NULL,
+  "amountIn" TEXT NOT NULL,
+  "minAmountOut" TEXT NOT NULL,
+  "nonce" BIGINT NOT NULL,
+  "status" TEXT NOT NULL,
   "symbol" TEXT NOT NULL,
-  "order_type" TEXT NOT NULL,
   "side" TEXT NOT NULL,
-  "price" DECIMAL(18, 8),
-  "amount" DECIMAL(18, 8) NOT NULL,
-  "total" DECIMAL(18, 8) NOT NULL,
-  "status" TEXT NOT NULL DEFAULT 'pending',
-  "category" TEXT NOT NULL DEFAULT 'spot',
-  "leverage" INTEGER DEFAULT 1,
-  "created_at" TIMESTAMP NOT NULL DEFAULT now()
+  "price" TEXT NOT NULL,
+  "amount" TEXT NOT NULL,
+  "total" TEXT NOT NULL,
+  "createdAt" BIGINT NOT NULL
 );
 
 -- Table for storing user asset balances
@@ -113,7 +128,7 @@ CREATE TABLE "raw_onchain_events" (
 -- --- Indexes ---
 
 CREATE INDEX "idx_market_data_symbol_timestamp" ON "market_data" ("symbol", "timestamp" DESC);
-CREATE INDEX "idx_orders_wallet_address" ON "orders" ("wallet_address");
+CREATE INDEX "idx_orders_user" ON "orders" ("user");
 CREATE INDEX "idx_transactions_wallet_address" ON "transactions" ("wallet_address");
 
 -- Indexes for efficient querying by the indexer processor

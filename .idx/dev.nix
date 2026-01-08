@@ -11,7 +11,7 @@
     previews = {
       web = {
         command = [
-          "npm"
+          "pnpm"
           "run"
           "dev"
           "--"

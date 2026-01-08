@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { ethers } from 'ethers';
+import { verifyTypedData } from 'viem';
 import { relayerConfig } from '@forge/common';
 import { getChainId, getUserAddress, saveSession } from '@forge/database';
 
@@ -13,38 +13,38 @@ export async function authorizeSession(req: Request, res: Response) {
         return res.status(400).json({ error: 'Unsupported chainId' });
     }
 
-    const typedData = {
-        domain: {
-            name: 'SessionKeyManager',
-            version: '1',
-            chainId,
-            verifyingContract: network.sessionKeyManagerAddress,
-        },
-        types: {
-            Authorization: [
-                { name: 'sessionKey', type: 'address' },
-                { name: 'expiration', type: 'uint256' },
-            ],
-        },
-        primaryType: 'Authorization',
-        message: {
-            sessionKey,
-            expiration,
-        },
+    const domain = {
+        name: 'SessionKeyManager',
+        version: '1',
+        chainId: Number(chainId),
+        verifyingContract: network.sessionKeyManagerAddress as `0x${string}`,
+    };
+
+    const types = {
+        Authorization: [
+            { name: 'sessionKey', type: 'address' },
+            { name: 'expiration', type: 'uint256' },
+        ],
+    };
+
+    const message = {
+        sessionKey,
+        expiration,
     };
 
     try {
-        const recoveredAddress = ethers.verifyTypedData(
-            typedData.domain,
-            typedData.types,
-            typedData.message,
-            signature
-        );
-
-        // Here you would typically get the user's address from a database or other source
         const userAddress = await getUserAddress(); // a function to get the user address from the db
 
-        if (recoveredAddress.toLowerCase() !== userAddress.toLowerCase()) {
+        const isValid = await verifyTypedData({
+            address: userAddress as `0x${string}`,
+            domain,
+            types,
+            primaryType: 'Authorization',
+            message,
+            signature: signature as `0x${string}`,
+        });
+
+        if (!isValid) {
             return res.status(401).json({ error: 'Invalid signature' });
         }
 

@@ -12,7 +12,7 @@ This guide will walk you through setting up the Forge Exchange project for local
 
 Before you begin, ensure you have the following installed on your system:
 - [Node.js](httpss://nodejs.org/en/) (v18 or later recommended)
-- [Yarn](httpss://yarnpkg.com/getting-started/install) (as a package manager)
+- [pnpm](httpss://pnpm.io/installation) (as a package manager)
 - [Foundry](httpss://getfoundry.sh/) (for Solidity smart contract development and testing)
 
 ### 1. Installation
@@ -22,10 +22,21 @@ First, clone the repository to your local machine and install the required depen
 bash
 git clone <YOUR_REPOSITORY_URL>
 cd forge-exchange
-npm install
+pnpm install
 
 
-### 2. Running the Development Environment
+### 2. Supabase Setup
+
+This project uses Supabase for its database. You will need to create a `.env` file in the `packages/database` directory with the following content:
+
+
+SUPABASE_URL="YOUR_SUPABASE_URL"
+SUPABASE_KEY="YOUR_SUPABASE_ANON_KEY"
+
+
+Replace `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY` with your actual Supabase credentials.
+
+### 3. Running the Development Environment
 
 To run the full platform locally, you will need to run three separate processes in three different terminal windows: the blockchain, the backend relayer, and the frontend.
 
@@ -34,7 +45,7 @@ Terminal 1: Start the Local Blockchain
 This command starts a local Anvil node, which is part of the Foundry toolset. It will also deploy your smart contracts.
 
 bash
-npm run chain
+pnpm run chain
 
 
 Terminal 2: Start the Backend Relayer
@@ -42,7 +53,7 @@ Terminal 2: Start the Backend Relayer
 This command starts the backend service that communicates with the smart contracts.
 
 bash
-npm run dev:relayer
+pnpm run dev:relayer
 
 
 Terminal 3: Start the Frontend Application
@@ -50,35 +61,35 @@ Terminal 3: Start the Frontend Application
 This command starts the React frontend application.
 
 bash
-npm run dev:frontend
+pnpm run dev:frontend
 
 
 After running these commands, you can access the frontend at `http://localhost:5173`.
 
-### 3. Building for Production
+### 4. Building for Production
 
 To create an optimized production build of the applications:
 
 Build the Frontend:
 bash
 # This will create a 'dist' folder in 'apps/frontend'
-npm run build:frontend
+pnpm run build:frontend
 
 
 Build the Relayer:
 bash
 # This will create a 'dist' folder in 'apps/relayer'
-npm run build:relayer
+pnpm run build:relayer
 
 
-### 4. Running Tests
+### 5. Running Tests
 
 The smart contracts are tested using Foundry's robust testing framework.
 
 To run the full suite of tests for the Solidity contracts:
 
 bash
-npm test
+pnpm test
 
 
 ---

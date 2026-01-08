@@ -1,5 +1,10 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+    process.env.SUPABASE_URL || '',
+    process.env.SUPABASE_KEY || ''
+);
 
 export interface Order {
     id: string;
@@ -18,48 +23,35 @@ export interface Order {
     createdAt: number;
 }
 
-export async function openDb() {
-  return open({
-    filename: './database.db',
-    driver: sqlite3.Database
-  });
-}
-
 export const getChainId = async () => {
-    const db = await openDb();
-    const result = await db.get("SELECT id FROM chain");
-    return result.id;
+    const { data, error } = await supabase.from('chain').select('id').single();
+    if (error) throw error;
+    return data.id;
 };
 
 export const getUserAddress = async () => {
-    const db = await openDb();
-    const result = await db.get("SELECT address FROM users");
-    return result.address;
+    const { data, error } = await supabase.from('users').select('address').single();
+    if (error) throw error;
+    return data.address;
 };
 
 export const saveSession = async (sessionKey: string, expiration: number) => {
-    const db = await openDb();
-    await db.run("INSERT INTO sessions (sessionKey, expiration) VALUES (?, ?)", [sessionKey, expiration]);
+    const { error } = await supabase.from('sessions').insert([{ sessionKey, expiration }]);
+    if (error) throw error;
 };
 
 export const getOrders = async (address: string): Promise<Order[]> => {
-    const db = await openDb();
-    const results = await db.all("SELECT * FROM orders WHERE user = ?", [address]);
-    return results as Order[];
+    const { data, error } = await supabase.from('orders').select('*').eq('user', address);
+    if (error) throw error;
+    return data as Order[];
 };
 
 export const saveOrder = async (intent: any) => {
-    const { id, user, tokenIn, tokenOut, amountIn, minAmountOut, nonce, side, price, amount, total, symbol } = intent;
-    const status = "PENDING"; 
-    const createdAt = Math.floor(Date.now() / 1000);
-    const db = await openDb();
-    await db.run(
-        "INSERT INTO orders (id, user, tokenIn, tokenOut, amountIn, minAmountOut, nonce, status, createdAt, side, price, amount, total, symbol) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [id, user, tokenIn, tokenOut, amountIn.toString(), minAmountOut.toString(), nonce, status, createdAt, side, price, amount, total, symbol]
-    );
+    const { error } = await supabase.from('orders').insert([intent]);
+    if (error) throw error;
 };
 
 export const updateOrderStatus = async (orderId: string, status: string) => {
-    const db = await openDb();
-    await db.run("UPDATE orders SET status = ? WHERE id = ?", [status, orderId]);
+    const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
+    if (error) throw error;
 };
