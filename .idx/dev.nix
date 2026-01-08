@@ -12,13 +12,11 @@
       web = {
         command = [
           "pnpm"
+          "install"
+          "&&"
+          "pnpm"
           "run"
           "dev"
-          "--"
-          "--port"
-          "$PORT"
-          "--host"
-          "0.0.0.0"
         ];
         manager = "web";
       };

@@ -14,7 +14,7 @@
     "start:services": "turbo run start --filter='./apps/relayer'",
     "start:price-engine": "node apps/price-engine/index.js",
     "test": "vitest",
-    "test:relayer": "dotenv -e apps/relayer/testing.env -- vitest run apps/relayer/test/integration"
+    "test:relayer": "npx anvil --fork-url https://mainnet.base.org --fork-block-number 40500000 & npx wait-on tcp:8545 && npx dotenv -e apps/relayer/testing.env -- vitest run --config apps/relayer/vite.config.ts apps/relayer/test/integration"
   },
   "overrides": {
     "drizzle-kit": "latest",
@@ -27,11 +27,13 @@
   },
   "devDependencies": {
     "@typechain/ethers-v6": "^0.5.1",
+    "dotenv": "^17.2.3",
     "dotenv-cli": "^7.4.2",
     "turbo": "^2.7.3",
     "viem": "^2.43.5",
     "vite-tsconfig-paths": "^6.0.3",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.16",
+    "wait-on": "^9.0.3"
   },
   "packageManager": "pnpm@9.15.0",
   "dependencies": {

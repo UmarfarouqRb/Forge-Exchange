@@ -13,7 +13,8 @@
     "paths": {
       "@/*": ["apps/frontend/src/*"],
       "@forge/db": ["packages/schema/src/index.ts"],
-      "relayer": ["apps/relayer/src/index.ts"]
+      "relayer": ["apps/relayer/src/index.ts"],
+      "@forge/database": ["packages/database/src"]
     }
   }
 }

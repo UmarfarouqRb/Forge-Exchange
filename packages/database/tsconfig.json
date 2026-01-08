@@ -3,7 +3,9 @@
   "compilerOptions": {
     "outDir": "./dist",
     "composite": true,
-    "declaration": true
+    "declaration": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["dist"]

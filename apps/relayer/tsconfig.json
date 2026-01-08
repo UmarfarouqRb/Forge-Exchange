@@ -14,10 +14,8 @@
     "outDir": "./dist",
     "composite": true,
     "declaration": true,
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
   },
-  "include": ["src"],
+  "include": ["src", "test"],
   "exclude": ["node_modules", "dist"]
 }

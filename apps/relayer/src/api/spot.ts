@@ -6,6 +6,7 @@ import { createPublicClient, createWalletClient, http, keccak256, parseUnits, fo
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
 import IntentSpotRouter from '../../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
+import { getTokenDecimals } from '../utils/tokens';
 
 const intentSpotRouterABI = IntentSpotRouter.abi;
 
@@ -23,7 +24,10 @@ async function getMarketPrice(tokenIn: string, tokenOut: string, chainId: number
     const intentSpotRouterAddress = network.intentSpotRouterAddress as `0x${string}`;
 
     try {
-        const amountIn = parseUnits('1', 18);
+        const tokenInDecimals = await getTokenDecimals(tokenIn, chainId);
+        const tokenOutDecimals = await getTokenDecimals(tokenOut, chainId);
+
+        const amountIn = parseUnits('1', tokenInDecimals);
         const amountOut = await publicClient.readContract({
             address: intentSpotRouterAddress,
             abi: intentSpotRouterABI,
@@ -31,7 +35,7 @@ async function getMarketPrice(tokenIn: string, tokenOut: string, chainId: number
             args: [tokenIn, tokenOut, amountIn, [], '0x'],
         });
 
-        return parseFloat(formatUnits(amountOut as bigint, 18));
+        return parseFloat(formatUnits(amountOut as bigint, tokenOutDecimals));
     } catch (error) {
         console.error(`Error fetching market price for ${tokenIn}/${tokenOut}:`, error);
         return 0;

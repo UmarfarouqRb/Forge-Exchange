@@ -1,27 +1,23 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { Order, AuthorizeSessionPayload } from "@shared/schema";
+import { createProxyMiddleware } from 'http-proxy-middleware';
+
+// Define the proxy middleware for the relayer service
+const relayerProxy = createProxyMiddleware({
+  target: 'http://localhost:3001',
+  changeOrigin: true,
+  ws: true,
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
-  // --- Session Authorization Route ---
-  app.post("/api/session/authorize", async (req: Request, res: Response) => {
-    try {
-      const validatedData = AuthorizeSessionPayload.parse(req.body);
-      // For now, just log the data and return success
-      console.log("Authorized session with data:", validatedData);
-      res.status(200).json({ message: "Session authorized successfully" });
-    } catch (error: any) {
-      if (error.name === "ZodError") {
-        return res.status(400).json({ error: "Invalid session data", details: error.errors });
-      }
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // --- Relayer Proxy Routes ---
+  app.use('/api/spot', relayerProxy);
+  app.use('/api/session/authorize', relayerProxy);
+  app.use('/api/orders', relayerProxy);
+  app.use('/api/tokens', relayerProxy);
 
-  // --- Original Routes ---
-  // ... (all the other routes from the original file)
   // Trading Pairs Routes
   app.get("/api/trading-pairs", async (req: Request, res: Response) => {
     try {
@@ -120,53 +116,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Orders Routes
-  app.get("/api/orders/:walletAddress", async (req: Request, res: Response) => {
-    try {
-      const { walletAddress } = req.params;
-      const { category } = req.query;
-      const orders = await storage.getOrdersByWallet(
-        walletAddress,
-        category as string
-      );
-      res.json(orders);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/orders", async (req: Request, res: Response) => {
-    try {
-      const validatedData = Order.parse(req.body);
-      const order = await storage.createOrder(validatedData);
-      res.status(201).json(order);
-    } catch (error: any) {
-      if (error.name === "ZodError") {
-        return res.status(400).json({ error: "Invalid order data", details: error.errors });
-      }
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.patch("/api/orders/:id/status", async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-      
-      if (!status) {
-        return res.status(400).json({ error: "Status is required" });
-      }
-
-      const order = await storage.updateOrderStatus(id, status);
-      if (!order) {
-        return res.status(404).json({ error: "Order not found" });
-      }
-      res.json(order);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
   // Assets Routes
   app.get("/api/assets/:walletAddress", async (req: Request, res: Response) => {
     try {
@@ -223,7 +172,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Create transaction
       const transaction = await storage.createTransaction({
         walletAddress,
         type: "deposit",
@@ -234,7 +182,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString(),
       });
 
-      // Update asset balance
       const existingAsset = await storage.getAssetByWalletAndSymbol(walletAddress, asset);
       if (existingAsset) {
         const newTotal = parseFloat(existingAsset.total) + depositAmount;
@@ -264,7 +211,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Withdrawal Route
   app.post("/api/transactions/withdraw", async (req: Request, res: Response) => {
     try {
       const { walletAddress, asset, amount } = req.body;
@@ -286,7 +232,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Check balance
       const existingAsset = await storage.getAssetByWalletAndSymbol(walletAddress, asset);
       if (!existingAsset) {
         return res.status(400).json({ error: "Asset not found" });
@@ -301,7 +246,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Create transaction
       const transaction = await storage.createTransaction({
         walletAddress,
         type: "withdrawal",
@@ -312,7 +256,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString(),
       });
 
-      // Update asset balance (deduct withdrawal + fee)
       const newTotal = parseFloat(existingAsset.total) - totalCost;
       const newAvailable = parseFloat(existingAsset.available) - totalCost;
       
