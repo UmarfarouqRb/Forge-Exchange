@@ -4,3 +4,17 @@ services:
     env: node
     buildCommand: "pnpm install && pnpm build"
     startCommand: "pnpm start"
+  - type: web
+    name: forge-frontend
+    env: node
+    plan: free
+    rootDir: apps/frontend
+    buildCommand: |
+      corepack enable
+      corepack prepare pnpm@9.15.0 --activate
+      pnpm install --frozen-lockfile
+      pnpm build
+    startCommand: pnpm preview --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: 20
