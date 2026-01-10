@@ -1,5 +1,25 @@
 services:
   - type: web
+    name: forge-exchange-api
+    env: node
+    plan: starter
+    buildCommand: |
+      corepack enable
+      corepack prepare pnpm@9.15.0 --activate
+      pnpm install --frozen-lockfile
+      pnpm --filter api... build
+    startCommand: pnpm --filter api start
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: PRIVY_APP_ID
+        sync: false
+      - key: PRIVY_APP_SECRET
+        sync: false
+
+  - type: web
     name: forge-exchange-relayer
     env: node
     plan: starter
@@ -7,7 +27,7 @@ services:
       corepack enable
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
-      pnpm --filter relayer build
+      pnpm --filter relayer... build
     startCommand: pnpm --filter relayer start
     envVars:
       - key: SUPABASE_URL
@@ -25,7 +45,7 @@ services:
       corepack enable
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
-      pnpm --filter frontend build
+      pnpm --filter frontend... build
     staticPublishPath: apps/frontend/dist
     routes:
       - type: rewrite
