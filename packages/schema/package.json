@@ -1,8 +1,8 @@
 {
   "name": "@shared/schema",
   "version": "1.0.0",
-  "main": "./schema.ts",
-  "types": "./schema.ts",
+  "main": "./dist/schema.js",
+  "types": "./dist/schema.d.ts",
   "scripts": {
     "check": "tsc --noEmit",
     "build": "tsc"
