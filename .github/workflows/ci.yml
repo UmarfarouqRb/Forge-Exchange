@@ -1,87 +1,80 @@
-
-name: Continuous Integration
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
-    paths:
-      - 'contracts/**'
-      - 'test/**'
-      - 'script/**'
-      - 'apps/frontend/**'
-      - 'apps/api/**'
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
-    paths:
-      - 'contracts/**'
-      - 'test/**'
-      - 'script/**'
-      - 'apps/frontend/**'
-      - 'apps/api/**'
+    branches: [ main ]
 
 jobs:
-  foundry-tests:
-    name: "Run Smart Contract Tests"
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
-
     steps:
-    - name: "Checkout code"
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'pnpm'
 
-    - name: "Install Foundry"
-      uses: foundry-rs/foundry-toolchain@v1
-      with:
-        version: "nightly"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-    - name: "Install dependencies"
-      run: forge install
+      - name: Lint
+        run: pnpm lint
 
-    - name: "Run tests"
-      run: forge test
-
-  frontend-check:
-    name: "Run Frontend Checks"
+  test:
+    name: Test
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
-
     steps:
-    - name: "Checkout code"
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'pnpm'
 
-    - name: "Setup Node.js"
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-    - name: "Install dependencies"
-      run: npm install
-      working-directory: ./apps/frontend
+      - name: Test
+        run: pnpm test
 
-    - name: "Run build"
-      run: npm run build
-      working-directory: ./apps/frontend
-
-  backend-check:
-    name: "Run Backend Checks"
+  test-contracts:
+    name: Test Contracts
     runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
-
     steps:
-    - name: "Checkout code"
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-    - name: "Setup Node.js"
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
 
-    - name: "Install dependencies"
-      run: npm install
-      working-directory: ./apps/api
+      - name: Run Forge tests
+        run: forge test
 
-    - name: "Run checks"
-      run: npm run check
-      working-directory: ./apps/api
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build

@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "incremental": true,
-    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
+    "composite": true,
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo",
     "module": "ESNext",
     "strict": true,
     "lib": ["esnext", "dom", "dom.iterable"],
@@ -16,5 +16,11 @@
       "relayer": ["apps/relayer/src/index.ts"],
       "@forge/database": ["packages/database/src"]
     }
-  }
+  },
+  "references": [
+    { "path": "apps/frontend" },
+    { "path": "apps/relayer" },
+    { "path": "packages/database" }
+  ],
+  "exclude": ["node_modules"]
 }

@@ -1,16 +1,6 @@
 services:
   - type: web
-    name: forge-exchange-frontend
-    env: static
-    buildCommand: "pnpm install && pnpm build"
-    staticPublishPath: "apps/frontend/dist"
-    routes:
-      - type: rewrite
-        source: "/*"
-        destination: "/index.html"
-
-  - type: web
     name: forge-exchange-relayer
     env: node
     buildCommand: "pnpm install && pnpm build"
-    startCommand: "pnpm start:relayer"
+    startCommand: "pnpm start"

@@ -1,1 +1,1 @@
-export { getChainId, getUserAddress, saveSession, getOrders, saveOrder, updateOrderStatus } from "./db";
+export { getChainId, getUserAddress, saveSession, getOrders, saveOrder, updateOrderStatus, Order } from "./db";
