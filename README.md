@@ -153,6 +153,21 @@ The `IntentSpotRouter.sol` contract is a powerful extension of the protocol's tr
 
 This dual-mode system provides both maximum security and flexibility, making it a highly advanced and user-centric routing mechanism.
 
+## The Relayer: A Trust-Minimized Executor
+
+The relayer is a crucial, yet untrusted, component of the gasless transaction architecture. Its primary role is to monitor for new, profitable `SignedIntent` messages off-chain and submit them to the `IntentSpotRouter` for on-chain execution.
+
+### Key Responsibilities and Restrictions:
+
+- **Transaction Submission:** The relayer pays the gas fee to call the `executeSwap` function, effectively acting as the transaction executor on behalf of the user.
+- **Zero-Control Execution:** The relayer has no ability to influence the outcome of the trade. The `IntentSpotRouter` contract's validation logic ensures the relayer cannot:
+    - Alter the swap's parameters (tokens, amounts, user).
+    - Choose a self-serving or malicious DEX adapter.
+    - Execute an expired or already used intent.
+- **Economic Incentive:** The relayer is motivated by the `relayerFee` embedded within the `SignedIntent`. This fee, which is authorized by the user's signature, is the relayer's compensation for paying the gas and providing the execution service.
+
+This design creates a powerful and secure system where users can enjoy a gas-free experience without needing to trust the relayer. The user's security is guaranteed by the immutable logic of the smart contract.
+
 # SpotRouter: A Resilient and Intelligent DeFi Aggregator
 
 ## Overview

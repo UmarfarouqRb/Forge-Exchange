@@ -2,19 +2,21 @@ services:
   - type: web
     name: forge-exchange-relayer
     env: node
-    buildCommand: "pnpm install && pnpm build"
-    startCommand: "pnpm start"
-  - type: web
-    name: forge-frontend
-    env: node
-    plan: free
-    rootDir: apps/frontend
-    buildCommand: |
-      corepack enable
-      corepack prepare pnpm@9.15.0 --activate
-      pnpm install --frozen-lockfile
-      pnpm build
-    startCommand: pnpm preview --host 0.0.0.0 --port $PORT
+    buildCommand: "pnpm install && pnpm --filter relayer run build"
+    startCommand: "pnpm --filter relayer run start"
     envVars:
-      - key: NODE_VERSION
-        value: 20
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+  - type: static
+    name: forge-frontend
+    buildCommand: "pnpm install && pnpm --filter frontend run build"
+    staticPublishPath: "apps/frontend/dist"
+    envVars:
+      - key: VITE_PRIVY_APP_ID
+        sync: false
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://forge-exchange-relayer.onrender.com/api/*
