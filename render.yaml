@@ -2,21 +2,33 @@ services:
   - type: web
     name: forge-exchange-relayer
     env: node
-    buildCommand: "pnpm install && pnpm --filter relayer run build"
-    startCommand: "pnpm --filter relayer run start"
+    plan: starter
+    buildCommand: |
+      corepack enable
+      corepack prepare pnpm@9.15.0 --activate
+      pnpm install --frozen-lockfile
+      pnpm --filter relayer build
+    startCommand: pnpm --filter relayer start
     envVars:
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_KEY
         sync: false
+      - key: PRIVY_APP_ID
+        sync: false
+      - key: PRIVY_APP_SECRET
+        sync: false
+
   - type: static
     name: forge-frontend
-    buildCommand: "pnpm install && pnpm --filter frontend run build"
-    staticPublishPath: "apps/frontend/dist"
+    buildCommand: |
+      corepack enable
+      corepack prepare pnpm@9.15.0 --activate
+      pnpm install --frozen-lockfile
+      pnpm --filter frontend build
+    staticPublishPath: apps/frontend/dist
     envVars:
       - key: VITE_PRIVY_APP_ID
         sync: false
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://forge-exchange-relayer.onrender.com/api/*
+      - key: VITE_RELAYER_URL
+        sync: false
