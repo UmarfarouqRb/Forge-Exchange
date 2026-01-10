@@ -11,7 +11,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist",
+    outDir: "../../dist",
     emptyOutDir: false,
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
