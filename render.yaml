@@ -46,7 +46,7 @@ services:
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
       pnpm --filter frontend... build
-    staticPublishPath: apps/frontend/dist
+    staticPublishPath: ./apps/frontend/dist
     routes:
       - type: rewrite
         source: /*
