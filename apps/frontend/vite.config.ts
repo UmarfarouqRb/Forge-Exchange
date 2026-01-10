@@ -11,8 +11,8 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist",
-    emptyOutDir: true,
+    outDir: "apps/frontend/dist",
+    emptyOutDir: false,
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
