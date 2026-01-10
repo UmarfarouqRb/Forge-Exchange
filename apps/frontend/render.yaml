@@ -2,6 +2,9 @@ services:
   - type: web
     name: forge-exchange-frontend
     env: static
+    envVars:
+      - key: PNPM_VERSION
+        value: 8
     buildCommand: "pnpm install && pnpm build"
     staticPublishPath: "./dist"
     routes:
