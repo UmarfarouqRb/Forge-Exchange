@@ -8,8 +8,7 @@ import { ChainProvider } from "@/contexts/ChainContext";
 import { MarketDataProvider } from '@/contexts/MarketDataProvider';
 import { base, bsc, arbitrum } from 'viem/chains';
 import App from './App';
-import './index.css';
-
+import './index.css'
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
 
