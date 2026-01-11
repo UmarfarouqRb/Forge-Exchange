@@ -27,7 +27,7 @@ services:
       corepack enable
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
-      pnpm --filter relayer... build
+      pnpm --filter relayer run build
     startCommand: pnpm --filter relayer start
     envVars:
       - key: SUPABASE_URL
