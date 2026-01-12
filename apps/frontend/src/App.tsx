@@ -10,6 +10,7 @@ import Futures from "@/pages/Futures";
 import Assets from "@/pages/Assets";
 import { Settings } from "@/pages/Settings";
 import Portfolio from "@/pages/Portfolio";
+import Docs from "@/pages/Docs";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/assets" component={Assets} />
       <Route path="/settings" component={Settings} />
       <Route path="/portfolio" component={Portfolio} />
+      <Route path="/docs" component={Docs} />
       <Route component={NotFound} />
     </Switch>
   );

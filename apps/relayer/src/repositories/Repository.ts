@@ -5,6 +5,7 @@ export interface Repository {
   getUserAddress(): Promise<string>;
   saveSession(sessionKey: string, expiration: number): Promise<void>;
   getOrders(address: string): Promise<Order[]>;
+  getOrdersByMarket(market: string): Promise<Order[]>;
   saveOrder(intent: any): Promise<void>;
   updateOrderStatus(orderId: string, status: string): Promise<void>;
 }

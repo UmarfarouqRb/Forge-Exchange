@@ -1,20 +1,39 @@
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RELAYER_URL } from '../config';
 
-export interface OrderBookEntry {
-  price: string;
-  amount: string;
-  total: string;
-  symbol: string;
+// The API returns bids and asks as arrays of [price, amount] tuples.
+interface OrderbookData {
+  bids: [string, string][];
+  asks: [string, string][];
 }
 
-interface OrderBookProps {
-  bids: OrderBookEntry[];
-  asks: OrderBookEntry[];
-  isLoading?: boolean;
-}
+export function OrderBook() { // Removed props, it will fetch its own data.
+  const [data, setData] = useState<OrderbookData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-export function OrderBook({ bids, asks, isLoading }: OrderBookProps) {
+  useEffect(() => {
+    const fetchOrderbook = async () => {
+      try {
+        const response = await fetch(`${RELAYER_URL}/orderbook?market=WETH-USDC`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch order book');
+        }
+        const fetchedData: OrderbookData = await response.json();
+        setData(fetchedData);
+      } catch (error) {
+        console.error("Error fetching orderbook:", error);
+      } finally {
+        setIsLoading(false); // Set loading to false after first fetch attempt
+      }
+    };
+
+    fetchOrderbook(); // Initial fetch
+    const interval = setInterval(fetchOrderbook, 2000); // Poll every 2 seconds
+    return () => clearInterval(interval);
+  }, []); // Empty dependency array means this runs once on mount
+
   if (isLoading) {
     return (
       <Card className="h-full">
@@ -30,34 +49,40 @@ export function OrderBook({ bids, asks, isLoading }: OrderBookProps) {
     );
   }
 
+  if (!data) {
+    return (
+       <Card className="h-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Order Book</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+            <p>Could not load order book.</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const {bids, asks} = data;
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-3 flex-shrink-0">
         <CardTitle className="text-sm">Order Book</CardTitle>
-        <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground mt-2">
-          <div>Price (USDT)</div>
-          <div className="text-right">Amount</div>
-          <div className="text-right">Total</div>
-          <div className="text-right">Symbol</div>
+        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mt-2">
+          <div>Price (USDC)</div>
+          <div className="text-right">Amount (WETH)</div>
         </div>
       </CardHeader>
       <CardContent className="p-4 pt-0 flex-1 overflow-auto">
         {/* Asks (Sell Orders) */}
         <div className="mb-2">
-          {asks.slice(0, 12).reverse().map((ask, i) => (
+          {asks.slice(0, 12).reverse().map(([price, amount], i) => (
             <div
               key={i}
-              className="grid grid-cols-4 gap-2 text-xs py-1 relative hover-elevate rounded"
-              data-testid={`row-ask-${i}`}
-            >
-              <div
-                className="absolute inset-y-0 right-0 bg-destructive/10"
-                style={{ width: `${(parseFloat(ask.total) / 100000) * 100}%` }}
-              />
-              <div className="font-mono text-destructive relative z-10">{ask.price}</div>
-              <div className="font-mono text-right relative z-10">{ask.amount}</div>
-              <div className="font-mono text-right relative z-10">{ask.total}</div>
-              <div className="font-mono text-right relative z-10">{ask.symbol}</div>
+              className="grid grid-cols-2 gap-2 text-xs py-1"
+              data-testid={`row-ask-${i}`}>
+              <div className="font-mono text-destructive">{price}</div>
+              <div className="font-mono text-right">{amount}</div>
             </div>
           ))}
         </div>
@@ -66,30 +91,23 @@ export function OrderBook({ bids, asks, isLoading }: OrderBookProps) {
         <div className="my-3 py-2 border-y border-border">
           <div className="flex items-center justify-center gap-2">
             <span className="text-lg font-bold font-mono text-chart-2" data-testid="text-spread-price">
-              {asks[0]?.price || '0.00'}
+              {asks[0]?.[0] || '0.00'}
             </span>
             <span className="text-xs text-muted-foreground">
-              ↑ ${(parseFloat(asks[0]?.price || '0') - parseFloat(bids[0]?.price || '0')).toFixed(2)}
+              ↑ ${(parseFloat(asks[0]?.[0] || '0') - parseFloat(bids[0]?.[0] || '0')).toFixed(2)}
             </span>
           </div>
         </div>
 
         {/* Bids (Buy Orders) */}
         <div>
-          {bids.slice(0, 12).map((bid, i) => (
+          {bids.slice(0, 12).map(([price, amount], i) => (
             <div
               key={i}
-              className="grid grid-cols-4 gap-2 text-xs py-1 relative hover-elevate rounded"
-              data-testid={`row-bid-${i}`}
-            >
-              <div
-                className="absolute inset-y-0 right-0 bg-chart-2/10"
-                style={{ width: `${(parseFloat(bid.total) / 100000) * 100}%` }}
-              />
-              <div className="font-mono text-chart-2 relative z-10">{bid.price}</div>
-              <div className="font-mono text-right relative z-10">{bid.amount}</div>
-              <div className="font-mono text-right relative z-10">{bid.total}</div>
-              <div className="font-mono text-right relative z-10">{bid.symbol}</div>
+              className="grid grid-cols-2 gap-2 text-xs py-1"
+              data-testid={`row-bid-${i}`}>
+              <div className="font-mono text-chart-2">{price}</div>
+              <div className="font-mono text-right">{amount}</div>
             </div>
           ))}
         </div>

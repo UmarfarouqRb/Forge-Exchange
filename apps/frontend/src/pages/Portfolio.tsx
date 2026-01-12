@@ -1,33 +1,57 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getAssets } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 import { usePrivy } from '@privy-io/react-auth';
-import { Deposit } from '@/components/Deposit';
-import { Withdraw } from '@/components/Withdraw';
+import { DepositDialog } from '@/components/DepositDialog';
+import { WithdrawDialog } from '@/components/WithdrawDialog';
+import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
+import { useAccount, useReadContracts } from 'wagmi';
+import { VaultSpotAbi } from '@/abis/VaultSpot';
+import { formatUnits } from 'viem';
 
 // Define a type for our asset object
 interface Asset {
   symbol: string;
-  name: string;
   balance: number;
-  value: number;
 }
 
 export default function Portfolio() {
-  const { user, authenticated } = usePrivy();
-  const wallet = user?.wallet;
-  const [change] = useState(2.5); // Mock change
+  const { authenticated } = usePrivy();
+  const { address } = useAccount();
+  const [depositDialog, setDepositDialog] = useState<{ open: boolean; asset: Token | '' }>({ open: false, asset: '' });
+  const [withdrawDialog, setWithdrawDialog] = useState<{ open: boolean; asset: Token | '' }>({ open: false, asset: '' });
 
-  const { data: assets = [], isLoading, isError } = useQuery<Asset[]>({
-    queryKey: ['/api/assets', wallet?.address],
-    queryFn: async () => {
-      if (!wallet?.address) return [];
-      return getAssets(wallet.address);
-    },
-    enabled: authenticated && !!wallet?.address,
+  const tokenContracts = useMemo(() => {
+    return (Object.keys(TOKENS) as Token[]).map(tokenSymbol => ({
+      address: VAULT_SPOT_ADDRESS as `0x${string}`,
+      abi: VaultSpotAbi,
+      functionName: 'availableBalance',
+      args: address ? [address, TOKENS[tokenSymbol].address] : undefined,
+    }));
+  }, [address]);
+
+  const { data: balances, isLoading, isError } = useReadContracts({
+    contracts: tokenContracts,
+    query: {
+      enabled: authenticated && !!address,
+    }
   });
+
+  const assets: Asset[] = useMemo(() => {
+    if (!balances) return [];
+    return (Object.keys(TOKENS) as Token[]).map((tokenSymbol, index) => {
+      const balance = balances[index];
+      const token = TOKENS[tokenSymbol];
+      const available = balance.status === 'success' ? formatUnits(balance.result as bigint, token.decimals) : '0';
+
+      return {
+        symbol: tokenSymbol,
+        balance: parseFloat(available),
+      };
+    }).filter(asset => asset.balance > 0);
+  }, [balances]);
 
   if (!authenticated) {
     return (
@@ -36,14 +60,6 @@ export default function Portfolio() {
       </div>
     );
   }
-
-  // Add explicit types for the reducer and the handler
-  const totalValue = assets.reduce((acc: number, asset: Asset) => acc + asset.value, 0);
-
-  const handleTrade = (symbol: string) => {
-    // For now, just log to console. We can implement navigation later.
-    console.log(`Trading ${symbol}`);
-  };
 
   if (isLoading) {
     return <div className="text-center p-4">Loading assets...</div>;
@@ -55,32 +71,6 @@ export default function Portfolio() {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Portfolio Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <p className="text-muted-foreground">Total Balance</p>
-                <p className="text-2xl font-bold">${totalValue.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">24h Change</p>
-                <p className={`text-2xl font-bold ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  {change >= 0 ? '+' : ''}${change.toFixed(2)}%
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <div className="grid grid-cols-1 gap-4">
-            <Deposit />
-            <Withdraw />
-        </div>
-      </div>
-
       <Tabs defaultValue="spot">
         <TabsList>
           <TabsTrigger value="spot">Spot</TabsTrigger>
@@ -92,16 +82,13 @@ export default function Portfolio() {
                 <Card key={asset.symbol}>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium">{asset.symbol}</CardTitle>
-                    <p className="text-xs text-muted-foreground">{asset.name}</p>
                     </CardHeader>
                     <CardContent>
-                    <div className="text-lg font-bold">{asset.balance}</div>
-                    <p className="text-xs text-muted-foreground">${asset.value.toLocaleString()}</p>
-                    <button 
-                        className="text-sm text-blue-500 hover:underline mt-2" 
-                        onClick={() => handleTrade(asset.symbol)}>
-                        Trade
-                    </button>
+                      <div className="text-lg font-bold">{asset.balance}</div>
+                      <div className="flex gap-2 mt-2">
+                        <Button size="sm" variant="outline" onClick={() => setDepositDialog({ open: true, asset: asset.symbol as Token })}>Deposit</Button>
+                        <Button size="sm" variant="destructive" onClick={() => setWithdrawDialog({ open: true, asset: asset.symbol as Token })}>Withdraw</Button>
+                      </div>
                     </CardContent>
                 </Card>
                 ))}
@@ -111,6 +98,24 @@ export default function Portfolio() {
           <p className="text-center p-4 text-muted-foreground">Futures portfolio coming soon.</p>
         </TabsContent>
       </Tabs>
+
+      {/* Deposit Dialog */}
+      {depositDialog.asset &&
+        <DepositDialog
+          open={depositDialog.open}
+          onOpenChange={(open) => setDepositDialog({ open, asset: open ? depositDialog.asset : '' })}
+          asset={depositDialog.asset}
+        />
+      }
+
+      {/* Withdraw Dialog */}
+      {withdrawDialog.asset &&
+        <WithdrawDialog
+          open={withdrawDialog.open}
+          onOpenChange={(open) => setWithdrawDialog({ open, asset: open ? withdrawDialog.asset : '' })}
+          asset={withdrawDialog.asset}
+        />
+      }
     </div>
   );
 }

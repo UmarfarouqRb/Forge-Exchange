@@ -92,14 +92,30 @@ export class SQLiteRepository implements Repository {
     });
   }
 
+  getOrdersByMarket(market: string): Promise<Order[]> {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        "SELECT * FROM orders WHERE symbol = ? AND status = 'OPEN'",
+        [market],
+        (err, rows) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(rows as Order[]);
+          }
+        }
+      );
+    });
+  }
+
   saveOrder(intent: any): Promise<void> {
-    const { id, user, tokenIn, tokenOut, amountIn, minAmountOut, nonce } = intent;
-    const status = "PENDING";
+    const { id, user, tokenIn, tokenOut, amountIn, minAmountOut, nonce, symbol, side, price, amount, total } = intent;
+    const status = "OPEN";
     const createdAt = Math.floor(Date.now() / 1000);
 
     return new Promise((resolve, reject) => {
       this.db.run(
-        "INSERT INTO orders (id, user, tokenIn, tokenOut, amountIn, minAmountOut, nonce, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO orders (id, user, tokenIn, tokenOut, amountIn, minAmountOut, nonce, status, symbol, side, price, amount, total, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           id,
           user,
@@ -109,6 +125,11 @@ export class SQLiteRepository implements Repository {
           minAmountOut.toString(),
           nonce,
           status,
+          symbol,
+          side,
+          price,
+          amount,
+          total,
           createdAt,
         ],
         (err) => {

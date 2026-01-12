@@ -7,7 +7,6 @@
       "@shared/*": ["../../packages/shared-types/*"]
     },
     "jsx": "react-jsx",
-    "noEmit": true,
     "composite": true,
     "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
   },

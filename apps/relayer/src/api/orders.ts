@@ -1,21 +1,12 @@
-
-import { Request, Response } from 'express';
-import { getOrders as getOrdersFromDb, saveOrder } from '@forge/database';
+import { repository } from "../db";
+import { Request, Response } from "express";
 
 export async function getOrders(req: Request, res: Response) {
-    const { address } = req.params;
-    const orders = await getOrdersFromDb(address);
-    res.json(orders);
-}
+  const { market } = req.query;
+  if (typeof market !== "string") {
+    return res.status(400).json({ error: "Market query parameter is required" });
+  }
 
-export async function addOrder(req: Request, res: Response) {
-    const { order } = req.body;
-
-    if (!order) {
-        return res.status(400).json({ error: 'Order data is missing' });
-    }
-
-    await saveOrder(order);
-
-    res.status(201).json({ success: true });
+  const orders = await repository.getOrdersByMarket(market);
+  res.json(orders);
 }

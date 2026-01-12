@@ -3,19 +3,19 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { OrderBook, OrderBookEntry } from '@/components/OrderBook';
+import { OrderBook } from '@/components/OrderBook';
 import { TradingChart } from '@/components/TradingChart';
 import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
-import { getOrders } from '@/lib/api';
+import { getOrders, getOrderBook } from '@/lib/api';
 import type { Order } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useMarket } from '@/hooks/use-market';
 import { AssetSelector } from "@/components/AssetSelector";
 
 export default function Spot() {
-  const [selectedPair, setSelectedPair] = useState('BTCUSDT');
+  const [selectedPair, setSelectedPair] = useState('WETHUSDC');
   const { user, authenticated } = usePrivy();
   const wallet = user?.wallet;
   const isDesktop = useBreakpoint('md');
@@ -32,27 +32,22 @@ export default function Spot() {
 
   const tradingPair = tradingPairs instanceof Map ? tradingPairs.get(selectedPair) : undefined;
 
-  const { data: orders, isLoading: areOrdersLoading, isError: areOrdersError } = useQuery<Order[]>({
-    queryKey: ['/api/orders', wallet?.address, 'spot'],
+  const { data: userOrders, isLoading: areUserOrdersLoading, isError: areUserOrdersError } = useQuery<Order[]>({
+    queryKey: ['user-orders', wallet?.address, 'spot'],
     queryFn: async () => {
       if (!wallet?.address) return [];
       return getOrders(wallet.address);
     },
     enabled: authenticated && !!wallet?.address,
-    initialData: [],
     refetchInterval: 3000,
   });
 
-  const { bids, asks } = orders.reduce((acc: { bids: OrderBookEntry[], asks: OrderBookEntry[] }, order) => {
-    const { side, price, amount, total, symbol } = order;
-    const entry = { price, amount, total, symbol };
-    if (side === 'buy') {
-      acc.bids.push(entry);
-    } else {
-      acc.asks.push(entry);
-    }
-    return acc;
-  }, { bids: [], asks: [] });
+  useQuery({
+    queryKey: ['order-book', selectedPair],
+    queryFn: () => getOrderBook(selectedPair),
+    enabled: !!selectedPair,
+    refetchInterval: 3000,
+  });
 
   const currentPrice = tradingPair?.currentPrice || '0';
   const priceChange = tradingPair?.priceChange24h || '0';
@@ -75,10 +70,10 @@ export default function Spot() {
               <div className="text-right">Action</div>
             </div>
           )}
-          {areOrdersLoading && <div className="text-center py-8 text-muted-foreground">Loading open orders...</div>}
-          {areOrdersError && <div className="text-center py-8 text-destructive">Failed to load open orders.</div>}
-          {!areOrdersLoading && !areOrdersError && orders && orders.length > 0 ? (
-            orders
+          {areUserOrdersLoading && <div className="text-center py-8 text-muted-foreground">Loading open orders...</div>}
+          {areUserOrdersError && <div className="text-center py-8 text-destructive">Failed to load open orders.</div>}
+          {!areUserOrdersLoading && !areUserOrdersError && userOrders && userOrders.length > 0 ? (
+            userOrders
               .filter((order) => order.status === 'open')
               .map((order) => (
                 <div
@@ -198,17 +193,7 @@ export default function Spot() {
             <TradePanel symbol={selectedPair} currentPrice={currentPrice} />
           </TabsContent>
           <TabsContent value="book" className="overflow-hidden">
-            {areOrdersError ? (
-                <div className="flex items-center justify-center h-full text-destructive">
-                    Failed to load order book.
-                </div>
-            ) : (
-                <OrderBook 
-                  bids={bids} 
-                  asks={asks}
-                  isLoading={areOrdersLoading}
-                />
-            )}
+            <OrderBook />
           </TabsContent>
           {renderOpenOrders()}
         </Tabs>
@@ -218,17 +203,7 @@ export default function Spot() {
           <div className="flex-1 grid grid-cols-12 gap-2 overflow-hidden">
             {/* Order Book - Left */}
             <div className="col-span-3 overflow-hidden">
-              {areOrdersError ? (
-                  <div className="flex items-center justify-center h-full text-destructive">
-                      Failed to load order book.
-                  </div>
-              ) : (
-                  <OrderBook 
-                    bids={bids} 
-                    asks={asks}
-                    isLoading={areOrdersLoading}
-                  />
-              )}
+              <OrderBook />
             </div>
 
             {/* Chart and Trade Panel - Center/Right */}

@@ -1,7 +1,7 @@
 # Forge - Decentralized Crypto Exchange
 
 ## Overview
-A professional CEX-style decentralized cryptocurrency exchange with multi-chain support. Users can trade crypto without KYC by connecting their Web3 wallet (MetaMask). The platform features a modern dark theme with gradient accents, TradingView integration for live market data, and full mobile responsiveness.
+A professional CEX-style decentralized cryptocurrency exchange with multi-chain support. Users can trade crypto without KYC by connecting their Email,socials or Web3 wallet (MetaMask). The platform features a modern dark theme with gradient accents, TradingView integration for live market data, and full mobile responsiveness.
 
 ## Current Status
 Multi-Chain Support**: BASE (default), BNB Chain, Arbitrum; SUI coming soon
@@ -93,11 +93,9 @@ Multi-Chain Support**: BASE (default), BNB Chain, Arbitrum; SUI coming soon
    - Optimized for discoverability
 
 10. **Deployment** ✅ **SERVERLESS READY**
-    - Netlify Functions configuration (netlify.toml)
     - Full API backend converted to serverless function
     - SPA routing with proper redirects
     - Optimized Vite build with code splitting
-    - Ready for production deployment on Netlify
 
 11. **Mobile Responsiveness** ✅ **COMPLETE**
     - Chart hidden by default on all pages
@@ -108,12 +106,26 @@ Multi-Chain Support**: BASE (default), BNB Chain, Arbitrum; SUI coming soon
     - Optimized for phones as small as 320px width
 
 ### Backend (Serverless Functions)
-- ✅ All Express API routes converted to single Netlify Function
+- ✅ All Express API routes converted to single serverless function
 - ✅ In-memory storage with mock trading data
 - ✅ Full CRUD operations for orders, assets, transactions
 - ✅ Simulated order book generation
 - ✅ Deposit/withdrawal with validation
 - ✅ Proper error handling and CORS
+
+### Smart Contract (`VaultSpot.sol`)
+This contract is the central bank and accounting ledger for the spot trading functionality. It holds all user funds securely and maintains an accurate record of who owns what. It's built on the principle of non-custodial ownership.
+
+**Key Concepts:**
+* **Internal Balance Sheet:** A mapping `(address => mapping(address => uint256))` acts as an internal ledger, tracking each user's balance for each token efficiently without requiring on-chain transfers for every trade.
+* **`spotRouter` Address:** This is the only address authorized to move funds on behalf of users for trading. It enforces a separation of concerns between custody (Vault) and trade logic (Router).
+* **Admin Controls:** The contract owner can set the `spotRouter` address and activate an emergency mode.
+* **Emergency Mode:** A critical safety feature that disables normal operations and enables an `emergencyWithdraw` function, allowing users to reclaim their funds directly.
+
+**Core Functions:**
+* **`deposit(address token, uint256 amount)`:** To add funds to the vault. Requires a prior ERC20 approval.
+* **`withdraw(address token, uint256 amount)`:** To retrieve funds from the vault.
+* **`debit(address user, address token, uint256 amount)` & `credit(address user, address token, uint256 amount)`:** Used by the `spotRouter` to execute trades by adjusting internal balances.
 
 ### Pending Future Enhancements
 - Real DEX protocol integration (Uniswap, PancakeSwap, etc.)
@@ -153,7 +165,6 @@ Multi-Chain Support**: BASE (default), BNB Chain, Arbitrum; SUI coming soon
 ```
 client/
   public/
-    _redirects - Netlify SPA routing configuration
   src/
     components/
       Navigation.tsx - Top navigation with chain selector and wallet
@@ -183,14 +194,9 @@ server/
   routes.ts - API route definitions (used by dev server)
   storage.ts - In-memory data storage interface
   
-netlify/
-  functions/
-    api.ts - Serverless function handling all API routes
-  
 shared/
   schema.ts - Drizzle schemas and TypeScript types
 
-netlify.toml - Netlify deployment configuration (NEW)
 ```
 
 ## Data Models
@@ -234,27 +240,12 @@ This starts both the Express backend (API) and Vite frontend dev server on the s
 ```bash
 npm run build
 ```
-Output is generated in the `dist` directory, ready for Netlify deployment.
-
-### Deploying to Netlify
-1. **Connect Repository**: Link your GitHub/GitLab repository to Netlify
-2. **Auto-Detection**: Netlify will automatically detect the configuration from `netlify.toml`
-3. **Build Settings** (auto-configured):
-   - Build command: `npm run build`
-   - Publish directory: `dist/client`
-   - Functions directory: `netlify/functions`
-4. **Deploy**: Click "Deploy Site" - Netlify will:
-   - Build the frontend with Vite (optimized chunks for faster loading)
-   - Deploy the serverless API function at `/.netlify/functions/api`
-   - Set up SPA routing with proper redirects
-   - Handle all `/api/*` requests through the serverless function
-5. **Note**: Build runs on Netlify's servers (no local build needed due to memory constraints)
+Output is generated in the `dist` directory, ready for deployment.
 
 ### Architecture Notes
-- **Frontend**: React SPA built with Vite, deployed to CDN
-- **Backend**: Single Netlify serverless function handling all API routes
+- **Frontend**: React SPA built with Vite
+- **Backend**: Single serverless function handling all API routes
 - **Storage**: In-memory (resets on function cold starts - suitable for demo/MVP)
-- **API Routing**: `/api/*` → `/.netlify/functions/api/*` (transparent to frontend)
 
 ### Next Steps for Production
 1. Add database persistence (Neon, Supabase, etc.) to replace in-memory storage
@@ -289,8 +280,7 @@ See `design_guidelines.md` for comprehensive design specifications including:
 - TradingView integration provides live market data from major exchanges
 - Multi-chain support via MetaMask for seamless chain switching
 - SUI network appears in selector but shows "Coming Soon" message (non-EVM)
-- **Serverless backend** complete with Netlify Functions
+- **Serverless backend** complete with serverless functions
 - All API routes converted from Express to serverless handlers
 - In-memory storage (suitable for demo; resets on cold starts)
-- Ready for immediate Netlify deployment with full-stack functionality
 - Real blockchain integration would require connecting to DEX protocols (Uniswap, PancakeSwap, etc.)

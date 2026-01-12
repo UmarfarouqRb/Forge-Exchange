@@ -14,6 +14,7 @@ import {
   FiSettings,
   FiLoader,
   FiCopy,
+  FiBookOpen
 } from 'react-icons/fi';
 import {
   DropdownMenu,
@@ -30,6 +31,7 @@ const navItems = [
   { path: '/spot', label: 'Spot', icon: FiActivity },
   { path: '/futures', label: 'Futures', icon: FiPieChart },
   { path: '/assets', label: 'Assets', icon: FiFolder },
+  { path: '/docs', label: 'Docs', icon: FiBookOpen },
 ];
 
 export function Navigation() {
@@ -47,9 +49,9 @@ export function Navigation() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background">
-      <div className="flex items-center justify-between h-16 px-6">
-        <div className="flex items-center gap-2 md:gap-8">
-          <Link href="/" className="flex items-center gap-2 hover-elevate px-2 md:px-3 py-2 rounded-md" data-testid="link-home-logo">
+      <div className="flex items-center justify-between h-16 pl-0 pr-6">
+        <div className="flex items-center gap-0 md:gap-4">
+          <Link href="/" className="flex items-center gap-1 hover-elevate px-2 md:px-3 py-2 rounded-md" data-testid="link-home-logo">
             <img src="/assets/1761614392004_1761638995733.jpg" alt="Forge Logo" className="w-14 h-14 md:w-16 md:h-16 object-contain dark:hidden"/>
             <img src="/assets/1761614576584_1761638995664.jpg" alt="Forge Logo" className="w-14 h-14 md:w-16 md:h-16 object-contain hidden dark:block"/>
             <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">Forge</span>

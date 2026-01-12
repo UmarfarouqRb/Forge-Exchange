@@ -22,5 +22,6 @@
     { "path": "apps/relayer" },
     { "path": "packages/database" }
   ],
-  "exclude": ["node_modules"]
+  "include": [],
+  "exclude": ["node_modules", "*.tsbuildinfo"]
 }

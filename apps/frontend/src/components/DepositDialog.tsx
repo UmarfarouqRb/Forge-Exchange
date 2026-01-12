@@ -1,5 +1,5 @@
+
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -10,72 +10,46 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { FiAlertCircle } from 'react-icons/fi';
+import { toast } from 'sonner';
+import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
+import { VaultSpotAbi } from '@/abis/VaultSpot';
+import { parseUnits, erc20Abi } from 'viem';
+import { useWriteContract } from 'wagmi';
 
 interface DepositDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  asset: string;
-  walletAddress: string;
+  asset: Token;
 }
 
-const MINIMUM_DEPOSIT = 10;
-
-export function DepositDialog({ open, onOpenChange, asset, walletAddress }: DepositDialogProps) {
+export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps) {
   const [amount, setAmount] = useState('');
-  const { toast } = useToast();
+  const { writeContractAsync, isPending } = useWriteContract();
+  const token = TOKENS[asset];
 
-  const depositMutation = useMutation({
-    mutationFn: async (depositAmount: number) => {
-      return apiRequest('/api/transactions/deposit', 'POST', {
-        walletAddress,
-        asset,
-        amount: depositAmount.toString(),
+  const handleDeposit = async () => {
+    if (!amount || !token) return;
+
+    try {
+      const parsedAmount = parseUnits(amount, token.decimals);
+      await writeContractAsync({
+        address: token.address,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [VAULT_SPOT_ADDRESS, parsedAmount]
       });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/assets', walletAddress] });
-      queryClient.invalidateQueries({ queryKey: ['/api/transactions', walletAddress] });
-      toast({
-        title: 'Deposit Successful',
-        description: `${amount} ${asset} has been deposited to your account.`,
+      await writeContractAsync({
+        address: VAULT_SPOT_ADDRESS,
+        abi: VaultSpotAbi,
+        functionName: 'deposit',
+        args: [token.address, parsedAmount]
       });
+      toast.success('Deposit successful!');
       setAmount('');
       onOpenChange(false);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Deposit Failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const handleDeposit = () => {
-    const depositAmount = parseFloat(amount);
-    
-    if (isNaN(depositAmount) || depositAmount <= 0) {
-      toast({
-        title: 'Invalid Amount',
-        description: 'Please enter a valid amount',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (depositAmount < MINIMUM_DEPOSIT) {
-      toast({
-        title: 'Minimum Deposit Required',
-        description: `The minimum deposit amount is $${MINIMUM_DEPOSIT}`,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    depositMutation.mutate(depositAmount);
+    } catch (err) {
+      toast.error('Deposit failed.');
+    } 
   };
 
   return (
@@ -89,49 +63,24 @@ export function DepositDialog({ open, onOpenChange, asset, walletAddress }: Depo
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="flex items-center gap-2 p-3 bg-accent/20 border border-accent rounded-md">
-            <FiAlertCircle className="w-4 h-4 text-accent-foreground flex-shrink-0" />
-            <p className="text-sm text-accent-foreground">
-              Minimum deposit: ${MINIMUM_DEPOSIT}
-            </p>
-          </div>
-
           <div className="space-y-2">
-            <Label htmlFor="deposit-amount">Amount (USD)</Label>
+            <Label htmlFor="deposit-amount">Amount</Label>
             <Input
               id="deposit-amount"
               type="number"
-              placeholder={`Minimum $${MINIMUM_DEPOSIT}`}
+              placeholder={`0.00`}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              min={MINIMUM_DEPOSIT}
-              step="0.01"
-              data-testid="input-deposit-amount"
             />
-          </div>
-
-          <div className="space-y-1 text-sm text-muted-foreground">
-            <div className="flex justify-between">
-              <span>Amount</span>
-              <span className="font-mono">${amount || '0.00'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Fees</span>
-              <span className="font-mono">$0.00</span>
-            </div>
-            <div className="flex justify-between pt-2 border-t border-border font-medium text-foreground">
-              <span>You will receive</span>
-              <span className="font-mono">${amount || '0.00'}</span>
-            </div>
           </div>
 
           <Button
             onClick={handleDeposit}
-            disabled={!amount || depositMutation.isPending}
+            disabled={!amount || isPending}
             className="w-full"
             data-testid="button-confirm-deposit"
           >
-            {depositMutation.isPending ? 'Processing...' : 'Confirm Deposit'}
+            {isPending ? 'Processing...' : 'Confirm Deposit'}
           </Button>
         </div>
       </DialogContent>

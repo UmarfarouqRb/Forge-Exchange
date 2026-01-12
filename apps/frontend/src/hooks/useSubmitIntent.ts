@@ -5,7 +5,7 @@ import { ethers } from 'ethers';
 import { useToast } from '@/hooks/use-toast';
 import { placeOrder, getTokens, PlaceOrderPayload } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
-import { INTENT_SPOT_ROUTER_ADDRESS } from '@/lib/contracts';
+import { INTENT_SPOT_ROUTER_ADDRESS } from '@/config/contracts';
 
 interface UseSubmitIntentProps {
   symbol: string;
