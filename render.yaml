@@ -7,7 +7,7 @@ services:
       corepack enable
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
-      pnpm --filter api... build
+      pnpm build
     startCommand: pnpm --filter api start
     envVars:
       - key: SUPABASE_URL
@@ -27,8 +27,7 @@ services:
       corepack enable
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
-      pnpm --filter schema build
-      pnpm --filter relayer build
+      pnpm build
     startCommand: pnpm --filter relayer start
     envVars:
       - key: SUPABASE_URL
@@ -46,7 +45,7 @@ services:
       corepack enable
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
-      pnpm --filter frontend... build
+      pnpm build
     staticPublishPath: ./apps/frontend/dist
     routes:
       - type: rewrite
