@@ -1,11 +1,11 @@
 {
   "name": "@shared/schema",
   "version": "1.0.0",
-  "main": "./dist/schema.js",
-  "types": "./dist/schema.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "check": "tsc --noEmit",
-    "build": "tsc"
+    "build": "tsc -b"
   },
   "dependencies": {
     "drizzle-orm": "0.38.4",
