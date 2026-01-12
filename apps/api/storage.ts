@@ -36,6 +36,9 @@ export interface IStorage {
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrderStatus(id: string, status: "open" | "filled" | "canceled"): Promise<Order | undefined>;
 
+  // Trades
+  getTradesByWallet(walletAddress: string): Promise<Order[]>;
+
   // Assets
   getAssetsByWallet(walletAddress: string): Promise<Asset[]>;
   getAssetByWalletAndSymbol(walletAddress: string, asset: string): Promise<Asset | undefined>;
@@ -70,11 +73,11 @@ export class MemStorage extends EventEmitter implements IStorage {
         symbol: "BTCUSDT",
         baseAsset: "BTC",
         quoteAsset: "USDT",
-        currentPrice: "45234.56",
+        currentPrice: "91000",
         priceChange24h: "2.34",
         volume24h: "2400000000",
-        high24h: "46500.00",
-        low24h: "44100.00",
+        high24h: "92500.00",
+        low24h: "89100.00",
         isFavorite: false,
         category: "spot",
       },
@@ -82,11 +85,11 @@ export class MemStorage extends EventEmitter implements IStorage {
         symbol: "ETHUSDT",
         baseAsset: "ETH",
         quoteAsset: "USDT",
-        currentPrice: "2345.67",
+        currentPrice: "3100",
         priceChange24h: "3.45",
         volume24h: "1200000000",
-        high24h: "2400.00",
-        low24h: "2280.00",
+        high24h: "3200.00",
+        low24h: "3000.00",
         isFavorite: false,
         category: "spot",
       },
@@ -106,11 +109,11 @@ export class MemStorage extends EventEmitter implements IStorage {
         symbol: "SOLUSDT",
         baseAsset: "SOL",
         quoteAsset: "USDT",
-        currentPrice: "98.76",
+        currentPrice: "141",
         priceChange24h: "5.67",
         volume24h: "350000000",
-        high24h: "102.00",
-        low24h: "92.00",
+        high24h: "145.00",
+        low24h: "138.00",
         isFavorite: false,
         category: "spot",
       },
@@ -138,16 +141,52 @@ export class MemStorage extends EventEmitter implements IStorage {
         isFavorite: false,
         category: "spot",
       },
+      {
+        symbol: "TRIUMPUSDT",
+        baseAsset: "TRIUMP",
+        quoteAsset: "USDT",
+        currentPrice: "5.3",
+        priceChange24h: "10.5",
+        volume24h: "1500000",
+        high24h: "5.5",
+        low24h: "5.0",
+        isFavorite: false,
+        category: "spot",
+      },
+      {
+        symbol: "AEROUSDT",
+        baseAsset: "AERO",
+        quoteAsset: "USDT",
+        currentPrice: "0.6",
+        priceChange24h: "-4.2",
+        volume24h: "12000000",
+        high24h: "0.65",
+        low24h: "0.55",
+        isFavorite: false,
+        category: "spot",
+      },
+      {
+        symbol: "UNIUSDT",
+        baseAsset: "UNI",
+        quoteAsset: "USDT",
+        currentPrice: "5.3",
+        priceChange24h: "1.5",
+        volume24h: "18000000",
+        high24h: "5.5",
+        low24h: "5.0",
+        isFavorite: false,
+        category: "spot",
+      },
       // Futures pairs
       {
         symbol: "BTCUSDT",
         baseAsset: "BTC",
         quoteAsset: "USDT",
-        currentPrice: "45240.00",
+        currentPrice: "91000",
         priceChange24h: "2.38",
         volume24h: "3200000000",
-        high24h: "46520.00",
-        low24h: "44090.00",
+        high24h: "92500.00",
+        low24h: "89100.00",
         isFavorite: false,
         category: "futures",
       },
@@ -155,11 +194,11 @@ export class MemStorage extends EventEmitter implements IStorage {
         symbol: "ETHUSDT",
         baseAsset: "ETH",
         quoteAsset: "USDT",
-        currentPrice: "2347.00",
+        currentPrice: "3100",
         priceChange24h: "3.50",
         volume24h: "1800000000",
-        high24h: "2405.00",
-        low24h: "2275.00",
+        high24h: "3200.00",
+        low24h: "3000.00",
         isFavorite: false,
         category: "futures",
       },
@@ -185,7 +224,7 @@ export class MemStorage extends EventEmitter implements IStorage {
         total: "2.50000000",
         available: "1.80000000",
         inOrder: "0.70000000",
-        usdValue: "113086.40",
+        usdValue: "227500",
       },
       {
         walletAddress: sampleWallet,
@@ -193,7 +232,7 @@ export class MemStorage extends EventEmitter implements IStorage {
         total: "15.00000000",
         available: "12.50000000",
         inOrder: "2.50000000",
-        usdValue: "35185.05",
+        usdValue: "46500",
       },
       {
         walletAddress: sampleWallet,
@@ -384,6 +423,14 @@ export class MemStorage extends EventEmitter implements IStorage {
     }
     return undefined;
   }
+  
+    // Trades
+  async getTradesByWallet(walletAddress: string): Promise<Order[]> {
+    return Array.from(this.orders.values()).filter(
+      (order) => order.user === walletAddress && order.status === 'filled'
+    );
+  }
+
 
   // Assets
   async getAssetsByWallet(walletAddress: string): Promise<Asset[]> {

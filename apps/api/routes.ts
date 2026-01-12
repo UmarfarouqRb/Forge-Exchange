@@ -150,6 +150,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
+  
+  // Trades Route
+  app.get("/api/trades/:walletAddress", async (req: Request, res: Response) => {
+    try {
+      const { walletAddress } = req.params;
+      const trades = await storage.getTradesByWallet(walletAddress);
+      res.json(trades);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
 
   // Deposit Route
   app.post("/api/transactions/deposit", async (req: Request, res: Response) => {

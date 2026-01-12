@@ -1,7 +1,7 @@
 
 import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,8 @@ import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { parseUnits, formatUnits, erc20Abi } from 'viem';
 import { toast } from 'sonner';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
+import { Orders } from './Orders';
+import { TradeHistory } from './TradeHistory';
 
 interface TradePanelProps {
   symbol: string;
@@ -153,52 +155,68 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
   return (
     <Card className="h-full">
       <CardContent className="p-4">
-        <Tabs value={side} onValueChange={(v) => setSide(v as 'buy' | 'sell')} className="mb-4">
+        <Tabs defaultValue="orders">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="buy" className="data-[state=active]:bg-blue-500 data-[state=active]:text-primary-foreground">Buy</TabsTrigger>
-            <TabsTrigger value="sell" className="data-[state=active]:bg-orange-500 data-[state=active]:text-primary-foreground">Sell</TabsTrigger>
+            <TabsTrigger value="orders">Open Orders</TabsTrigger>
+            <TabsTrigger value="history">Trade History</TabsTrigger>
           </TabsList>
+          <TabsContent value="orders">
+            <Orders />
+          </TabsContent>
+          <TabsContent value="history">
+            <TradeHistory />
+          </TabsContent>
         </Tabs>
 
-        <div className="mb-4">
-          <Tabs value={orderType} onValueChange={(v) => setOrderType(v as 'limit' | 'market')}>
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold">Trade</h3>
+          <Tabs value={side} onValueChange={(v) => setSide(v as 'buy' | 'sell')} className="mb-4">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="market">Market</TabsTrigger>
-              <TabsTrigger value="limit">Limit</TabsTrigger>
+              <TabsTrigger value="buy" className="data-[state=active]:bg-blue-500 data-[state=active]:text-primary-foreground">Buy</TabsTrigger>
+              <TabsTrigger value="sell" className="data-[state=active]:bg-orange-500 data-[state=active]:text-primary-foreground">Sell</TabsTrigger>
             </TabsList>
           </Tabs>
-        </div>
 
-        {orderType === 'limit' && (
           <div className="mb-4">
-            <Label htmlFor="price">Price</Label>
-            <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
+            <Tabs value={orderType} onValueChange={(v) => setOrderType(v as 'limit' | 'market')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="market">Market</TabsTrigger>
+                <TabsTrigger value="limit">Limit</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
-        )}
 
-        {orderType === 'market' && (
-           <div className="mb-4">
-            <Label htmlFor="slippage">Slippage (%)</Label>
-            <Input id="slippage" type="number" value={slippage} onChange={(e) => setSlippage(e.target.value)} />
+          {orderType === 'limit' && (
+            <div className="mb-4">
+              <Label htmlFor="price">Price</Label>
+              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} />
+            </div>
+          )}
+
+          {orderType === 'market' && (
+            <div className="mb-4">
+              <Label htmlFor="slippage">Slippage (%)</Label>
+              <Input id="slippage" type="number" value={slippage} onChange={(e) => setSlippage(e.target.value)} />
+            </div>
+          )}
+
+          <div className="mb-4">
+            <Label htmlFor="amount">Amount ({baseCurrency})</Label>
+            <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
-        )}
 
-        <div className="mb-4">
-          <Label htmlFor="amount">Amount ({baseCurrency})</Label>
-          <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <div className="mb-4">
+              <span>Total: {total.toFixed(2)} USDT</span>
+          </div>
+
+          <Button
+            className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}`}
+            onClick={handlePlaceOrder}
+            disabled={disabled || submitIntent.isPending || !ready || !authenticated || !hasSufficientBalance}
+          >
+            {getButtonText()}
+          </Button>
         </div>
-
-        <div className="mb-4">
-            <span>Total: {total.toFixed(2)} USDT</span>
-        </div>
-
-        <Button
-          className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}`}
-          onClick={handlePlaceOrder}
-          disabled={disabled || submitIntent.isPending || !ready || !authenticated || !hasSufficientBalance}
-        >
-          {getButtonText()}
-        </Button>
 
         <div className="mt-8">
           <h3 className="text-lg font-semibold">Vault</h3>
