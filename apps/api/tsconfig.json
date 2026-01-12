@@ -3,11 +3,6 @@
   "compilerOptions": {
     "outDir": "./dist",
     "baseUrl": ".",
-    "paths": {
-      "@forge/db": ["../../packages/schema/src/index.ts"],
-      "@shared/schema": ["../../packages/schema/src/index.ts"],
-      "relayer": ["../relayer/src/index.ts"]
-    },
     "composite": true,
     "declaration": true,
     "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"

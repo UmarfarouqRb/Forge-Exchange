@@ -1,3 +1,4 @@
+
 import { EventEmitter } from 'events';
 import {
   type TradingPair,
@@ -10,7 +11,7 @@ import {
   type InsertAsset,
   type Transaction,
   type InsertTransaction,
-} from "@forge/db";
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
