@@ -1,11 +1,16 @@
 
 export const VAULT_SPOT_ADDRESS = '0x5b5af2b5f71ebd1e738ebb2f05f15cba38b4cd80';
+export const WETH_ADDRESS = '0x4e5313b9ec1047f1c41eb6846c5b3c7ab13d0d31';
 
 export const INTENT_SPOT_ROUTER_ADDRESS: { [key: number]: `0x${string}` } = {
   8453: '0x4194def5bf4af3ebec559ff705395ff4b7066267',
 };
 
 export const TOKENS = {
+  ETH: {
+    address: "0x0000000000000000000000000000000000000000",
+    decimals: 18
+  },
   WETH: {
     address: "0x4200000000000000000000000000000000000006",
     decimals: 18

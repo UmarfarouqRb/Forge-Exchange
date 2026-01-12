@@ -18,9 +18,10 @@
     }
   },
   "references": [
-    { "path": "apps/frontend" },
-    { "path": "apps/relayer" },
-    { "path": "packages/database" }
+    { "path": "./apps/frontend" },
+    { "path": "./apps/relayer" },
+    { "path": "./packages/database" },
+    { "path": "./apps/api" }
   ],
   "include": [],
   "exclude": ["node_modules", "*.tsbuildinfo"]

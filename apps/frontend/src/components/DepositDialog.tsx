@@ -11,10 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
+import { TOKENS, VAULT_SPOT_ADDRESS, Token, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
+import { WethAbi } from '@/abis/Weth';
 import { parseUnits, erc20Abi } from 'viem';
-import { useWriteContract } from 'wagmi';
+import { useWriteContract, useReadContract, useAccount } from 'wagmi';
+import { useTrackedTx } from '@/hooks/useTrackedTx';
 
 interface DepositDialogProps {
   open: boolean;
@@ -24,29 +26,76 @@ interface DepositDialogProps {
 
 export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps) {
   const [amount, setAmount] = useState('');
-  const { writeContractAsync, isPending } = useWriteContract();
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const { address } = useAccount();
+  const { writeContractAsync } = useWriteContract();
   const token = TOKENS[asset];
+
+  const { data: allowance, refetch } = useReadContract({
+    address: token.address,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: address ? [address, VAULT_SPOT_ADDRESS] : undefined,
+    query: {
+      enabled: !!address && !!token,
+    }
+  });
+
+  useTrackedTx({
+    hash: txHash,
+    onSuccess: () => {
+      refetch(); // Refetch allowance after successful deposit
+      onOpenChange(false);
+    }
+  });
 
   const handleDeposit = async () => {
     if (!amount || !token) return;
 
     try {
       const parsedAmount = parseUnits(amount, token.decimals);
-      await writeContractAsync({
-        address: token.address,
-        abi: erc20Abi,
-        functionName: 'approve',
-        args: [VAULT_SPOT_ADDRESS, parsedAmount]
-      });
-      await writeContractAsync({
-        address: VAULT_SPOT_ADDRESS,
-        abi: VaultSpotAbi,
-        functionName: 'deposit',
-        args: [token.address, parsedAmount]
-      });
-      toast.success('Deposit successful!');
+
+      if (asset === 'ETH') {
+        // Wrap ETH to WETH
+        const wrapHash = await writeContractAsync({
+            address: WETH_ADDRESS,
+            abi: WethAbi,
+            functionName: 'deposit',
+            value: parsedAmount,
+        });
+        setTxHash(wrapHash);
+
+        // Deposit WETH
+        const depositHash = await writeContractAsync({
+            address: VAULT_SPOT_ADDRESS,
+            abi: VaultSpotAbi,
+            functionName: 'deposit',
+            args: [WETH_ADDRESS, parsedAmount]
+        });
+        setTxHash(depositHash);
+      } else {
+        const needsApproval = allowance === undefined || allowance < parsedAmount;
+
+        if (needsApproval) {
+          const approvalHash = await writeContractAsync({
+            address: token.address,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [VAULT_SPOT_ADDRESS, parsedAmount]
+          });
+          setTxHash(approvalHash);
+        }
+  
+        const depositHash = await writeContractAsync({
+          address: VAULT_SPOT_ADDRESS,
+          abi: VaultSpotAbi,
+          functionName: 'deposit',
+          args: [token.address, parsedAmount]
+        });
+        setTxHash(depositHash);
+      }
+      
       setAmount('');
-      onOpenChange(false);
     } catch (err) {
       toast.error('Deposit failed.');
     } 
@@ -76,11 +125,11 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
 
           <Button
             onClick={handleDeposit}
-            disabled={!amount || isPending}
+            disabled={!amount}
             className="w-full"
             data-testid="button-confirm-deposit"
           >
-            {isPending ? 'Processing...' : 'Confirm Deposit'}
+            Confirm Deposit
           </Button>
         </div>
       </DialogContent>

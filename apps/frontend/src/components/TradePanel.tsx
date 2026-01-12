@@ -6,13 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy } from '@privy-io/react-auth';
-import { useWriteContract } from 'wagmi';
+import { useWriteContract, useReadContract, useAccount } from 'wagmi';
 import { useSubmitIntent } from '@/hooks/useSubmitIntent';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
+import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { parseUnits, formatUnits, erc20Abi } from 'viem';
 import { toast } from 'sonner';
+import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 
 interface TradePanelProps {
   symbol: string;
@@ -28,8 +30,11 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [slippage, setSlippage] = useState('0.05');
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
   const { ready, authenticated } = usePrivy();
-  const { writeContractAsync, isPending } = useWriteContract();
+  const { address } = useAccount();
+  const { writeContractAsync } = useWriteContract();
   const submitIntent = useSubmitIntent();
 
   const baseCurrency = symbol.replace('USDT', '') as Token;
@@ -39,7 +44,25 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
   const quoteToken = TOKENS[quoteCurrency];
 
   const { data: baseBalance } = useVaultBalance(baseToken?.address);
-  const { data: quoteBalance } = useVaultBalance(quoteToken?.address);
+  const { data: quoteBalance, refetch: refetchQuoteBalance } = useVaultBalance(quoteToken?.address);
+
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: quoteToken.address,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: address ? [address, VAULT_SPOT_ADDRESS] : undefined,
+    query: {
+      enabled: !!address && !!quoteToken,
+    }
+  });
+
+  useTrackedTx({
+    hash: txHash,
+    onSuccess: () => {
+      refetchAllowance();
+      refetchQuoteBalance();
+    }
+  });
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 
@@ -61,19 +84,25 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
     if (!depositAmount || !quoteToken) return;
     try {
       const parsedAmount = parseUnits(depositAmount, quoteToken.decimals);
-      await writeContractAsync({
-        address: quoteToken.address,
-        abi: erc20Abi,
-        functionName: 'approve',
-        args: [VAULT_SPOT_ADDRESS, parsedAmount]
-      });
-      await writeContractAsync({
+      const needsApproval = allowance === undefined || allowance < parsedAmount;
+
+      if (needsApproval) {
+        const approvalHash = await writeContractAsync({
+          address: quoteToken.address,
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [VAULT_SPOT_ADDRESS, parsedAmount]
+        });
+        setTxHash(approvalHash);
+      }
+
+      const depositHash = await writeContractAsync({
         address: VAULT_SPOT_ADDRESS,
         abi: VaultSpotAbi,
         functionName: 'deposit',
         args: [quoteToken.address, parsedAmount]
       });
-      toast.success('Deposit successful!');
+      setTxHash(depositHash);
     } catch (err) {
       toast.error('Deposit failed.');
     }
@@ -83,23 +112,26 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
     if (!withdrawAmount || !quoteToken) return;
     try {
       const parsedAmount = parseUnits(withdrawAmount, quoteToken.decimals);
-      await writeContractAsync({
+      const hash = await writeContractAsync({
         address: VAULT_SPOT_ADDRESS,
         abi: VaultSpotAbi,
         functionName: 'withdraw',
         args: [quoteToken.address, parsedAmount]
       });
-      toast.success('Withdrawal successful!');
+      setTxHash(hash);
     } catch (err) {
       toast.error('Withdrawal failed.');
     }
   };
 
-  const handleSubmit = async () => {
+  const handlePlaceOrder = () => {
     if (!authenticated || !hasSufficientBalance) {
       return;
     }
+    setIsConfirming(true);
+  };
 
+  const handleConfirmOrder = () => {
     submitIntent.mutate({ 
       symbol, 
       orderType, 
@@ -162,7 +194,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
 
         <Button
           className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}`}
-          onClick={handleSubmit}
+          onClick={handlePlaceOrder}
           disabled={disabled || submitIntent.isPending || !ready || !authenticated || !hasSufficientBalance}
         >
           {getButtonText()}
@@ -175,14 +207,28 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
           </div>
           <div className="flex items-center mt-2">
             <Input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="Deposit USDT" />
-            <Button onClick={handleDeposit} className="ml-2" disabled={isPending}>Deposit</Button>
+            <Button onClick={handleDeposit} className="ml-2" >Deposit</Button>
           </div>
           <div className="flex items-center mt-2">
             <Input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="Withdraw USDT" />
-            <Button onClick={handleWithdraw} className="ml-2" disabled={isPending}>Withdraw</Button>
+            <Button onClick={handleWithdraw} className="ml-2" >Withdraw</Button>
           </div>
         </div>
       </CardContent>
+
+      <OrderConfirmationDialog
+        open={isConfirming}
+        onOpenChange={setIsConfirming}
+        onConfirm={handleConfirmOrder}
+        order={{
+          side,
+          amount,
+          symbol,
+          price,
+          orderType,
+          total
+        }}
+      />
     </Card>
   );
 }
