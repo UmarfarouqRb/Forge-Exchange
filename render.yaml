@@ -1,13 +1,14 @@
+buildCommand: |
+  corepack enable
+  corepack prepare pnpm@9.15.0 --activate
+  pnpm install --frozen-lockfile
+  pnpm build
+
 services:
   - type: web
     name: forge-exchange-api
     env: node
     plan: starter
-    buildCommand: |
-      corepack enable
-      corepack prepare pnpm@9.15.0 --activate
-      pnpm install --frozen-lockfile
-      pnpm build
     startCommand: pnpm --filter api start
     envVars:
       - key: SUPABASE_URL
@@ -23,11 +24,6 @@ services:
     name: forge-exchange-relayer
     env: node
     plan: starter
-    buildCommand: |
-      corepack enable
-      corepack prepare pnpm@9.15.0 --activate
-      pnpm install --frozen-lockfile
-      pnpm build
     startCommand: pnpm --filter relayer start
     envVars:
       - key: SUPABASE_URL
@@ -41,11 +37,6 @@ services:
 
   - type: static
     name: forge-frontend
-    buildCommand: |
-      corepack enable
-      corepack prepare pnpm@9.15.0 --activate
-      pnpm install --frozen-lockfile
-      pnpm build
     staticPublishPath: ./apps/frontend/dist
     routes:
       - type: rewrite
