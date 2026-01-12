@@ -1,5 +1,5 @@
-
 import { useState, useEffect } from 'react';
+import { useSearch } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,13 +13,26 @@ import type { Order } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useMarket } from '@/hooks/use-market';
 import { AssetSelector } from "@/components/AssetSelector";
+import { TradeHistory } from '@/components/TradeHistory';
+import { OrderHistory } from '@/components/OrderHistory';
 
 export default function Spot() {
-  const [selectedPair, setSelectedPair] = useState('WETHUSDC');
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const pairFromUrl = params.get('pair');
+
+  const [selectedPair, setSelectedPair] = useState(pairFromUrl || 'BTCUSDT');
   const { user, authenticated } = usePrivy();
   const wallet = user?.wallet;
   const isDesktop = useBreakpoint('md');
   const { tradingPairs } = useMarket();
+
+  useEffect(() => {
+    const newPair = new URLSearchParams(search).get('pair');
+    if (newPair && newPair !== selectedPair) {
+      setSelectedPair(newPair);
+    }
+  }, [search, selectedPair]);
 
   useEffect(() => {
     if (tradingPairs instanceof Map && tradingPairs.size > 0 && !tradingPairs.has(selectedPair)) {
@@ -229,14 +242,10 @@ export default function Spot() {
                             </TabsList>
                             {renderOpenOrders()}
                             <TabsContent value="history" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-                              <div className="text-center py-8 text-muted-foreground">
-                                No order history
-                              </div>
+                              <OrderHistory />
                             </TabsContent>
                             <TabsContent value="trades" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-                              <div className="text-center py-8 text-muted-foreground">
-                                No trade history
-                              </div>
+                              <TradeHistory />
                             </TabsContent>
                           </Tabs>
                         </CardContent>

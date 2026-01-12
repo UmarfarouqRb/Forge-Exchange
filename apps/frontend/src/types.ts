@@ -54,3 +54,13 @@ export type Order = {
   export type TradingPair = Market & {
     id: string;
   };
+
+  export type Trade = {
+    id: string;
+    symbol: string;
+    side: 'buy' | 'sell';
+    price: string;
+    amount: string;
+    total: string;
+    createdAt: number;
+  };
