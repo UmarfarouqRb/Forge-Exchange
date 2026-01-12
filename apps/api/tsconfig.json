@@ -5,7 +5,10 @@
     "baseUrl": ".",
     "composite": true,
     "declaration": true,
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+    "paths": {
+      "@shared/schema": ["../../packages/schema/src"]
+    }
   },
   "include": ["./**/*.ts"],
   "exclude": ["dist"],
