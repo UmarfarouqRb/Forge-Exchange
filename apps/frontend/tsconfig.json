@@ -1,11 +1,6 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@shared/*": ["../../packages/shared-types/*"]
-    },
     "jsx": "react-jsx",
     "composite": true,
     "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"

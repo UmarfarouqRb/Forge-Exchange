@@ -2,13 +2,20 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
+    "lib": ["esnext", "dom", "dom.iterable"],
     "strict": true,
+    "jsx": "preserve",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
+    "baseUrl": ".",
     "paths": {
-      "@shared/database": ["./packages/database/src/index.ts"]
+      "@/*": ["apps/frontend/src/*"],
+      "@forge/db": ["packages/schema/src"],
+      "@forge/database": ["packages/database/src"],
+      "relayer": ["apps/relayer/src/index.ts"]
     }
-  }
+  },
+  "exclude": ["node_modules", "dist", ".turbo", "*.tsbuildinfo"]
 }

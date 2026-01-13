@@ -6,13 +6,12 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx ./index.ts",
     "start": "NODE_ENV=production node dist/index.js",
-    "build": "tsc -b",
     "check": "tsc --noEmit",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
-    "@forge/db": "workspace:^",
+    "@forge/database": "workspace:^",
     "@supabase/supabase-js": "^2.88.0",
     "@upstash/redis": "^1.35.8",
     "connect-pg-simple": "^10.0.0",

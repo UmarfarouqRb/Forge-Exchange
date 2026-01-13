@@ -9,7 +9,7 @@ import * as schema from '@forge/db';
 
 // IMPORTANT: These environment variables must be set for the server to connect to Supabase.
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseAnonKey = process.env.SUPABASE_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase environment variables (SUPABASE_URL, SUPABASE_ANON_KEY) are not set.');

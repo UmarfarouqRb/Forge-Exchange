@@ -5,15 +5,10 @@ import path from "path";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [react(), tsconfigPaths()],
+  plugins: [react(), tsconfigPaths({ projects: ["../../tsconfig.base.json"] })],
   base: "/", // correct for Render
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-    },
-  },
   build: {
-    outDir: path.resolve(__dirname, "dist"),
+    outDir: path.resolve(__dirname, "dist"), 
     emptyOutDir: true,
   },
 });
