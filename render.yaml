@@ -1,18 +1,11 @@
-previews:
-  - key: "main"
-    domains:
-      - "forge-exchange-main.onrender.com"
+
 services:
   - type: web
     name: forge-exchange-api
     env: node
     plan: starter
-    buildCommand: |
-      corepack enable
-      corepack prepare pnpm@9.15.0 --activate
-      pnpm install --frozen-lockfile
-      pnpm --filter @forge/api... build
-    startCommand: pnpm --filter @forge/api start
+    buildCommand: "pnpm install --frozen-lockfile && pnpm build"
+    startCommand: "pnpm --filter @forge/api start"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -33,12 +26,8 @@ services:
     name: forge-exchange-relayer
     env: node
     plan: starter
-    buildCommand: |
-      corepack enable
-      corepack prepare pnpm@9.15.0 --activate
-      pnpm install --frozen-lockfile
-      pnpm --filter @forge/relayer... build
-    startCommand: pnpm --filter @forge/relayer start
+    buildCommand: "pnpm install --frozen-lockfile && pnpm build"
+    startCommand: "pnpm --filter @forge/relayer start"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -59,12 +48,8 @@ services:
     name: forge-exchange-frontend
     env: static
     plan: starter
-    buildCommand: |
-      corepack enable
-      corepack prepare pnpm@9.15.0 --activate
-      pnpm install --frozen-lockfile
-      pnpm --filter @forge/web... build
-    staticPublishPath: ./apps/web/dist
+    buildCommand: "pnpm install --frozen-lockfile && pnpm build"
+    staticPublishPath: ./apps/frontend/dist
     envVars:
       - key: VITE_PRIVY_APP_ID
         sync: false
