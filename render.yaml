@@ -1,3 +1,8 @@
+
+previews:
+  - key: "main"
+    domains:
+      - "forge-exchange-main.onrender.com"
 services:
   - type: web
     name: forge-exchange-api
@@ -7,12 +12,18 @@ services:
       corepack enable
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
-      pnpm --filter api build
-    startCommand: pnpm --filter api start
+      pnpm --filter @forge/api build
+    startCommand: pnpm --filter @forge/api start
     envVars:
       - key: SUPABASE_URL
-        sync: false
+        fromDatabase:
+          name: forge-exchange-db
+          property: connectionString
       - key: SUPABASE_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
       - key: PRIVY_APP_ID
         sync: false
@@ -27,32 +38,38 @@ services:
       corepack enable
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
-      pnpm --filter relayer build
-    startCommand: pnpm --filter relayer start
+      pnpm --filter @forge/relayer build
+    startCommand: pnpm --filter @forge/relayer start
     envVars:
       - key: SUPABASE_URL
-        sync: false
+        fromDatabase:
+          name: forge-exchange-db
+          property: connectionString
       - key: SUPABASE_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
         sync: false
       - key: PRIVY_APP_ID
         sync: false
       - key: PRIVY_APP_SECRET
         sync: false
 
-  - type: static
-    name: forge-frontend
+  - type: web
+    name: forge-exchange-frontend
+    env: static
+    plan: starter
     buildCommand: |
       corepack enable
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
-      pnpm --filter forge-frontend build
+      pnpm --filter @forge/frontend build
     staticPublishPath: ./apps/frontend/dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
     envVars:
       - key: VITE_PRIVY_APP_ID
         sync: false
-      - key: VITE_RELAYER_URL
-        sync: false
+databases:
+  - name: forge-exchange-db
+    databaseName: forge_exchange_db
+    user: forge_exchange_user
