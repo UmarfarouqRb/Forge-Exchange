@@ -11,11 +11,15 @@
   "dependencies": {
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
-    "@supabase/supabase-js": "^2.39.7"
+    "@supabase/supabase-js": "^2.39.7",
+    "@upstash/redis": "^1.35.8",
+    "drizzle-orm": "0.38.4",
+    "postgres": "^3.4.4"
   },
   "devDependencies": {
     "@types/sqlite3": "^3.1.11",
     "typescript": "^5.6.3",
-    "tsx": "^4.7.1"
+    "tsx": "^4.7.1",
+    "drizzle-kit": "latest"
   }
 }

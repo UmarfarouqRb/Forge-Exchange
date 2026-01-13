@@ -12,8 +12,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["apps/frontend/src/*"],
-      "@forge/db": ["packages/schema/src"],
+      "@forge/common": ["packages/common/src"],
+      "@forge/core-sdk": ["packages/core-sdk/src"],
+      "@forge/crypto": ["packages/crypto/src"],
       "@forge/database": ["packages/database/src"],
+      "@forge/intent-types": ["packages/intent-types/src"],
+      "@forge/schema": ["packages/schema/src"],
       "relayer": ["apps/relayer/src/index.ts"]
     }
   },

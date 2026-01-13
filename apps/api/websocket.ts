@@ -1,6 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from './storage';
-import { TradingPair } from '@forge/db';
+import { TradingPair } from '@forge/schema';
 
 export function createWebSocketServer(server: any) {
   const wss = new WebSocketServer({ server });

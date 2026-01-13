@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export var Order = z.object({
+export const Order = z.object({
     id: z.string(),
     user: z.string(),
     pair: z.string(),
@@ -14,8 +14,8 @@ export var Order = z.object({
     total: z.string(),
     leverage: z.string().optional(),
 });
-export var InsertOrder = Order.omit({ id: true, status: true, filled: true, createdAt: true });
-export var TradingPair = z.object({
+export const InsertOrder = Order.omit({ id: true, status: true, filled: true, createdAt: true });
+export const TradingPair = z.object({
     id: z.string(),
     symbol: z.string(),
     baseAsset: z.string(),
@@ -28,8 +28,8 @@ export var TradingPair = z.object({
     isFavorite: z.boolean(),
     category: z.string(),
 });
-export var InsertTradingPair = TradingPair.omit({ id: true });
-export var MarketData = z.object({
+export const InsertTradingPair = TradingPair.omit({ id: true });
+export const MarketData = z.object({
     id: z.string(),
     symbol: z.string(),
     timestamp: z.date(),
@@ -39,8 +39,8 @@ export var MarketData = z.object({
     close: z.string(),
     volume: z.string(),
 });
-export var InsertMarketData = MarketData.omit({ id: true });
-export var Asset = z.object({
+export const InsertMarketData = MarketData.omit({ id: true });
+export const Asset = z.object({
     id: z.string(),
     walletAddress: z.string(),
     asset: z.string(),
@@ -49,8 +49,8 @@ export var Asset = z.object({
     inOrder: z.string(),
     usdValue: z.string(),
 });
-export var InsertAsset = Asset.omit({ id: true });
-export var Transaction = z.object({
+export const InsertAsset = Asset.omit({ id: true });
+export const Transaction = z.object({
     id: z.string(),
     walletAddress: z.string(),
     type: z.string(),
@@ -60,8 +60,8 @@ export var Transaction = z.object({
     txHash: z.string().nullable(),
     timestamp: z.string(),
 });
-export var InsertTransaction = Transaction.omit({ id: true });
-export var AuthorizeSessionPayload = z.object({
+export const InsertTransaction = Transaction.omit({ id: true });
+export const AuthorizeSessionPayload = z.object({
     sessionKey: z.string(),
     expiration: z.number(),
     signature: z.string(),
