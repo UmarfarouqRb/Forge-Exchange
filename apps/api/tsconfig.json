@@ -2,18 +2,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "baseUrl": ".",
     "composite": true,
     "declaration": true,
-    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
-    "paths": {
-      "@shared/schema": ["../../packages/schema/src"]
-    }
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
   },
   "include": ["./**/*.ts"],
-  "exclude": ["dist"],
-  "references": [
-    { "path": "../../packages/schema" },
-    { "path": "../relayer" }
-  ]
+  "exclude": ["dist"]
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const Order = z.object({
+export var Order = z.object({
     id: z.string(),
     user: z.string(),
     pair: z.string(),
@@ -14,8 +14,8 @@ export const Order = z.object({
     total: z.string(),
     leverage: z.string().optional(),
 });
-export const InsertOrder = Order.omit({ id: true, status: true, filled: true, createdAt: true });
-export const TradingPair = z.object({
+export var InsertOrder = Order.omit({ id: true, status: true, filled: true, createdAt: true });
+export var TradingPair = z.object({
     id: z.string(),
     symbol: z.string(),
     baseAsset: z.string(),
@@ -28,8 +28,8 @@ export const TradingPair = z.object({
     isFavorite: z.boolean(),
     category: z.string(),
 });
-export const InsertTradingPair = TradingPair.omit({ id: true });
-export const MarketData = z.object({
+export var InsertTradingPair = TradingPair.omit({ id: true });
+export var MarketData = z.object({
     id: z.string(),
     symbol: z.string(),
     timestamp: z.date(),
@@ -39,8 +39,8 @@ export const MarketData = z.object({
     close: z.string(),
     volume: z.string(),
 });
-export const InsertMarketData = MarketData.omit({ id: true });
-export const Asset = z.object({
+export var InsertMarketData = MarketData.omit({ id: true });
+export var Asset = z.object({
     id: z.string(),
     walletAddress: z.string(),
     asset: z.string(),
@@ -49,8 +49,8 @@ export const Asset = z.object({
     inOrder: z.string(),
     usdValue: z.string(),
 });
-export const InsertAsset = Asset.omit({ id: true });
-export const Transaction = z.object({
+export var InsertAsset = Asset.omit({ id: true });
+export var Transaction = z.object({
     id: z.string(),
     walletAddress: z.string(),
     type: z.string(),
@@ -60,8 +60,8 @@ export const Transaction = z.object({
     txHash: z.string().nullable(),
     timestamp: z.string(),
 });
-export const InsertTransaction = Transaction.omit({ id: true });
-export const AuthorizeSessionPayload = z.object({
+export var InsertTransaction = Transaction.omit({ id: true });
+export var AuthorizeSessionPayload = z.object({
     sessionKey: z.string(),
     expiration: z.number(),
     signature: z.string(),

@@ -11,7 +11,7 @@ import {
   type InsertAsset,
   type Transaction,
   type InsertTransaction,
-} from "@shared/schema";
+} from "@forge/db";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
