@@ -14,15 +14,15 @@ services:
       pnpm --filter @forge/api... build
     startCommand: pnpm --filter @forge/api start
     envVars:
-      - key: SUPABASE_URL
+      - key: DATABASE_URL
         fromDatabase:
           name: forge-exchange-db
           property: connectionString
       - key: SUPABASE_KEY
         sync: false
-      - key: UPSTASH_REDIS_REST_URL
+      - key: UPSTASH_REDIS_URL
         sync: false
-      - key: UPSTASH_REDIS_REST_TOKEN
+      - key: UPSTASH_REDIS_TOKEN
         sync: false
       - key: PRIVY_APP_ID
         sync: false
@@ -40,15 +40,15 @@ services:
       pnpm --filter @forge/relayer... build
     startCommand: pnpm --filter @forge/relayer start
     envVars:
-      - key: SUPABASE_URL
+      - key: DATABASE_URL
         fromDatabase:
           name: forge-exchange-db
           property: connectionString
       - key: SUPABASE_KEY
         sync: false
-      - key: UPSTASH_REDIS_REST_URL
+      - key: UPSTASH_REDIS_URL
         sync: false
-      - key: UPSTASH_REDIS_REST_TOKEN
+      - key: UPSTASH_REDIS_TOKEN
         sync: false
       - key: PRIVY_APP_ID
         sync: false
@@ -63,8 +63,8 @@ services:
       corepack enable
       corepack prepare pnpm@9.15.0 --activate
       pnpm install --frozen-lockfile
-      pnpm --filter @forge/frontend build
-    staticPublishPath: ./apps/frontend/dist
+      pnpm --filter @forge/web... build
+    staticPublishPath: ./apps/web/dist
     envVars:
       - key: VITE_PRIVY_APP_ID
         sync: false
