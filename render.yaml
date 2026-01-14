@@ -48,7 +48,7 @@ services:
     name: forge-exchange-frontend
     env: static
     plan: starter
-    buildCommand: "pnpm install --frozen-lockfile && pnpm build"
+    buildCommand: "pnpm install --frozen-lockfile && pnpm --filter frontend build"
     staticPublishPath: ./apps/frontend/dist
     envVars:
       - key: VITE_PRIVY_APP_ID

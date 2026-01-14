@@ -18,6 +18,7 @@ esbuild.build({
   platform: "node",
   packages: "external",
   outfile: "dist/index.js",
+  format: "esm",
   loader: {
     ".json": "json",
   },
