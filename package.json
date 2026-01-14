@@ -5,7 +5,9 @@
   "license": "MIT",
   "scripts": {
     "dev": "pnpm -r run dev",
-    "build": "pnpm -r --filter=\"...^{./apps/relayer}\" --filter=\"...^{./apps/frontend}\" run build",
+    "build": "pnpm -r build",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:relayer": "pnpm --filter relayer build",
     "start": "pnpm -r run start",
     "check": "pnpm -r run check",
     "db:push": "pnpm -r run db:push",
