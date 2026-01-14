@@ -13,7 +13,7 @@ export const Order = z.object({
   createdAt: z.string(),
   symbol: z.string(),
   total: z.string(),
-  leverage: z.string().optional(),
+  leverage: z.string(),
 });
 
 export const InsertOrder = Order.omit({ id: true, status: true, filled: true, createdAt: true });

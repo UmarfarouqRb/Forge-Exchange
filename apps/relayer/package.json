@@ -21,7 +21,7 @@
     "@forge/common": "workspace:^",
     "@forge/core-sdk": "workspace:^",
     "@forge/crypto": "workspace:^",
-    "@forge/database": "workspace:^",
+    "@forge/db": "workspace:^",
     "@forge/intent-types": "workspace:^",
     "@types/sqlite3": "^3.1.11",
     "amqplib": "^0.10.3",

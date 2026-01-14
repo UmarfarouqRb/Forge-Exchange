@@ -1,7 +1,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-import { saveOrder, getOrders, Order } from '@forge/database';
+import { saveOrder, getOrders, Order } from '@forge/db';
 import { http, createWalletClient, publicActions, parseUnits, getContract, Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { anvil } from 'viem/chains';
@@ -22,18 +22,17 @@ describe('Relayer Integration Tests: Market Order Execution', () => {
     const order: Order = {
         id: '2',
         user: 'test_user_market',
-        tokenIn: 'token_in_market',
-        tokenOut: 'token_out_market',
-        amountIn: '200',
-        minAmountOut: '180',
-        nonce: 1,
-        status: 'PENDING',
-        symbol: 'TEST/USD',
+        pair: 'TEST/USD',
         side: 'buy',
+        type: 'market',
         price: '100',
         amount: '2',
+        filled: '0',
+        status: 'open',
+        createdAt: new Date().toISOString(),
+        symbol: 'TEST/USD',
         total: '200',
-        createdAt: Date.now()
+        leverage: '1',
     };
 
     await saveOrder(order);

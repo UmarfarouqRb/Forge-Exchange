@@ -1,21 +1,21 @@
 {
-  "name": "@forge/database",
+  "name": "@forge/db",
   "version": "1.0.0",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc",
     "check": "tsc --noEmit",
     "db:init": "tsx init-db.ts"
   },
   "dependencies": {
-    "@forge/db": "workspace:^",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "@supabase/supabase-js": "^2.39.7",
     "@upstash/redis": "^1.35.8",
     "drizzle-orm": "0.38.4",
-    "postgres": "^3.4.4"
+    "postgres": "^3.4.4",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/sqlite3": "^3.1.11",

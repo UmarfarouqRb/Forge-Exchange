@@ -30,6 +30,7 @@
     "@typechain/ethers-v6": "^0.5.1",
     "dotenv": "^17.2.3",
     "dotenv-cli": "^7.4.2",
+    "typescript": "^5.9.3",
     "viem": "^2.43.5",
     "vite-tsconfig-paths": "^6.0.3",
     "vitest": "^4.0.16",
@@ -40,7 +41,7 @@
     "@supabase/supabase-js": "^2.88.0",
     "@types/pg": "^8.16.0",
     "pg": "^8.16.3",
-    "wagmi": "^2.5.7",
-    "sonner": "^1.4.3"
+    "sonner": "^1.4.3",
+    "wagmi": "^2.5.7"
   }
 }

@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./",
     "module": "CommonJS",
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -13,8 +12,5 @@
     "typeRoots": ["node_modules/@types"]
   },
   "include": ["./**/*.ts"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../../packages/database" }
-  ]
+  "exclude": ["node_modules", "dist"]
 }

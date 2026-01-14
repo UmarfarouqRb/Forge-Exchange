@@ -1,3 +1,4 @@
+
 const RELAYER_URL = import.meta.env.VITE_RELAYER_URL;
 
 import { apiRequest } from './queryClient';
@@ -17,31 +18,38 @@ export const getOrders = async (address: string | undefined): Promise<Order[]> =
 };
 
 export type PlaceOrderPayload = {
-    intent: {
-        user: string;
-        tokenIn: string;
-        tokenOut: string;
-        amountIn: string;
-        price: string;
-        amountOutMin: string;
-        nonce: string;
-    };
-    signature: string;
+  intent: {
+    user: string;
+    tokenIn: `0x${string}`;
+    tokenOut: `0x${string}`;
+    amountIn: string;
+    minAmountOut: string;
+    deadline: number;
+    nonce: string;
+    adapter: `0x${string}`;
+    relayerFee: string;
+  };
+  signature: string;
+  side: 'buy' | 'sell';
+  orderType: 'limit' | 'market';
+  price: string;
+  amount: string;
+  total: string;
 };
 
 export const placeOrder = async (orderData: PlaceOrderPayload) => {
-    return apiRequest('POST', `${RELAYER_URL}/api/spot`, orderData);
+  return apiRequest('POST', `${RELAYER_URL}/api/orders`, orderData);
 };
 
 export const getTokens = async (chainId: string) => {
-    const response = await fetch(`${RELAYER_URL}/api/tokens/${chainId}`);
-    if (!response.ok) throw new Error('Failed to fetch token addresses');
-    return response.json();
-}
+  const response = await fetch(`${RELAYER_URL}/api/tokens/${chainId}`);
+  if (!response.ok) throw new Error('Failed to fetch token addresses');
+  return response.json();
+};
 
 export const getAssets = async (address: string | null) => {
-    if (!address) return [];
-    const response = await fetch(`${RELAYER_URL}/api/assets/${address}`);
-    if (!response.ok) throw new Error('Failed to fetch assets');
-    return response.json();
-  };
+  if (!address) return [];
+  const response = await fetch(`${RELAYER_URL}/api/assets/${address}`);
+  if (!response.ok) throw new Error('Failed to fetch assets');
+  return response.json();
+};

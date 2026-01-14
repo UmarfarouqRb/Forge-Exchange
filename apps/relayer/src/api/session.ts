@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { verifyTypedData } from 'viem';
 import { relayerConfig } from '@forge/common';
-import { getChainId, getUserAddress, saveSession } from '@forge/database';
+import { getChainId, getUserAddress, saveSession } from '@forge/db';
 
 export async function authorizeSession(req: Request, res: Response) {
     const { sessionKey, expiration, signature } = req.body;

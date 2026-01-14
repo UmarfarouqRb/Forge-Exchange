@@ -12,7 +12,6 @@
   "include": ["src", "test"],
   "references": [
     { "path": "../../packages/database" },
-    { "path": "../../packages/schema" },
     { "path": "../../packages/common" }
   ],
   "exclude": ["node_modules", "dist"]

@@ -2,7 +2,7 @@
 import { createPublicClient, http, parseUnits, formatUnits } from 'viem';
 import { base } from 'viem/chains';
 import { relayerConfig } from '@forge/common';
-import { getOrders, getChainId, Order } from '@forge/database';
+import { getOrders, getChainId, Order } from '@forge/db';
 import IntentSpotRouter from '../../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
 
 const MIN_PROFIT_BPS = 10; // 0.1%
@@ -60,15 +60,18 @@ export class MatchingEngine {
         const asks = orders.filter(o => o.side === 'sell');
 
         for (const bid of bids) {
-            const marketPrice = await getMarketPrice(bid.tokenIn, bid.tokenOut, chainId);
+            const [tokenIn, tokenOut] = bid.pair.split('/');
+            const marketPrice = await getMarketPrice(tokenIn, tokenOut, chainId);
             if (marketPrice === 0) continue;
 
-            const orderPrice = Number(bid.amountIn) / Number(bid.minAmountOut);
+            const orderPrice = Number(bid.price);
+            const amountIn = Number(bid.amount);
+            const minAmountOut = orderPrice * amountIn;
 
             if (marketPrice <= orderPrice) {
-                const expectedOutput = Number(bid.amountIn) * marketPrice;
-                const profit = expectedOutput - Number(bid.minAmountOut);
-                const profitBps = (profit / Number(bid.minAmountOut)) * 10000;
+                const expectedOutput = amountIn * marketPrice;
+                const profit = expectedOutput - minAmountOut;
+                const profitBps = (profit / minAmountOut) * 10000;
 
                 if (profitBps >= MIN_PROFIT_BPS) {
                     console.log(`Found a profitable bid to fill:`, bid);
@@ -77,15 +80,18 @@ export class MatchingEngine {
         }
 
         for (const ask of asks) {
-            const marketPrice = await getMarketPrice(ask.tokenIn, ask.tokenOut, chainId);
+            const [tokenIn, tokenOut] = ask.pair.split('/');
+            const marketPrice = await getMarketPrice(tokenIn, tokenOut, chainId);
             if (marketPrice === 0) continue;
 
-            const orderPrice = Number(ask.amountIn) / Number(ask.minAmountOut);
+            const orderPrice = Number(ask.price);
+            const amountIn = Number(ask.amount);
+            const minAmountOut = orderPrice * amountIn;
 
             if (marketPrice >= orderPrice) {
-                 const expectedOutput = Number(ask.amountIn) * marketPrice;
-                 const profit = expectedOutput - Number(ask.minAmountOut);
-                 const profitBps = (profit / Number(ask.minAmountOut)) * 10000;
+                 const expectedOutput = amountIn * marketPrice;
+                 const profit = expectedOutput - minAmountOut;
+                 const profitBps = (profit / minAmountOut) * 10000;
  
                  if (profitBps >= MIN_PROFIT_BPS) {
                     console.log(`Found a profitable ask to fill:`, ask);

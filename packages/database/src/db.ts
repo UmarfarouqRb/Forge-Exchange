@@ -3,7 +3,8 @@ import { Redis } from '@upstash/redis';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import * as schema from '@forge/db';
+import * as schema from './schema';
+import { Order } from './schema';
 
 // --- PostgreSQL (Supabase) Client ---
 
@@ -42,22 +43,6 @@ export const redis = new Redis({
   token: redisToken,
 });
 
-export interface Order {
-    id: string;
-    user: string;
-    tokenIn: string;
-    tokenOut: string;
-    amountIn: string;
-    minAmountOut: string;
-    nonce: number;
-    status: string;
-    symbol: string;
-    side: string;
-    price: string;
-    amount: string;
-    total: string;
-    createdAt: number;
-}
 
 export const getChainId = async () => {
     const { data, error } = await supabase.from('chain').select('id').single();

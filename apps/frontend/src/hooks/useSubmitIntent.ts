@@ -54,21 +54,23 @@ export function useSubmitIntent() {
       const tokenOutSymbol = side === 'buy' ? baseAsset : quoteAsset;
       const tokenIn = tokens[tokenInSymbol];
       const tokenOut = tokens[tokenOutSymbol];
-      const quoteToken = tokens[quoteAsset];
 
-      if (!tokenIn || !tokenOut || !quoteToken) throw new Error('Token details not found for this pair');
+      if (!tokenIn || !tokenOut) throw new Error('Token details not found for this pair');
 
       const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
       const amountInString = side === 'buy' ? total.toString() : amount;
 
-      let amountOutMin = '0';
+      let minAmountOut;
       if (orderType === 'market') {
         const slippageTolerance = parseFloat(slippage) / 100;
         if (slippageTolerance < 0 || slippageTolerance > 1) throw new Error('Invalid slippage value');
 
         const expectedAmountOut = side === 'buy' ? parseFloat(amount || '0') : total;
         const minAmount = expectedAmountOut * (1 - slippageTolerance);
-        amountOutMin = ethers.parseUnits(minAmount.toFixed(tokenOut.decimals), tokenOut.decimals).toString();
+        minAmountOut = ethers.parseUnits(minAmount.toFixed(tokenOut.decimals), tokenOut.decimals).toString();
+      } else {
+        const limitAmountOut = side === 'buy' ? parseFloat(amount || '0') : total;
+        minAmountOut = ethers.parseUnits(limitAmountOut.toFixed(tokenOut.decimals), tokenOut.decimals).toString();
       }
 
       const intent = {
@@ -76,9 +78,11 @@ export function useSubmitIntent() {
         tokenIn: tokenIn.address,
         tokenOut: tokenOut.address,
         amountIn: ethers.parseUnits(amountInString, tokenIn.decimals).toString(),
-        price: orderType === 'limit' ? ethers.parseUnits(price, quoteToken.decimals).toString() : '0',
-        amountOutMin: amountOutMin,
-        nonce: BigInt(Date.now()).toString(), // Corrected nonce
+        minAmountOut: minAmountOut,
+        deadline: Math.floor(Date.now() / 1000) + 60 * 30, // 30 minutes from now
+        nonce: BigInt(Date.now()).toString(),
+        adapter: ethers.ZeroAddress as `0x${string}`,
+        relayerFee: '0',
       };
 
       const domain = {
@@ -89,21 +93,23 @@ export function useSubmitIntent() {
       };
 
       const types = {
-        Intent: [
+        SwapIntent: [
           { name: 'user', type: 'address' },
           { name: 'tokenIn', type: 'address' },
           { name: 'tokenOut', type: 'address' },
           { name: 'amountIn', type: 'uint256' },
-          { name: 'price', type: 'uint256' },
-          { name: 'amountOutMin', type: 'uint256' },
+          { name: 'minAmountOut', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
           { name: 'nonce', type: 'uint256' },
+          { name: 'adapter', type: 'address' },
+          { name: 'relayerFee', type: 'uint256' },
         ],
       };
 
-      // Construct the object with BigInt for signing
       const signingIntent = {
         ...intent,
         nonce: BigInt(intent.nonce),
+        deadline: BigInt(intent.deadline),
       };
 
       const signature = await signer.signTypedData(domain, types, signingIntent);
@@ -111,6 +117,11 @@ export function useSubmitIntent() {
       const payload: PlaceOrderPayload = {
         intent: intent,
         signature,
+        side: side,
+        orderType: orderType,
+        price: price,
+        amount: amount,
+        total: total.toString(),
       };
 
       return placeOrder(payload);

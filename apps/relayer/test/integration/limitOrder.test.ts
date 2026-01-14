@@ -1,7 +1,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-import { saveOrder, getOrders, Order } from '@forge/database';
+import { saveOrder, getOrders, Order } from '@forge/db';
 
 const supabase = createClient(
     process.env.SUPABASE_URL || '',
@@ -18,18 +18,17 @@ describe('Relayer Integration Tests: Limit Order Filling', () => {
     const order: Order = {
         id: '1',
         user: 'test_user',
-        tokenIn: 'token_in',
-        tokenOut: 'token_out',
-        amountIn: '100',
-        minAmountOut: '90',
-        nonce: 1,
-        status: 'PENDING',
-        symbol: 'TEST/USD',
+        pair: 'TEST/USD',
         side: 'buy',
+        type: 'limit',
         price: '100',
         amount: '1',
+        filled: '0',
+        status: 'open',
+        createdAt: new Date().toISOString(),
+        symbol: 'TEST/USD',
         total: '100',
-        createdAt: Date.now()
+        leverage: '1',
     };
 
     await saveOrder(order);

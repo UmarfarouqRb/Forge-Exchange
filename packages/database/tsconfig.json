@@ -3,12 +3,9 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "src",
-    "composite": true,
-    "declaration": true
+    "declaration": true,
+    "composite": true
   },
   "include": ["src"],
-  "exclude": ["dist"],
-  "references": [
-    { "path": "../schema" }
-  ]
+  "exclude": ["dist"]
 }

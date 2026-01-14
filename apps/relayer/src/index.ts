@@ -2,7 +2,8 @@ import express from "express";
 import { Order } from "./models/order";
 import { getMarkets } from "./api/markets";
 import { health } from "./api/health";
-import { book, getOrdersByMarket, addOrder } from "./api/orderbook";
+import { book } from "./api/orderbook";
+import { addOrder, getOrdersByMarket } from "./api/orders";
 
 const app = express();
 app.use(express.json());
