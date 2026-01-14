@@ -21,4 +21,4 @@ export const publicClient = createPublicClient({
   transport: http(),
 });
 
-export const RELAYER_URL = "http://localhost:3001";
+export const RELAYER_URL = import.meta.env.VITE_RELAYER_URL || "http://localhost:3001";
