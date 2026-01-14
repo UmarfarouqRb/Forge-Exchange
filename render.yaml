@@ -5,7 +5,7 @@ services:
     env: node
     plan: starter
     buildCommand: "pnpm install --frozen-lockfile && pnpm build"
-    startCommand: "pnpm --filter @forge/api start"
+    startCommand: "pnpm --filter api start"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -27,7 +27,7 @@ services:
     env: node
     plan: starter
     buildCommand: "pnpm install --frozen-lockfile && pnpm build"
-    startCommand: "pnpm --filter @forge/relayer start"
+    startCommand: "pnpm --filter forge-exchange-relayer start"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
