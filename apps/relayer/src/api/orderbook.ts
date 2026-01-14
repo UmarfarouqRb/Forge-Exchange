@@ -1,29 +1,28 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getOrderBook = void 0;
-const viem_1 = require("viem");
-const chains_1 = require("viem/chains");
-const IntentSpotRouter_1 = require("../abis/IntentSpotRouter");
-const contracts_1 = require("../config/contracts");
-const db_1 = require("../db");
+import { http, createPublicClient, parseUnits, formatUnits } from 'viem';
+import { foundry } from 'viem/chains';
+import { intentSpotRouterABI } from '../config/abis';
+import { TOKENS } from '../config/tokens';
+import { relayerConfig } from '../config';
+import { repository } from '../db';
+import { Request, Response } from 'express';
 
 // --- Blockchain Client Setup ---
-const transport = (0, viem_1.http)(process.env.RPC_URL);
-const client = (0, viem_1.createPublicClient)({
-  chain: chains_1.foundry,
+const transport = http(relayerConfig.networks.local.providerUrl);
+const client = createPublicClient({
+  chain: foundry,
   transport,
 });
 
 // --- Price Fetching ---
-async function getAMMPrice(tokenIn, tokenOut) {
+async function getAMMPrice(tokenIn: { address: `0x${string}`; decimals: number }, tokenOut: { address: `0x${string}`; decimals: number }): Promise<number | null> {
     try {
         const amountOut = await client.readContract({
-            address: contracts_1.INTENT_SPOT_ROUTER_ADDRESS,
-            abi: IntentSpotRouter_1.intentSpotRouterABI,
+            address: relayerConfig.networks.local.intentSpotRouterAddress as `0x${string}`,
+            abi: intentSpotRouterABI,
             functionName: 'getAmountOut',
-            args: [tokenIn.address, tokenOut.address, (0, viem_1.parseUnits)('1', tokenIn.decimals)],
+            args: [tokenIn.address, tokenOut.address, parseUnits('1', tokenIn.decimals)],
         });
-        return parseFloat((0, viem_1.formatUnits)(amountOut, tokenOut.decimals));
+        return parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals));
     } catch (error) {
         console.error("Error fetching AMM price:", error);
         return null; // Return null if fetching fails
@@ -31,9 +30,9 @@ async function getAMMPrice(tokenIn, tokenOut) {
 }
 
 // --- Synthetic Liquidity Generation ---
-function generateSyntheticDepth(midPrice) {
-    const bids = [];
-    const asks = [];
+function generateSyntheticDepth(midPrice: number): { bids: [string, string][], asks: [string, string][] } {
+    const bids: [string, string][] = [];
+    const asks: [string, string][] = [];
     const depthLevels = 10;
     const spreadPercentage = 0.002; // 0.2% between each level
 
@@ -53,22 +52,22 @@ function generateSyntheticDepth(midPrice) {
 }
 
 // --- Order Book Logic ---
-async function getOrderBook(req, res) {
+export async function getOrderBook(req: Request, res: Response) {
     const { market } = req.query;
     if (typeof market !== 'string') {
         return res.status(400).json({ error: 'Market query parameter is required' });
     }
 
     const [baseCurrency, quoteCurrency] = market.split('-');
-    const tokenIn = contracts_1.TOKENS[baseCurrency];
-    const tokenOut = contracts_1.TOKENS[quoteCurrency];
+    const tokenIn = TOKENS[baseCurrency];
+    const tokenOut = TOKENS[quoteCurrency];
 
     if (!tokenIn || !tokenOut) {
         return res.status(400).json({ error: 'Invalid market specified' });
     }
 
     // 1. Fetch real orders from the DB
-    const realOrders = await db_1.repository.getOrdersByMarket(market);
+    const realOrders = await repository.getOrdersByMarket(market);
     const realBids = realOrders.filter(o => o.side === 'buy').map(o => [o.price, o.amount]);
     const realAsks = realOrders.filter(o => o.side === 'sell').map(o => [o.price, o.amount]);
 
@@ -84,12 +83,12 @@ async function getOrderBook(req, res) {
     const syntheticDepth = generateSyntheticDepth(midPrice);
 
     // 4. Merge real and synthetic orders (with aggregation)
-    const aggregateAndSort = (real, synthetic, reverse = false) => {
-        const book = new Map();
+    const aggregateAndSort = (real: (string | number)[][], synthetic: [string, string][], reverse = false) => {
+        const book = new Map<string, number>();
         [...real, ...synthetic].forEach(([price, size]) => {
             const priceStr = String(price);
             const currentSize = book.get(priceStr) || 0;
-            book.set(priceStr, currentSize + parseFloat(size));
+            book.set(priceStr, currentSize + parseFloat(size as string));
         });
 
         const sorted = Array.from(book.entries()).sort((a, b) => {
@@ -106,4 +105,3 @@ async function getOrderBook(req, res) {
     // 5. Return the combined order book
     res.json({ bids, asks });
 }
-exports.getOrderBook = getOrderBook;

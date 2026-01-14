@@ -2,7 +2,7 @@ import express from "express";
 import { Order } from "./models/order";
 import { getMarkets } from "./api/markets";
 import { health } from "./api/health";
-import { book } from "./api/orderbook";
+import { getOrderBook } from "./api/orderbook";
 import { addOrder, getOrdersByMarket } from "./api/orders";
 
 const app = express();
@@ -15,7 +15,7 @@ app.get("/health", health);
 
 app.get("/markets", getMarkets);
 
-app.get("/orderbook", book);
+app.get("/orderbook", getOrderBook);
 app.get("/orders", getOrdersByMarket);
 app.post("/orders", addOrder);
 

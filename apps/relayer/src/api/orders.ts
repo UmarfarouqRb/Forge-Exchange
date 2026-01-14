@@ -2,7 +2,7 @@
 import { Request, Response } from "express";
 import { verifyTypedData } from "viem";
 import { anvil } from "viem/chains";
-import { Order, saveOrder, getOrders } from "@forge/db";
+import { Order, saveOrder, getOrders as getOrdersFromDb } from "@forge/db";
 
 export async function addOrder(req: Request, res: Response) {
   const { intent, signature, side, orderType, price, amount, total } = req.body;
@@ -68,6 +68,6 @@ export async function getOrdersByMarket(req: Request, res: Response) {
     return res.status(400).json({ error: "Market query parameter is required" });
   }
 
-  const orders = await getOrders(market);
+  const orders = await getOrdersFromDb(market);
   res.json(orders);
 }

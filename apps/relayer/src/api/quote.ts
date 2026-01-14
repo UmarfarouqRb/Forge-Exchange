@@ -1,12 +1,10 @@
-
 import { Request, Response } from 'express';
 import { createPublicClient, http, getContract, Abi, parseGwei } from 'viem';
 import { base } from 'viem/chains';
 import { relayerConfig } from '@forge/common';
-import IntentSpotRouter_ABI from '../../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
+import { intentSpotRouterABI } from '../config/abis';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const intentSpotRouterABI = IntentSpotRouter_ABI.abi as Abi;
 
 // Add a buffer to the gas estimate to account for price fluctuations
 const GAS_LIMIT_BUFFER = 5000n; 
@@ -35,7 +33,7 @@ export const getQuote = async (req: Request, res: Response) => {
     const intentSpotRouterAddress = network.intentSpotRouterAddress as `0x${string}`;
     const intentSpotRouter = getContract({
         address: intentSpotRouterAddress,
-        abi: intentSpotRouterABI,
+        abi: intentSpotRouterABI as Abi,
         client,
     });
 
@@ -71,7 +69,7 @@ export const getQuote = async (req: Request, res: Response) => {
 
     const gasEstimate = await client.estimateContractGas({
         address: intentSpotRouterAddress,
-        abi: intentSpotRouterABI,
+        abi: intentSpotRouterABI as Abi,
         functionName: 'executeSwap',
         args: [mockIntent, mockSignature],
         account: ZERO_ADDRESS,
