@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "NODE_ENV=development tsx ./index.ts",
     "start": "NODE_ENV=production node dist/index.js",
-    "build": "esbuild index.ts --bundle --platform=node --packages=external --outfile=dist/index.js",
+    "build": "esbuild index.ts --bundle --platform=node --packages=external --format=esm --outfile=dist/index.js",
     "check": "tsc --noEmit",
     "db:push": "drizzle-kit push"
   },

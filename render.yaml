@@ -7,6 +7,11 @@ services:
     buildCommand: "pnpm install --frozen-lockfile && pnpm build"
     startCommand: "pnpm --filter api start"
     envVars:
+      - key: RELAYER_URL
+        fromService:
+          type: web
+          name: forge-exchange-relayer
+          envVarKey: URL
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_KEY
@@ -46,6 +51,14 @@ services:
     plan: starter
     buildCommand: "pnpm install --frozen-lockfile && pnpm --filter frontend build"
     staticPublishPath: ./apps/frontend/dist
+    rewrites:
+      - source: "/*"
+        destination: "/index.html"
     envVars:
       - key: VITE_PRIVY_APP_ID
         sync: false
+      - key: VITE_RELAYER_URL
+        fromService:
+          type: web
+          name: forge-exchange-api
+          envVarKey: URL

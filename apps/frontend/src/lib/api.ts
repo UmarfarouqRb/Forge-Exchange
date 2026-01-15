@@ -4,17 +4,45 @@ const RELAYER_URL = import.meta.env.VITE_RELAYER_URL;
 import { apiRequest } from './queryClient';
 import type { Order } from '../types';
 
+const checkApiConfig = () => {
+  if (!RELAYER_URL) {
+    const errorMessage = "API service URL (VITE_RELAYER_URL) is not configured. The application cannot function without this.";
+    console.error(errorMessage);
+    throw new Error(errorMessage);
+  }
+}
+
 export const getOrderBook = async (pair: string) => {
-  const response = await fetch(`${RELAYER_URL}/api/order-book/${pair}`);
-  if (!response.ok) throw new Error('Failed to fetch order book');
-  return response.json();
+  checkApiConfig();
+  try {
+    const response = await fetch(`${RELAYER_URL}/api/order-book/${pair}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error: Failed to fetch order book for pair ${pair}. Status: ${response.status}. Message: ${errorText}`);
+      throw new Error('Failed to fetch order book');
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Network or API Error: Could not fetch order book. Please ensure the API services are running and accessible.", error);
+    throw error;
+  }
 };
 
 export const getOrders = async (address: string | undefined): Promise<Order[]> => {
   if (!address) return [];
-  const response = await fetch(`${RELAYER_URL}/api/orders/${address}?category=spot`);
-  if (!response.ok) throw new Error('Failed to fetch orders');
-  return response.json();
+  checkApiConfig();
+  try {
+    const response = await fetch(`${RELAYER_URL}/api/orders/${address}?category=spot`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error: Failed to fetch orders for address ${address}. Status: ${response.status}. Message: ${errorText}`);
+      throw new Error('Failed to fetch orders');
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Network or API Error: Could not fetch orders. Please ensure the API services are running and accessible.", error);
+    throw error;
+  }
 };
 
 export type PlaceOrderPayload = {
@@ -38,18 +66,44 @@ export type PlaceOrderPayload = {
 };
 
 export const placeOrder = async (orderData: PlaceOrderPayload) => {
-  return apiRequest('POST', `${RELAYER_URL}/api/orders`, orderData);
+  checkApiConfig();
+  try {
+    return await apiRequest('POST', `${RELAYER_URL}/api/orders`, orderData);
+  } catch (error) {
+    console.error("Network or API Error: Could not place order. Please ensure the API services are running and accessible.", error);
+    throw error;
+  }
 };
 
 export const getTokens = async (chainId: string) => {
-  const response = await fetch(`${RELAYER_URL}/api/tokens/${chainId}`);
-  if (!response.ok) throw new Error('Failed to fetch token addresses');
-  return response.json();
+  checkApiConfig();
+  try {
+    const response = await fetch(`${RELAYER_URL}/api/tokens/${chainId}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error: Failed to fetch tokens for chain ${chainId}. Status: ${response.status}. Message: ${errorText}`);
+      throw new Error('Failed to fetch token addresses');
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Network or API Error: Could not fetch tokens. Please ensure the API services are running and accessible.", error);
+    throw error;
+  }
 };
 
 export const getAssets = async (address: string | null) => {
   if (!address) return [];
-  const response = await fetch(`${RELAYER_URL}/api/assets/${address}`);
-  if (!response.ok) throw new Error('Failed to fetch assets');
-  return response.json();
+  checkApiConfig();
+  try {
+    const response = await fetch(`${RELAYER_URL}/api/assets/${address}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error: Failed to fetch assets for address ${address}. Status: ${response.status}. Message: ${errorText}`);
+      throw new Error('Failed to fetch assets');
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Network or API Error: Could not fetch assets. Please ensure the API services are running and accessible.", error);
+    throw error;
+  }
 };
