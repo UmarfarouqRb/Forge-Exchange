@@ -1,9 +1,10 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { PrivyProvider } from "@privy-io/react-auth";
+import { WagmiProvider } from 'wagmi';
+import { wagmiConfig } from './wagmi';
 import { ChainProvider } from "@/contexts/ChainContext";
 import { MarketDataProvider } from '@/contexts/MarketDataProvider';
 import { base, bsc, arbitrum } from 'viem/chains';
@@ -32,25 +33,27 @@ root.render(
         </div>
       </div>
     ) : (
-      <QueryClientProvider client={queryClient}>
-        <PrivyProvider
-          appId={privyAppId}
-          config={{
-            appearance: {
-              theme: 'dark',
-              accentColor: '#ff6b00',
-            },
-            defaultChain: base,
-            supportedChains: [base, bsc, arbitrum],
-          }}
-        >
-          <ChainProvider>
-            <MarketDataProvider>
-              <App />
-            </MarketDataProvider>
-          </ChainProvider>
-        </PrivyProvider>
-      </QueryClientProvider>
+      <PrivyProvider
+        appId={privyAppId}
+        config={{
+          appearance: {
+            theme: 'dark',
+            accentColor: '#ff6b00',
+          },
+          defaultChain: base,
+          supportedChains: [base, bsc, arbitrum],
+        }}
+      >
+        <WagmiProvider config={wagmiConfig}>
+          <QueryClientProvider client={queryClient}>
+            <ChainProvider>
+              <MarketDataProvider>
+                <App />
+              </MarketDataProvider>
+            </ChainProvider>
+          </QueryClientProvider>
+        </WagmiProvider>
+      </PrivyProvider>
     )}
   </React.StrictMode>
 );
