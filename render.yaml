@@ -8,9 +8,7 @@ services:
     startCommand: "pnpm --filter api start"
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: forge-exchange-db
-          property: connectionString
+        sync: false
       - key: SUPABASE_KEY
         sync: false
       - key: UPSTASH_REDIS_URL
@@ -26,13 +24,11 @@ services:
     name: forge-exchange-relayer
     env: node
     plan: starter
-    buildCommand: "pnpm install --frozen-lockfile && pnpm build"
+    buildCommand: "pnpm install --frozen-lockfile && pnpm --filter forge-exchange-relayer build"
     startCommand: "pnpm --filter forge-exchange-relayer start"
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: forge-exchange-db
-          property: connectionString
+        sync: false
       - key: SUPABASE_KEY
         sync: false
       - key: UPSTASH_REDIS_URL
@@ -53,7 +49,3 @@ services:
     envVars:
       - key: VITE_PRIVY_APP_ID
         sync: false
-databases:
-  - name: forge-exchange-db
-    databaseName: forge_exchange_db
-    user: forge_exchange_user

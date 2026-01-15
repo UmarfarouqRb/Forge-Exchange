@@ -28,6 +28,11 @@
     "@solana-program/system": "0.1.3",
     "@solana/web3.js": "1.95.0"
   },
+  "pnpm": {
+    "overrides": {
+      "zod": "3.23.8"
+    }
+  },
   "devDependencies": {
     "@typechain/ethers-v6": "^0.5.1",
     "dotenv": "^17.2.3",
