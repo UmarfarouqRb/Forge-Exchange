@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -9,34 +8,31 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useWriteContract, useReadContract, useAccount } from 'wagmi';
 import { useSubmitIntent } from '@/hooks/useSubmitIntent';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
-import { useTrackedTx } from '@/hooks/useTrackedTx';
-import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
-import { VaultSpotAbi } from '@/abis/VaultSpot';
-import { parseUnits, formatUnits, erc20Abi } from 'viem';
-import { toast } from 'sonner';
+import { TOKENS, Token } from '@/config/contracts';
+import { parseUnits, formatUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { Orders } from './Orders';
 import { TradeHistory } from './TradeHistory';
+import { DepositDialog } from './DepositDialog';
+import { WithdrawDialog } from './WithdrawDialog';
 
 interface TradePanelProps {
   symbol: string;
   currentPrice: string;
   disabled?: boolean;
+  isMobile?: boolean;
 }
 
-export function TradePanel({ symbol, currentPrice, disabled = false }: TradePanelProps) {
-  const [orderType, setOrderType] = useState<'limit' | 'market'>('market');
+export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = false }: TradePanelProps) {
+  const [orderType, setOrderType] = useState<'limit' | 'market'>('limit');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(currentPrice);
   const [amount, setAmount] = useState('');
-  const [depositAmount, setDepositAmount] = useState('');
-  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [slippage, setSlippage] = useState('0.05');
   const [isConfirming, setIsConfirming] = useState(false);
-  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const [depositDialog, setDepositDialog] = useState(false);
+  const [withdrawDialog, setWithdrawDialog] = useState(false);
   const { ready, authenticated } = usePrivy();
-  const { address } = useAccount();
-  const { writeContractAsync } = useWriteContract();
   const submitIntent = useSubmitIntent();
 
   const baseCurrency = symbol.replace('USDT', '') as Token;
@@ -46,25 +42,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
   const quoteToken = TOKENS[quoteCurrency];
 
   const { data: baseBalance } = useVaultBalance(baseToken?.address);
-  const { data: quoteBalance, refetch: refetchQuoteBalance } = useVaultBalance(quoteToken?.address);
-
-  const { data: allowance, refetch: refetchAllowance } = useReadContract({
-    address: quoteToken.address,
-    abi: erc20Abi,
-    functionName: 'allowance',
-    args: address ? [address, VAULT_SPOT_ADDRESS] : undefined,
-    query: {
-      enabled: !!address && !!quoteToken,
-    }
-  });
-
-  useTrackedTx({
-    hash: txHash,
-    onSuccess: () => {
-      refetchAllowance();
-      refetchQuoteBalance();
-    }
-  });
+  const { data: quoteBalance } = useVaultBalance(quoteToken?.address);
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 
@@ -81,50 +59,6 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
       return baseBalance >= orderAmount;
     }
   }, [amount, side, baseBalance, quoteBalance, baseToken, quoteToken, total]);
-
-  const handleDeposit = async () => {
-    if (!depositAmount || !quoteToken) return;
-    try {
-      const parsedAmount = parseUnits(depositAmount, quoteToken.decimals);
-      const needsApproval = allowance === undefined || allowance < parsedAmount;
-
-      if (needsApproval) {
-        const approvalHash = await writeContractAsync({
-          address: quoteToken.address,
-          abi: erc20Abi,
-          functionName: 'approve',
-          args: [VAULT_SPOT_ADDRESS, parsedAmount]
-        });
-        setTxHash(approvalHash);
-      }
-
-      const depositHash = await writeContractAsync({
-        address: VAULT_SPOT_ADDRESS,
-        abi: VaultSpotAbi,
-        functionName: 'deposit',
-        args: [quoteToken.address, parsedAmount]
-      });
-      setTxHash(depositHash);
-    } catch (err) {
-      toast.error('Deposit failed.');
-    }
-  };
-
-  const handleWithdraw = async () => {
-    if (!withdrawAmount || !quoteToken) return;
-    try {
-      const parsedAmount = parseUnits(withdrawAmount, quoteToken.decimals);
-      const hash = await writeContractAsync({
-        address: VAULT_SPOT_ADDRESS,
-        abi: VaultSpotAbi,
-        functionName: 'withdraw',
-        args: [quoteToken.address, parsedAmount]
-      });
-      setTxHash(hash);
-    } catch (err) {
-      toast.error('Withdrawal failed.');
-    }
-  };
 
   const handlePlaceOrder = () => {
     if (!authenticated || !hasSufficientBalance) {
@@ -150,6 +84,89 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
     if (!ready || !authenticated) return 'Wallet Not Connected';
     if (!hasSufficientBalance) return 'Insufficient Funds';
     return 'Place Order';
+  }
+
+  if (isMobile) {
+    return (
+      <div className="p-2 bg-background h-full flex flex-col">
+        <Tabs value={side} onValueChange={(v) => setSide(v as 'buy' | 'sell')} className="mb-2">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="buy" className="data-[state=active]:bg-green-500 data-[state=active]:text-primary-foreground">Buy</TabsTrigger>
+            <TabsTrigger value="sell" className="data-[state=active]:bg-red-500 data-[state=active]:text-primary-foreground">Sell</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="mb-2">
+          <select
+            value={orderType}
+            onChange={(e) => setOrderType(e.target.value as 'limit' | 'market')}
+            className="w-full p-2 rounded-md bg-input"
+          >
+            <option value="limit">Limit</option>
+            <option value="market">Market</option>
+          </select>
+        </div>
+
+        {orderType === 'limit' && (
+          <div className="mb-2 flex items-center bg-input rounded-md">
+            <Input
+              id="price"
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="w-2/3 bg-transparent border-0"
+              placeholder="Price (USDT)"
+            />
+            <span className="text-sm text-muted-foreground p-2">BBO</span>
+          </div>
+        )}
+
+        <div className="mb-2 flex items-center bg-input rounded-md">
+          <Input
+            id="amount"
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-2/3 bg-transparent border-0"
+            placeholder="Quantity (BTC)"
+          />
+          <span className="text-sm text-muted-foreground p-2">BTC</span>
+        </div>
+        
+        <div className="mb-2 p-2 bg-input rounded-md">
+          <span className="text-sm text-muted-foreground">Total</span>
+          <span className="text-lg font-mono float-right">{total.toFixed(2)} USDT</span>
+        </div>
+        
+        <div className="mb-2 flex items-center">
+          <input type="checkbox" id="tp_sl" className="mr-2" />
+          <label htmlFor="tp_sl" className="text-sm">TP/SL</label>
+        </div>
+        
+        <div className="text-sm text-muted-foreground mb-2">
+          Available: {quoteBalance ? formatUnits(quoteBalance, quoteToken.decimals) : '0'} USDT
+        </div>
+
+        <div className="flex-grow"></div>
+
+        <div className="mb-4">
+          <div className="mt-2">
+              <Button onClick={() => setDepositDialog(true)} variant="outline" size="sm" className="w-full">Deposit</Button>
+          </div>
+          <div className="mt-2">
+              <Button onClick={() => setWithdrawDialog(true)} variant="outline" size="sm" className="w-full">Withdraw</Button>
+          </div>
+        </div>
+        
+        <Button
+          className={`w-full text-lg p-6 ${side === 'buy' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
+          onClick={handlePlaceOrder}
+          disabled={disabled || submitIntent.isPending || !ready || !authenticated || !hasSufficientBalance}
+        >
+          {side === 'buy' ? 'Buy BTC' : 'Sell BTC'}
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -223,18 +240,15 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
           <div className="mt-4">
             <Label>USDT Balance: {quoteBalance ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
           </div>
-          <div className="flex items-center mt-2">
-            <Input type="number" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} placeholder="Deposit USDT" />
-            <Button onClick={handleDeposit} className="ml-2" >Deposit</Button>
+          <div className="mt-2">
+            <Button onClick={() => setDepositDialog(true)} className="w-full">Deposit</Button>
           </div>
-          <div className="flex items-center mt-2">
-            <Input type="number" value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="Withdraw USDT" />
-            <Button onClick={handleWithdraw} className="ml-2" >Withdraw</Button>
+          <div className="mt-2">
+            <Button onClick={() => setWithdrawDialog(true)} className="w-full">Withdraw</Button>
           </div>
         </div>
-      </CardContent>
 
-      <OrderConfirmationDialog
+        <OrderConfirmationDialog
         open={isConfirming}
         onOpenChange={setIsConfirming}
         onConfirm={handleConfirmOrder}
@@ -247,6 +261,19 @@ export function TradePanel({ symbol, currentPrice, disabled = false }: TradePane
           total
         }}
       />
+
+      <DepositDialog
+        open={depositDialog}
+        onOpenChange={setDepositDialog}
+        asset={quoteCurrency}
+      />
+
+      <WithdrawDialog
+        open={withdrawDialog}
+        onOpenChange={setWithdrawDialog}
+        asset={quoteCurrency}
+      />
+      </CardContent>
     </Card>
   );
 }

@@ -3,18 +3,17 @@ import { useSearch } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { OrderBook } from '@/components/OrderBook';
 import { TradingChart } from '@/components/TradingChart';
-import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
 import { getOrders, getOrderBook } from '@/lib/api';
 import type { Order } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useMarket } from '@/hooks/use-market';
-import { AssetSelector } from "@/components/AssetSelector";
+import { NewAssetSelector } from "@/components/NewAssetSelector";
 import { TradeHistory } from '@/components/TradeHistory';
 import { OrderHistory } from '@/components/OrderHistory';
+import Trade from './Trade';
 
 export default function Spot() {
   const search = useSearch();
@@ -160,7 +159,7 @@ export default function Spot() {
         <div className="flex items-center justify-between gap-2 md:gap-6">
           <div className="flex items-center gap-2 md:gap-6 flex-1 overflow-hidden">
             <div>
-              <AssetSelector selectedPair={selectedPair} setSelectedPair={setSelectedPair} />
+              <NewAssetSelector asset={selectedPair} setAsset={setSelectedPair} isPairSelector />
               <div className="text-xs text-muted-foreground">Spot Trading</div>
             </div>
             <div>
@@ -193,20 +192,16 @@ export default function Spot() {
       {/* Trading Interface */}
       {!isDesktop ? (
         <Tabs defaultValue="chart" className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid grid-cols-4 rounded-none border-b border-border">
+          <TabsList className="grid grid-cols-3 rounded-none border-b border-border">
             <TabsTrigger value="chart">Chart</TabsTrigger>
             <TabsTrigger value="trade">Trade</TabsTrigger>
-            <TabsTrigger value="book">Book</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
           </TabsList>
           <TabsContent value="chart" className="flex-1 overflow-hidden">
             <TradingChart symbol={selectedPair} />
           </TabsContent>
           <TabsContent value="trade" className="overflow-auto">
-            <TradePanel symbol={selectedPair} currentPrice={currentPrice} />
-          </TabsContent>
-          <TabsContent value="book" className="overflow-hidden">
-            <OrderBook />
+            <Trade symbol={selectedPair} currentPrice={currentPrice} isMobile={!isDesktop} />
           </TabsContent>
           {renderOpenOrders()}
         </Tabs>
@@ -214,20 +209,12 @@ export default function Spot() {
         <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
           {/* Main Trading Grid */}
           <div className="flex-1 grid grid-cols-12 gap-2 overflow-hidden">
-            {/* Order Book - Left */}
-            <div className="col-span-3 overflow-hidden">
-              <OrderBook />
-            </div>
-
             {/* Chart and Trade Panel - Center/Right */}
-            <div className="col-span-9 flex flex-col gap-2 overflow-hidden">
+            <div className="col-span-8 flex flex-col gap-2 overflow-hidden">
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="grid grid-cols-3 flex-1 gap-2 overflow-hidden">
-                        <div className="col-span-2 overflow-hidden">
+                    <div className="grid grid-cols-1 flex-1 gap-2 overflow-hidden">
+                        <div className="col-span-1 overflow-hidden">
                           <TradingChart symbol={selectedPair} />
-                        </div>
-                        <div className="overflow-hidden">
-                          <TradePanel symbol={selectedPair} currentPrice={currentPrice} />
                         </div>
                     </div>
                     {/* Bottom Section: Order History */}
@@ -252,6 +239,11 @@ export default function Spot() {
                       </Card>
                     </div>
                 </div>
+            </div>
+
+            {/* Order Book and Trade Panel - Right */}
+            <div className="col-span-4 overflow-hidden">
+              <Trade symbol={selectedPair} currentPrice={currentPrice} isMobile={!isDesktop} />
             </div>
           </div>
         </div>

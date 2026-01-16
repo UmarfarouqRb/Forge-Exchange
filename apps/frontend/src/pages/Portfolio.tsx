@@ -10,6 +10,7 @@ import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
 import { useAccount, useReadContracts } from 'wagmi';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { formatUnits } from 'viem';
+import { FiDownload, FiUpload } from 'react-icons/fi';
 
 // Define a type for our asset object
 interface Asset {
@@ -77,22 +78,36 @@ export default function Portfolio() {
           <TabsTrigger value="futures">Futures</TabsTrigger>
         </TabsList>
         <TabsContent value="spot">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {assets.map((asset: Asset) => (
-                <Card key={asset.symbol}>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">{asset.symbol}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-lg font-bold">{asset.balance}</div>
-                      <div className="flex gap-2 mt-2">
-                        <Button size="sm" variant="outline" onClick={() => setDepositDialog({ open: true, asset: asset.symbol as Token })}>Deposit</Button>
-                        <Button size="sm" variant="destructive" onClick={() => setWithdrawDialog({ open: true, asset: asset.symbol as Token })}>Withdraw</Button>
-                      </div>
-                    </CardContent>
-                </Card>
-                ))}
-            </div>
+          {/* Deposit/Withdraw Card for Mobile */}
+          <Card className="mb-6 md:hidden">
+            <CardContent className="p-4 flex gap-4">
+              <Button className="flex-1" onClick={() => setDepositDialog({ open: true, asset: '' })}>
+                <FiDownload className="w-4 h-4 mr-2" />
+                Deposit
+              </Button>
+              <Button className="flex-1" variant="outline" onClick={() => setWithdrawDialog({ open: true, asset: '' })}>
+                <FiUpload className="w-4 h-4 mr-2" />
+                Withdraw
+              </Button>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {assets.map((asset: Asset) => (
+              <Card key={asset.symbol}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">{asset.symbol}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-lg font-bold">{asset.balance}</div>
+                  <div className="flex gap-2 mt-2">
+                    <Button size="sm" variant="outline" onClick={() => setDepositDialog({ open: true, asset: asset.symbol as Token })}>Deposit</Button>
+                    <Button size="sm" variant="destructive" onClick={() => setWithdrawDialog({ open: true, asset: asset.symbol as Token })}>Withdraw</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
         <TabsContent value="futures">
           <p className="text-center p-4 text-muted-foreground">Futures portfolio coming soon.</p>

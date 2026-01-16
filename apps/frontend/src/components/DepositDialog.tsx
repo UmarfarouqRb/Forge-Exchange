@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,8 @@ interface DepositDialogProps {
 
 export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps) {
   const [amount, setAmount] = useState('');
-  const [txHash, setTxHash] = useState<`0x${string}` | undefined>();
+  const [approvalTxHash, setApprovalTxHash] = useState<`0x${string}` | undefined>();
+  const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const token = TOKENS[asset];
@@ -42,10 +43,18 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
   });
 
   useTrackedTx({
-    hash: txHash,
+    hash: depositTxHash,
     onSuccess: () => {
       refetch(); // Refetch allowance after successful deposit
       onOpenChange(false);
+    }
+  });
+
+  useTrackedTx({
+    hash: approvalTxHash,
+    onSuccess: () => {
+      refetch();
+      handleDeposit();
     }
   });
 
@@ -63,7 +72,7 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
             functionName: 'deposit',
             value: parsedAmount,
         });
-        setTxHash(wrapHash);
+        setDepositTxHash(wrapHash);
 
         // Deposit WETH
         const depositHash = await writeContractAsync({
@@ -72,7 +81,7 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
             functionName: 'deposit',
             args: [WETH_ADDRESS, parsedAmount]
         });
-        setTxHash(depositHash);
+        setDepositTxHash(depositHash);
       } else {
         const needsApproval = allowance === undefined || allowance < parsedAmount;
 
@@ -83,16 +92,16 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
             functionName: 'approve',
             args: [VAULT_SPOT_ADDRESS, parsedAmount]
           });
-          setTxHash(approvalHash);
+          setApprovalTxHash(approvalHash);
+        } else {
+            const depositHash = await writeContractAsync({
+                address: VAULT_SPOT_ADDRESS,
+                abi: VaultSpotAbi,
+                functionName: 'deposit',
+                args: [token.address, parsedAmount]
+              });
+              setDepositTxHash(depositHash);
         }
-  
-        const depositHash = await writeContractAsync({
-          address: VAULT_SPOT_ADDRESS,
-          abi: VaultSpotAbi,
-          functionName: 'deposit',
-          args: [token.address, parsedAmount]
-        });
-        setTxHash(depositHash);
       }
       
       setAmount('');

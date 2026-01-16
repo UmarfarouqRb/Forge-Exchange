@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RELAYER_URL } from '../config';
 
-// The API returns bids and asks as arrays of [price, amount] tuples.
 interface OrderbookData {
   bids: [string, string][];
   asks: [string, string][];
 }
 
-export function OrderBook() { // Removed props, it will fetch its own data.
+export function OrderBook() {
   const [data, setData] = useState<OrderbookData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -25,93 +23,99 @@ export function OrderBook() { // Removed props, it will fetch its own data.
       } catch (error) {
         console.error("Error fetching orderbook:", error);
       } finally {
-        setIsLoading(false); // Set loading to false after first fetch attempt
+        setIsLoading(false);
       }
     };
 
-    fetchOrderbook(); // Initial fetch
-    const interval = setInterval(fetchOrderbook, 2000); // Poll every 2 seconds
+    fetchOrderbook();
+    const interval = setInterval(fetchOrderbook, 2000);
     return () => clearInterval(interval);
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
   if (isLoading) {
     return (
-      <Card className="h-full">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Order Book</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <Skeleton key={i} className="h-5 w-full mb-2" />
-          ))}
-        </CardContent>
-      </Card>
+      <div className="h-full p-2">
+        {Array.from({ length: 15 }).map((_, i) => (
+          <Skeleton key={i} className="h-6 w-full mb-1" />
+        ))}
+      </div>
     );
   }
 
   if (!data) {
     return (
-       <Card className="h-full">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Order Book</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-            <p>Could not load order book.</p>
-        </CardContent>
-      </Card>
+      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+        Could not load order book.
+      </div>
     )
   }
 
-  const {bids, asks} = data;
+  const { bids, asks } = data;
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3 flex-shrink-0">
-        <CardTitle className="text-sm">Order Book</CardTitle>
-        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mt-2">
-          <div>Price (USDC)</div>
-          <div className="text-right">Amount (WETH)</div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-4 pt-0 flex-1 overflow-auto">
+    <div className="h-full flex flex-col bg-background p-2 text-xs">
+      <div className="grid grid-cols-2 gap-2 text-muted-foreground mb-2">
+        <div className="text-left">Price (USDT)</div>
+        <div className="text-right">Quantity (BTC)</div>
+      </div>
+
+      <div className="flex-1 overflow-auto">
         {/* Asks (Sell Orders) */}
-        <div className="mb-2">
-          {asks.slice(0, 12).reverse().map(([price, amount], i) => (
+        <div>
+          {asks.slice(0, 7).reverse().map(([price, amount], i) => (
             <div
               key={i}
-              className="grid grid-cols-2 gap-2 text-xs py-1"
+              className="grid grid-cols-2 gap-2 py-1 relative"
               data-testid={`row-ask-${i}`}>
-              <div className="font-mono text-destructive">{price}</div>
+              <div className="font-mono text-red-500">{price}</div>
               <div className="font-mono text-right">{amount}</div>
             </div>
           ))}
         </div>
 
         {/* Spread */}
-        <div className="my-3 py-2 border-y border-border">
+        <div className="my-2 py-2">
           <div className="flex items-center justify-center gap-2">
-            <span className="text-lg font-bold font-mono text-chart-2" data-testid="text-spread-price">
-              {asks[0]?.[0] || '0.00'}
+            <span className="text-xl font-bold font-mono text-green-500" data-testid="text-spread-price">
+              {bids[0]?.[0] || '0.00'}
             </span>
-            <span className="text-xs text-muted-foreground">
-              ↑ ${(parseFloat(asks[0]?.[0] || '0') - parseFloat(bids[0]?.[0] || '0')).toFixed(2)}
+            <span className="text-sm text-muted-foreground">
+              ≈${bids[0]?.[0] || '0.00'}
             </span>
           </div>
         </div>
 
         {/* Bids (Buy Orders) */}
         <div>
-          {bids.slice(0, 12).map(([price, amount], i) => (
+          {bids.slice(0, 7).map(([price, amount], i) => (
             <div
               key={i}
-              className="grid grid-cols-2 gap-2 text-xs py-1"
+              className="grid grid-cols-2 gap-2 py-1 relative"
               data-testid={`row-bid-${i}`}>
-              <div className="font-mono text-chart-2">{price}</div>
+              <div className="font-mono text-green-500">{price}</div>
               <div className="font-mono text-right">{amount}</div>
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div className="mt-2 pt-2 border-t border-border">
+        <div className="flex items-center justify-between mb-2">
+            <span className="text-green-500">B 30%</span>
+            <div className="w-full h-2 mx-2 bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500" style={{ width: '30%' }}></div>
+            </div>
+            <span className="text-red-500">70% S</span>
+        </div>
+        <div className="flex items-center gap-2">
+            <div className="p-1 border border-border rounded-md">...</div>
+            <select className="p-1 border border-border rounded-md bg-transparent text-xs">
+                <option>0.01</option>
+                <option>0.1</option>
+                <option>1</option>
+            </select>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { OrderBook } from '@/components/OrderBook';
 import { TradingChart } from '@/components/TradingChart';
-import { TradePanel } from '@/components/TradePanel';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
 import type { Order, TradingPair } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
+import FuturesTrade from './FuturesTrade';
+import { FuturesTradePanel } from '@/components/FuturesTradePanel';
 
 export default function Futures() {
   const [selectedPair] = useState('BTCUSDT');
@@ -25,17 +25,6 @@ export default function Futures() {
       return response.json();
     },
     refetchInterval: 3000,
-  });
-
-  const { data: orderBookData, isLoading: isOrderBookLoading, isError: isOrderBookError } = useQuery({
-    queryKey: ['/api/order-book', selectedPair, 'futures'],
-    queryFn: async () => {
-      const response = await fetch(`/api/order-book/${selectedPair}?category=futures`);
-      if (!response.ok) throw new Error('Failed to fetch order book');
-      return response.json();
-    },
-    refetchInterval: 3000,
-    initialData: { bids: [], asks: [] },
   });
 
   const { data: positions, isLoading: arePositionsLoading, isError: arePositionsError } = useQuery<Order[]>({
@@ -207,56 +196,26 @@ export default function Futures() {
       {/* Trading Interface */}
       {!isDesktop ? (
         <Tabs defaultValue="chart" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid grid-cols-4 rounded-none border-b border-border">
+            <TabsList className="grid grid-cols-3 rounded-none border-b border-border">
                 <TabsTrigger value="chart">Chart</TabsTrigger>
                 <TabsTrigger value="trade">Trade</TabsTrigger>
-                <TabsTrigger value="book">Book</TabsTrigger>
                 <TabsTrigger value="positions">Positions</TabsTrigger>
             </TabsList>
             <TabsContent value="chart" className="flex-1 overflow-hidden">
                 <TradingChart symbol={selectedPair} />
             </TabsContent>
             <TabsContent value="trade" className="overflow-auto">
-                <TradePanel symbol={selectedPair} currentPrice={currentPrice} disabled />
-            </TabsContent>
-            <TabsContent value="book" className="overflow-hidden">
-                {isOrderBookError ? (
-                    <div className="flex items-center justify-center h-full text-destructive">
-                        Failed to load order book.
-                    </div>
-                ) : (
-                    <OrderBook 
-                    bids={orderBookData?.bids || []} 
-                    asks={orderBookData?.asks || []}
-                    isLoading={isOrderBookLoading}
-                    />
-                )}
+                <FuturesTrade symbol={selectedPair} currentPrice={currentPrice} />
             </TabsContent>
             {renderPositions()}
         </Tabs>
         ) : (
         <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
             <div className="flex-1 grid grid-cols-12 gap-2 overflow-hidden">
-                <div className="col-span-3 overflow-hidden">
-                  {isOrderBookError ? (
-                      <div className="flex items-center justify-center h-full text-destructive">
-                          Failed to load order book.
-                      </div>
-                  ) : (
-                      <OrderBook 
-                      bids={orderBookData?.bids || []} 
-                      asks={orderBookData?.asks || []}
-                      isLoading={isOrderBookLoading}
-                      />
-                  )}
-                </div>
-                <div className="col-span-9 flex flex-col gap-2 overflow-hidden">
-                    <div className="grid grid-cols-3 flex-1 gap-2 overflow-hidden">
-                        <div className="col-span-2 overflow-hidden">
+                <div className="col-span-8 flex flex-col gap-2 overflow-hidden">
+                    <div className="grid grid-cols-1 flex-1 gap-2 overflow-hidden">
+                        <div className="col-span-1 overflow-hidden">
                             <TradingChart symbol={selectedPair} />
-                        </div>
-                        <div className="overflow-hidden">
-                            <TradePanel symbol={selectedPair} currentPrice={currentPrice} disabled />
                         </div>
                     </div>
                     <div className="h-80 flex-shrink-0 overflow-hidden mt-2">
@@ -279,6 +238,9 @@ export default function Futures() {
                         </CardContent>
                     </Card>
                     </div>
+                </div>
+                <div className="col-span-4 overflow-hidden">
+                    <FuturesTradePanel symbol={selectedPair} currentPrice={currentPrice} />
                 </div>
             </div>
         </div>

@@ -12,14 +12,16 @@ import { WithdrawDialog } from '@/components/WithdrawDialog';
 import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { formatUnits } from 'viem';
+import { NewAssetSelector } from '@/components/NewAssetSelector';
 
 export default function Assets() {
   const { authenticated } = usePrivy();
   const { address } = useAccount();
   const [hideSmallBalances, setHideSmallBalances] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [depositDialog, setDepositDialog] = useState<{ open: boolean; asset: Token | '' }>({ open: false, asset: '' });
-  const [withdrawDialog, setWithdrawDialog] = useState<{ open: boolean; asset: Token | '' }>({ open: false, asset: '' });
+  const [selectedAsset, setSelectedAsset] = useState<Token | ''>('');
+  const [depositDialog, setDepositDialog] = useState<{ open: boolean; asset: Token }>({ open: false, asset: 'USDT' });
+  const [withdrawDialog, setWithdrawDialog] = useState<{ open: boolean; asset: Token }>({ open: false, asset: 'USDT' });
 
   const tokenContracts = useMemo(() => {
     return (Object.keys(TOKENS) as Token[]).map(tokenSymbol => ({
@@ -80,6 +82,24 @@ export default function Assets() {
     <div className="min-h-screen bg-background p-6">
       <div className="container mx-auto max-w-7xl">
         <h1 className="text-3xl font-bold mb-6 text-foreground">Assets</h1>
+
+        {/* Deposit/Withdraw Card for Mobile */}
+        <Card className="mb-6 md:hidden">
+          <CardContent className="p-4 flex flex-col gap-4">
+            <NewAssetSelector asset={selectedAsset} setAsset={setSelectedAsset} />
+            <div className="flex gap-4">
+                <Button className="flex-1" onClick={() => setDepositDialog({ open: true, asset: selectedAsset || 'USDT' })} disabled={!selectedAsset}>
+                <FiDownload className="w-4 h-4 mr-2" />
+                Deposit
+                </Button>
+                <Button className="flex-1" variant="outline" onClick={() => setWithdrawDialog({ open: true, asset: selectedAsset || 'USDT' })} disabled={!selectedAsset}>
+                <FiUpload className="w-4 h-4 mr-2" />
+                Withdraw
+                </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="mb-6">
           <CardHeader>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -141,39 +161,73 @@ export default function Assets() {
                 </div>
               ) : assetsLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="hidden md:grid grid-cols-3 gap-4 p-4 items-center">
-                    <Skeleton className="h-5 w-20" />
-                    <Skeleton className="h-5 w-24 ml-auto" />
-                    <Skeleton className="h-5 w-24 ml-auto" />
+                  <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 items-center">
+                    <div className="flex justify-between items-center md:hidden">
+                        <span className="text-sm text-muted-foreground">Asset</span>
+                        <Skeleton className="h-5 w-20" />
+                    </div>
+                     <div className="md:hidden">
+                         <Skeleton className="h-5 w-20" />
+                    </div>
+
+                    <div className="hidden md:block">
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+
+
+                    <div className="flex justify-between items-center md:hidden">
+                         <span className="text-sm text-muted-foreground">Available</span>
+                         <Skeleton className="h-5 w-24" />
+                    </div>
+                    <div className="hidden md:block ml-auto">
+                        <Skeleton className="h-5 w-24" />
+                    </div>
+
+                     <div className="flex justify-between items-center mt-2 md:hidden">
+                         <span className="text-sm text-muted-foreground">Actions</span>
+                         <Skeleton className="h-8 w-44" />
+                    </div>
+                     <div className="hidden md:block ml-auto">
+                         <Skeleton className="h-8 w-44" />
+                    </div>
                   </div>
                 ))
               ) : displayAssets && displayAssets.length > 0 ? (
                 displayAssets.map((asset) => (
                   <div
                     key={asset.asset}
-                    className="hidden md:grid grid-cols-3 gap-4 p-4 items-center hover-elevate"
+                    className="grid grid-cols-1 md:grid-cols-3 gap-y-2 md:gap-4 p-4 items-center hover-elevate"
                     data-testid={`row-asset-${asset.asset}`}>
-                    <div>
+                    <div className="flex justify-between items-center md:block">
+                      <span className="text-sm text-muted-foreground md:hidden">Asset</span>
                       <div className="font-medium text-foreground">{asset.asset}</div>
                     </div>
-                    <div className="text-right font-mono">{asset.available}</div>
-                    <div className="text-right flex gap-2 justify-end">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setDepositDialog({ open: true, asset: asset.asset })}
-                        data-testid={`button-deposit-${asset.asset}`}>
-                        <FiDownload className="w-3 h-3 mr-1" />
-                        Deposit
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setWithdrawDialog({ open: true, asset: asset.asset })}
-                        data-testid={`button-withdraw-${asset.asset}`}>
-                        <FiUpload className="w-3 h-3 mr-1" />
-                        Withdraw
-                      </Button>
+
+                     <div className="flex justify-between items-center md:block md:text-right">
+                         <span className="text-sm text-muted-foreground md:hidden">Available</span>
+                         <div className="font-mono">{asset.available}</div>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-2 md:mt-0 md:block md:text-right">
+                        <span className="text-sm text-muted-foreground md:hidden">Actions</span>
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDepositDialog({ open: true, asset: asset.asset })}
+                          data-testid={`button-deposit-${asset.asset}`}>
+                          <FiDownload className="w-3 h-3 mr-1" />
+                          Deposit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setWithdrawDialog({ open: true, asset: asset.asset })}
+                          data-testid={`button-withdraw-${asset.asset}`}>
+                          <FiUpload className="w-3 h-3 mr-1" />
+                          Withdraw
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -186,19 +240,19 @@ export default function Assets() {
       </div>
 
       {/* Deposit Dialog */}
-      {depositDialog.asset && (
+      {depositDialog.open && (
         <DepositDialog
           open={depositDialog.open}
-          onOpenChange={(open) => setDepositDialog({ open, asset: open ? depositDialog.asset : '' })}
+          onOpenChange={(open) => setDepositDialog({ ...depositDialog, open })}
           asset={depositDialog.asset}
         />
       )}
 
       {/* Withdraw Dialog */}
-      {withdrawDialog.asset && (
+      {withdrawDialog.open && (
         <WithdrawDialog
           open={withdrawDialog.open}
-          onOpenChange={(open) => setWithdrawDialog({ open, asset: open ? withdrawDialog.asset : '' })}
+          onOpenChange={(open) => setWithdrawDialog({ ...withdrawDialog, open })}
           asset={withdrawDialog.asset}
         />
       )}

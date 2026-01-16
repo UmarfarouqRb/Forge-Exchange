@@ -14,22 +14,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useMarket } from "@/hooks/use-market";
+import { TOKENS, Token } from "@/config/contracts";
 
-export function AssetSelector({
-  selectedPair,
-  setSelectedPair,
+export function NewAssetSelector({
+  asset,
+  setAsset,
+  isPairSelector = false,
 }: {
-  selectedPair: string;
-  setSelectedPair: (pair: string) => void;
+  asset: Token | string;
+  setAsset: (asset: any) => void;
+  isPairSelector?: boolean;
 }) {
   const { tradingPairs, isLoading, isError } = useMarket();
   const [open, setOpen] = React.useState(false);
+
+  const items = isPairSelector
+    ? tradingPairs instanceof Map
+      ? Array.from(tradingPairs.keys())
+      : []
+    : (Object.keys(TOKENS) as Token[]);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button className="text-lg md:text-2xl font-bold font-mono h-auto border-0 focus:ring-0 focus:ring-offset-0">
-          {selectedPair}
+          {asset || (isPairSelector ? "Select Pair" : "Select Asset")}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-full">
@@ -42,19 +51,18 @@ export function AssetSelector({
               <CommandEmpty>No results found.</CommandEmpty>
             )}
             <CommandGroup>
-              {tradingPairs instanceof Map &&
-                Array.from(tradingPairs.keys()).map((pair) => (
-                  <CommandItem
-                    key={pair}
-                    value={pair}
-                    onSelect={(currentValue) => {
-                      setSelectedPair(currentValue);
-                      setOpen(false);
-                    }}
-                  >
-                    {pair}
-                  </CommandItem>
-                ))}
+              {items.map((item) => (
+                <CommandItem
+                  key={item}
+                  value={item}
+                  onSelect={(currentValue) => {
+                    setAsset(currentValue as any);
+                    setOpen(false);
+                  }}
+                >
+                  {item}
+                </CommandItem>
+              ))}
             </CommandGroup>
           </CommandList>
         </Command>

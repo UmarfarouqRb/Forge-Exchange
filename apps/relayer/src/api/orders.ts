@@ -1,8 +1,14 @@
 
 import { Request, Response } from "express";
-import { verifyTypedData } from "viem";
-import { anvil } from "viem/chains";
+import { verifyTypedData, createPublicClient, http } from "viem";
+import { base } from "viem/chains";
 import { Order, saveOrder, getOrders as getOrdersFromDb } from "@forge/db";
+import { ERC20ABI } from "../config/erc20";
+
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(),
+});
 
 export async function addOrder(req: Request, res: Response) {
   const { intent, signature, side, orderType, price, amount, total } = req.body;
@@ -10,7 +16,7 @@ export async function addOrder(req: Request, res: Response) {
   const domain = {
     name: "IntentSpotRouter",
     version: "1",
-    chainId: anvil.id,
+    chainId: base.id,
     verifyingContract: intent.verifyingContract,
   };
 
@@ -39,6 +45,17 @@ export async function addOrder(req: Request, res: Response) {
 
   if (!valid) {
     return res.status(400).json({ error: "Invalid signature" });
+  }
+
+  const balance = await publicClient.readContract({
+    address: intent.tokenIn,
+    abi: ERC20ABI,
+    functionName: "balanceOf",
+    args: [intent.user],
+  }) as bigint;
+
+  if (balance < intent.amountIn) {
+    return res.status(400).json({ error: "Insufficient funds" });
   }
 
   const order: Order = {
