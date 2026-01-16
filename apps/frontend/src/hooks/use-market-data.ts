@@ -1,34 +1,51 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import type { TradingPair } from '@/types';
 import { TOKENS, INTENT_SPOT_ROUTER_ADDRESS, Token } from '@/config/contracts';
-import { useReadContracts } from 'wagmi';
+import { useAccount, useReadContracts } from 'wagmi';
 import { intentSpotRouterABI } from '@/abis/IntentSpotRouter';
 import { parseUnits, formatUnits } from 'viem';
 
-const QUOTE_CURRENCY: Token = 'USDC';
+const QUOTE_CURRENCY: Token = 'USDT';
 
 export function useMarketData() {
+  const { chain } = useAccount();
   const [tradingPairs, setTradingPairs] = useState<Map<string, TradingPair>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
   const baseTokens = useMemo(() => (Object.keys(TOKENS) as Token[]).filter(t => t !== QUOTE_CURRENCY), []);
 
+  const intentSpotRouterAddress = useMemo(() => {
+    if (!chain || !INTENT_SPOT_ROUTER_ADDRESS[chain.id]) {
+      return undefined;
+    }
+    return INTENT_SPOT_ROUTER_ADDRESS[chain.id];
+  }, [chain]);
+
   const priceQueries = useMemo(() => {
+    if (!intentSpotRouterAddress) {
+      return [];
+    }
     return baseTokens.map(tokenIn => ({
-      address: INTENT_SPOT_ROUTER_ADDRESS as `0x${string}`,
+      address: intentSpotRouterAddress,
       abi: intentSpotRouterABI,
       functionName: 'getAmountOut',
       args: [TOKENS[tokenIn].address, TOKENS[QUOTE_CURRENCY].address, parseUnits('1', TOKENS[tokenIn].decimals)],
     }));
-  }, [baseTokens]);
+  }, [baseTokens, intentSpotRouterAddress]);
 
-  const { data: prices, isInitialLoading, isError: isPricesError } = useReadContracts({
+  const { data: prices, isInitialLoading, isError: isPricesError, refetch } = useReadContracts({
     contracts: priceQueries,
     query: {
-      refetchInterval: 5000, // Refetch prices every 5 seconds
+      enabled: !!intentSpotRouterAddress,
+      refetchInterval: 5000,
     }
   });
+
+  useEffect(() => {
+    refetch();
+  }, [chain, refetch]);
 
   useEffect(() => {
     if (isInitialLoading) {
@@ -36,9 +53,10 @@ export function useMarketData() {
       return;
     }
 
-    if (isPricesError) {
+    if (isPricesError || !intentSpotRouterAddress) {
       setIsError(true);
       setIsLoading(false);
+      setTradingPairs(new Map());
       return;
     }
 
@@ -53,7 +71,7 @@ export function useMarketData() {
           const existingPair = tradingPairs.get(pairSymbol);
 
           newTradingPairs.set(pairSymbol, {
-            id: pairSymbol, // Using pairSymbol as a unique ID
+            id: pairSymbol,
             symbol: pairSymbol,
             baseAsset: tokenIn,
             quoteAsset: QUOTE_CURRENCY,
@@ -71,9 +89,10 @@ export function useMarketData() {
       setTradingPairs(newTradingPairs);
       setIsLoading(false);
       setIsError(false);
+    } else {
+      setTradingPairs(new Map());
     }
-
-  }, [prices, baseTokens, isInitialLoading, isPricesError, tradingPairs]);
+  }, [prices, baseTokens, isInitialLoading, isPricesError, tradingPairs, intentSpotRouterAddress]);
 
   return { tradingPairs, isLoading, isError };
 }

@@ -26,36 +26,40 @@ interface OrderConfirmationDialogProps {
 export function OrderConfirmationDialog({ open, onOpenChange, onConfirm, order }: OrderConfirmationDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Confirm Order</DialogTitle>
+          <DialogTitle>Confirm {order.orderType.charAt(0).toUpperCase() + order.side.slice(1)} Order</DialogTitle>
           <DialogDescription>
-            Please review your order details before confirming.
+            You are about to place a {order.side} order for {order.amount} {order.symbol.replace('USDT', '')}.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="flex justify-between">
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-2 items-center gap-4">
             <span className="text-muted-foreground">Side</span>
-            <span className={`font-semibold ${order.side === 'buy' ? 'text-blue-500' : 'text-orange-500'}`}>
+            <span className={`font-semibold text-right ${order.side === 'buy' ? 'text-green-500' : 'text-red-500'}`}>
               {order.side.toUpperCase()}
             </span>
           </div>
-          <div className="flex justify-between">
+          <div className="grid grid-cols-2 items-center gap-4">
+            <span className="text-muted-foreground">Type</span>
+            <span className="text-right">{order.orderType.toUpperCase()}</span>
+          </div>
+          <div className="grid grid-cols-2 items-center gap-4">
             <span className="text-muted-foreground">Amount</span>
-            <span>{order.amount} {order.symbol.replace('USDT', '')}</span>
+            <span className="text-right">{order.amount} {order.symbol.replace('USDT', '')}</span>
           </div>
           {order.orderType === 'limit' && (
-            <div className="flex justify-between">
+            <div className="grid grid-cols-2 items-center gap-4">
               <span className="text-muted-foreground">Price</span>
-              <span>{order.price} USDT</span>
+              <span className="text-right">{order.price} USDT</span>
             </div>
           )}
-          <div className="flex justify-between">
+          <div className="grid grid-cols-2 items-center gap-4">
             <span className="text-muted-foreground">Total</span>
-            <span>{order.total.toFixed(2)} USDT</span>
+            <span className="font-bold text-right">{order.total.toFixed(2)} USDT</span>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="sm:justify-between">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
@@ -64,7 +68,7 @@ export function OrderConfirmationDialog({ open, onOpenChange, onConfirm, order }
               onConfirm();
               onOpenChange(false);
             }}
-            className={order.side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}
+            className={order.side === 'buy' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}
           >
             Confirm {order.side.charAt(0).toUpperCase() + order.side.slice(1)}
           </Button>

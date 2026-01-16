@@ -1,4 +1,6 @@
+
 import express from "express";
+import cors from "cors";
 import { Order } from "./models/order";
 import { getMarkets } from "./api/markets";
 import { health } from "./api/health";
@@ -7,6 +9,7 @@ import { addOrder, getOrdersByMarket } from "./api/orders";
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 // TODO: move to a separate file
 const orders: Order[] = [];

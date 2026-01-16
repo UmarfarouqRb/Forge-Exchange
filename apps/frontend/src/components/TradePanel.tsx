@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -15,6 +16,8 @@ import { Orders } from './Orders';
 import { TradeHistory } from './TradeHistory';
 import { DepositDialog } from './DepositDialog';
 import { WithdrawDialog } from './WithdrawDialog';
+import { OrderTypeSelector } from './OrderTypeSelector';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface TradePanelProps {
   symbol: string;
@@ -89,22 +92,15 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
   if (isMobile) {
     return (
       <div className="p-2 bg-background h-full flex flex-col">
-        <Tabs value={side} onValueChange={(v) => setSide(v as 'buy' | 'sell')} className="mb-2">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="buy" className="data-[state=active]:bg-green-500 data-[state=active]:text-primary-foreground">Buy</TabsTrigger>
-            <TabsTrigger value="sell" className="data-[state=active]:bg-red-500 data-[state=active]:text-primary-foreground">Sell</TabsTrigger>
-          </TabsList>
-        </Tabs>
+         <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => {
+          if (value) setSide(value);
+        }} className="w-full mb-2">
+          <ToggleGroupItem value="buy" className="w-full data-[state=on]:bg-green-500 data-[state=on]:text-primary-foreground">Buy</ToggleGroupItem>
+          <ToggleGroupItem value="sell" className="w-full data-[state=on]:bg-red-500 data-[state=on]:text-primary-foreground">Sell</ToggleGroupItem>
+        </ToggleGroup>
 
         <div className="mb-2">
-          <select
-            value={orderType}
-            onChange={(e) => setOrderType(e.target.value as 'limit' | 'market')}
-            className="w-full p-2 rounded-md bg-input"
-          >
-            <option value="limit">Limit</option>
-            <option value="market">Market</option>
-          </select>
+          <OrderTypeSelector orderType={orderType} setOrderType={setOrderType} />
         </div>
 
         {orderType === 'limit' && (
@@ -128,9 +124,9 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className="w-2/3 bg-transparent border-0"
-            placeholder="Quantity (BTC)"
+            placeholder={`Quantity (${baseCurrency})`}
           />
-          <span className="text-sm text-muted-foreground p-2">BTC</span>
+          <span className="text-sm text-muted-foreground p-2">{baseCurrency}</span>
         </div>
         
         <div className="mb-2 p-2 bg-input rounded-md">
@@ -163,7 +159,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
           onClick={handlePlaceOrder}
           disabled={disabled || submitIntent.isPending || !ready || !authenticated || !hasSufficientBalance}
         >
-          {side === 'buy' ? 'Buy BTC' : 'Sell BTC'}
+          {side === 'buy' ? `Buy ${baseCurrency}` : `Sell ${baseCurrency}`}
         </Button>
       </div>
     )
@@ -184,23 +180,17 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
             <TradeHistory />
           </TabsContent>
         </Tabs>
-
         <div className="mt-8">
           <h3 className="text-lg font-semibold">Trade</h3>
-          <Tabs value={side} onValueChange={(v) => setSide(v as 'buy' | 'sell')} className="mb-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="buy" className="data-[state=active]:bg-blue-500 data-[state=active]:text-primary-foreground">Buy</TabsTrigger>
-              <TabsTrigger value="sell" className="data-[state=active]:bg-orange-500 data-[state=active]:text-primary-foreground">Sell</TabsTrigger>
-            </TabsList>
-          </Tabs>
+           <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => {
+            if (value) setSide(value);
+          }} className="w-full mb-4">
+            <ToggleGroupItem value="buy" className="w-full data-[state=on]:bg-blue-500 data-[state=on]:text-primary-foreground">Buy</ToggleGroupItem>
+            <ToggleGroupItem value="sell" className="w-full data-[state=on]:bg-orange-500 data-[state=on]:text-primary-foreground">Sell</ToggleGroupItem>
+          </ToggleGroup>
 
           <div className="mb-4">
-            <Tabs value={orderType} onValueChange={(v) => setOrderType(v as 'limit' | 'market')}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="market">Market</TabsTrigger>
-                <TabsTrigger value="limit">Limit</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <OrderTypeSelector orderType={orderType} setOrderType={setOrderType} />
           </div>
 
           {orderType === 'limit' && (

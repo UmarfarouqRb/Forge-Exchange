@@ -5,9 +5,12 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 // Define the proxy middleware for the relayer service
 const relayerProxy = createProxyMiddleware({
-  target: 'http://localhost:3001',
+  target: process.env.RELAYER_URL,
   changeOrigin: true,
   ws: true,
+  pathRewrite: {
+    '^/api': '',
+  },
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -17,6 +20,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/session/authorize', relayerProxy);
   app.use('/api/orders', relayerProxy);
   app.use('/api/tokens', relayerProxy);
+  app.use('/api/order-book', relayerProxy);
+  app.use('/api/markets', relayerProxy);
+  app.use('/api/health', relayerProxy);
+
 
   // Trading Pairs Routes
   app.get("/api/trading-pairs", async (req: Request, res: Response) => {
@@ -80,37 +87,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit ? parseInt(limit as string) : undefined
       );
       res.json(data);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Order Book Route (simulated data)
-  app.get("/api/order-book/:symbol", async (req: Request, res: Response) => {
-    try {
-      const { symbol } = req.params;
-      const { category } = req.query;
-      const pair = await storage.getTradingPairBySymbol(symbol, category as string);
-      
-      if (!pair) {
-        return res.status(404).json({ error: "Trading pair not found" });
-      }
-
-      const basePrice = parseFloat(pair.currentPrice);
-      
-      const bids = Array.from({ length: 20 }, (_, i) => ({
-        price: (basePrice - i * (basePrice * 0.0002)).toFixed(2),
-        amount: (Math.random() * 2).toFixed(4),
-        total: ((basePrice - i * (basePrice * 0.0002)) * Math.random() * 2).toFixed(2),
-      }));
-      
-      const asks = Array.from({ length: 20 }, (_, i) => ({
-        price: (basePrice + i * (basePrice * 0.0002)).toFixed(2),
-        amount: (Math.random() * 2).toFixed(4),
-        total: ((basePrice + i * (basePrice * 0.0002)) * Math.random() * 2).toFixed(2),
-      }));
-
-      res.json({ bids, asks, symbol, timestamp: new Date() });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
