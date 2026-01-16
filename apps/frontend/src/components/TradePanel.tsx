@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy } from '@privy-io/react-auth';
-import { useWriteContract, useReadContract, useAccount } from 'wagmi';
 import { useSubmitIntent } from '@/hooks/useSubmitIntent';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { TOKENS, Token } from '@/config/contracts';

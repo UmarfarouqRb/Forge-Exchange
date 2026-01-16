@@ -22,7 +22,7 @@ export function NewAssetSelector({
   isPairSelector = false,
 }: {
   asset: Token | string;
-  setAsset: (asset: any) => void;
+  setAsset: (asset: Token | string) => void;
   isPairSelector?: boolean;
 }) {
   const { tradingPairs, isLoading, isError } = useMarket();
@@ -56,7 +56,7 @@ export function NewAssetSelector({
                   key={item}
                   value={item}
                   onSelect={(currentValue) => {
-                    setAsset(currentValue as any);
+                    setAsset(currentValue);
                     setOpen(false);
                   }}
                 >
