@@ -11,10 +11,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
+import { TOKENS, VAULT_SPOT_ADDRESS, Token, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
+import { WethAbi } from '@/abis/Weth';
 import { parseUnits } from 'viem';
-import { useWriteContract } from 'wagmi';
+import { useWriteContract, useAccount, useWalletClient } from 'wagmi';
+import { useTrackedTx } from '@/hooks/useTrackedTx';
+import { wagmiConfig } from '@/wagmi';
+import { waitForTransactionReceipt } from 'wagmi/actions';
+import { FiLoader } from 'react-icons/fi';
 
 interface WithdrawDialogProps {
   open: boolean;
@@ -24,25 +29,87 @@ interface WithdrawDialogProps {
 
 export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProps) {
   const [amount, setAmount] = useState('');
-  const { writeContractAsync, isPending } = useWriteContract();
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
+
+  const { address, isConnected, chainId } = useAccount();
+  const { data: walletClient } = useWalletClient();
+  const { writeContractAsync } = useWriteContract();
   const token = TOKENS[asset];
 
+  useTrackedTx({
+    hash: withdrawTxHash,
+    onSuccess: () => {
+      onOpenChange(false);
+      toast.success("Withdrawal successful!");
+    }
+  });
+
   const handleWithdraw = async () => {
-    if (!amount || !token) return;
+    console.log({
+      connected: isConnected,
+      address,
+      chainId,
+      walletClient,
+    });
+
+    if (!isConnected || !walletClient || !address) {
+      toast.error("Please connect your wallet first.");
+      return;
+    }
+    if (!amount || parseFloat(amount) <= 0) {
+        toast.error("Please enter a valid amount.");
+        return;
+    }
+    if (!token) {
+        toast.error("Selected asset is not valid.");
+        return;
+    }
+
+    setIsWithdrawing(true);
+    toast.loading("Initiating withdrawal...");
 
     try {
       const parsedAmount = parseUnits(amount, token.decimals);
-      await writeContractAsync({
-        address: VAULT_SPOT_ADDRESS,
-        abi: VaultSpotAbi,
-        functionName: 'withdraw',
-        args: [token.address, parsedAmount]
-      });
-      toast.success('Withdrawal successful!');
+
+      if (asset === 'ETH') {
+        toast.loading("Withdrawing WETH from vault...");
+        const withdrawWethHash = await writeContractAsync({
+            address: VAULT_SPOT_ADDRESS,
+            abi: VaultSpotAbi,
+            functionName: 'withdraw',
+            args: [WETH_ADDRESS, parsedAmount]
+        });
+
+        toast.loading("Waiting for vault withdrawal to complete...");
+        await waitForTransactionReceipt(wagmiConfig, { hash: withdrawWethHash });
+        toast.success("Vault withdrawal successful! Now unwrapping to ETH.");
+
+        toast.loading("Unwrapping WETH to ETH...");
+        const unwrapHash = await writeContractAsync({
+            address: WETH_ADDRESS,
+            abi: WethAbi,
+            functionName: 'withdraw',
+            args: [parsedAmount]
+        });
+
+        setWithdrawTxHash(unwrapHash);
+      } else {
+        const withdrawHash = await writeContractAsync({
+          address: VAULT_SPOT_ADDRESS,
+          abi: VaultSpotAbi,
+          functionName: 'withdraw',
+          args: [token.address, parsedAmount]
+        });
+        setWithdrawTxHash(withdrawHash);
+      }
+      
       setAmount('');
-      onOpenChange(false);
-    } catch (err) {
-      toast.error('Withdrawal failed.');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.shortMessage || 'An error occurred during the withdrawal.');
+    } finally {
+      setIsWithdrawing(false);
     }
   };
 
@@ -52,7 +119,7 @@ export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProp
         <DialogHeader>
           <DialogTitle>Withdraw {asset}</DialogTitle>
           <DialogDescription>
-            Withdraw {asset} from your balance
+            Enter the amount of {asset} you want to withdraw.
           </DialogDescription>
         </DialogHeader>
 
@@ -65,17 +132,25 @@ export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProp
               placeholder={`0.00`}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              disabled={isWithdrawing}
             />
           </div>
 
           <Button
             onClick={handleWithdraw}
-            disabled={!amount || isPending}
+            disabled={!amount || isWithdrawing}
             className="w-full"
             variant="destructive"
             data-testid="button-confirm-withdraw"
           >
-            {isPending ? 'Processing...' : 'Confirm Withdrawal'}
+            {isWithdrawing ? (
+              <>
+                <FiLoader className="mr-2 h-4 w-4 animate-spin" />
+                Withdrawing...
+              </>
+            ) : (
+              'Confirm Withdrawal'
+            )}
           </Button>
         </div>
       </DialogContent>

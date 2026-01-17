@@ -8,9 +8,6 @@ const relayerProxy = createProxyMiddleware({
   target: process.env.RELAYER_URL,
   changeOrigin: true,
   ws: true,
-  pathRewrite: {
-    '^/api': '',
-  },
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {

@@ -79,12 +79,12 @@ export async function addOrder(req: Request, res: Response) {
   res.status(201).json(order);
 }
 
-export async function getOrdersByMarket(req: Request, res: Response) {
-  const { market } = req.query;
-  if (typeof market !== "string") {
-    return res.status(400).json({ error: "Market query parameter is required" });
+export async function getOrders(req: Request, res: Response) {
+  const { address } = req.params;
+  if (typeof address !== "string") {
+    return res.status(400).json({ error: "Address parameter is required" });
   }
 
-  const orders = await getOrdersFromDb(market);
+  const orders = await getOrdersFromDb(address);
   res.json(orders);
 }

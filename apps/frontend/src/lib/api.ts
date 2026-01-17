@@ -1,12 +1,11 @@
-
-const RELAYER_URL = import.meta.env.VITE_RELAYER_URL;
+const API_BASE_URL = "https://forge-exchange-api.onrender.com";
 
 import { apiRequest } from './queryClient';
 import type { Order } from '../types';
 
 const checkApiConfig = () => {
-  if (!RELAYER_URL) {
-    const errorMessage = "API service URL (VITE_RELAYER_URL) is not configured. The application cannot function without this.";
+  if (!API_BASE_URL) {
+    const errorMessage = "API service URL is not configured. The application cannot function without this.";
     console.error(errorMessage);
     throw new Error(errorMessage);
   }
@@ -15,7 +14,7 @@ const checkApiConfig = () => {
 export const getOrderBook = async (pair: string) => {
   checkApiConfig();
   try {
-    const response = await fetch(`${RELAYER_URL}/api/order-book/${pair}`);
+    const response = await fetch(`${API_BASE_URL}/api/order-book/${pair}`);
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API Error: Failed to fetch order book for pair ${pair}. Status: ${response.status}. Message: ${errorText}`);
@@ -32,7 +31,7 @@ export const getOrders = async (address: string | undefined): Promise<Order[]> =
   if (!address) return [];
   checkApiConfig();
   try {
-    const response = await fetch(`${RELAYER_URL}/api/orders/${address}?category=spot`);
+    const response = await fetch(`${API_BASE_URL}/api/orders/${address}?category=spot`);
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API Error: Failed to fetch orders for address ${address}. Status: ${response.status}. Message: ${errorText}`);
@@ -68,7 +67,7 @@ export type PlaceOrderPayload = {
 export const placeOrder = async (orderData: PlaceOrderPayload) => {
   checkApiConfig();
   try {
-    return await apiRequest('POST', `${RELAYER_URL}/api/orders`, orderData);
+    return await apiRequest('POST', `${API_BASE_URL}/api/orders`, orderData);
   } catch (error) {
     console.error("Network or API Error: Could not place order. Please ensure the API services are running and accessible.", error);
     throw error;
@@ -78,7 +77,7 @@ export const placeOrder = async (orderData: PlaceOrderPayload) => {
 export const getTokens = async (chainId: string) => {
   checkApiConfig();
   try {
-    const response = await fetch(`${RELAYER_URL}/api/tokens/${chainId}`);
+    const response = await fetch(`${API_BASE_URL}/api/tokens/${chainId}`);
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API Error: Failed to fetch tokens for chain ${chainId}. Status: ${response.status}. Message: ${errorText}`);
@@ -95,7 +94,7 @@ export const getAssets = async (address: string | null) => {
   if (!address) return [];
   checkApiConfig();
   try {
-    const response = await fetch(`${RELAYER_URL}/api/assets/${address}`);
+    const response = await fetch(`${API_BASE_URL}/api/assets/${address}`);
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API Error: Failed to fetch assets for address ${address}. Status: ${response.status}. Message: ${errorText}`);

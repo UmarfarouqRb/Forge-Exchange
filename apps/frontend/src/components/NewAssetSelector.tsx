@@ -16,19 +16,22 @@ import {
 import { useMarket } from "@/hooks/use-market";
 import { TOKENS, Token } from "@/config/contracts";
 
-export function NewAssetSelector({
-  asset,
-  setAsset,
-  isPairSelector = false,
-}: {
-  asset: Token | string;
-  setAsset: (asset: Token | string) => void;
-  isPairSelector?: boolean;
-}) {
+type NewAssetSelectorProps = {
+    isPairSelector?: false;
+    asset: Token | '';
+    setAsset: (value: Token | '') => void;
+} | {
+    isPairSelector: true;
+    asset: string;
+    setAsset: (value: string) => void;
+};
+
+export function NewAssetSelector(props: NewAssetSelectorProps) {
+  const { isPairSelector } = props;
   const { tradingPairs, isLoading, isError } = useMarket();
   const [open, setOpen] = React.useState(false);
 
-  const items = isPairSelector
+  const items = props.isPairSelector
     ? tradingPairs instanceof Map
       ? Array.from(tradingPairs.keys())
       : []
@@ -38,7 +41,7 @@ export function NewAssetSelector({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button className="text-lg md:text-2xl font-bold font-mono h-auto border-0 focus:ring-0 focus:ring-offset-0">
-          {asset || (isPairSelector ? "Select Pair" : "Select Asset")}
+          {props.asset || (props.isPairSelector ? "Select Pair" : "Select Asset")}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-full">
@@ -56,7 +59,11 @@ export function NewAssetSelector({
                   key={item}
                   value={item}
                   onSelect={(currentValue) => {
-                    setAsset(currentValue);
+                    if (props.isPairSelector) {
+                      props.setAsset(currentValue);
+                    } else {
+                      props.setAsset(currentValue.toUpperCase() as Token);
+                    }
                     setOpen(false);
                   }}
                 >

@@ -15,8 +15,11 @@ import { TOKENS, VAULT_SPOT_ADDRESS, Token, WETH_ADDRESS } from '@/config/contra
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { WethAbi } from '@/abis/Weth';
 import { parseUnits, erc20Abi } from 'viem';
-import { useWriteContract, useReadContract, useAccount } from 'wagmi';
+import { useWriteContract, useReadContract, useAccount, useWalletClient } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
+import { wagmiConfig } from '@/wagmi';
+import { waitForTransactionReceipt } from 'wagmi/actions';
+import { FiLoader } from 'react-icons/fi';
 
 interface DepositDialogProps {
   open: boolean;
@@ -26,9 +29,11 @@ interface DepositDialogProps {
 
 export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps) {
   const [amount, setAmount] = useState('');
-  const [approvalTxHash, setApprovalTxHash] = useState<`0x${string}` | undefined>();
+  const [isDepositing, setIsDepositing] = useState(false);
   const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
-  const { address } = useAccount();
+  
+  const { address, isConnected, chainId } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const { writeContractAsync } = useWriteContract();
   const token = TOKENS[asset];
 
@@ -38,75 +43,111 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
     functionName: 'allowance',
     args: address ? [address, VAULT_SPOT_ADDRESS] : undefined,
     query: {
-      enabled: !!address && !!token,
+      enabled: !!address && !!token && asset !== 'ETH',
     }
   });
 
   useTrackedTx({
     hash: depositTxHash,
     onSuccess: () => {
-      refetch(); // Refetch allowance after successful deposit
-      onOpenChange(false);
-    }
-  });
-
-  useTrackedTx({
-    hash: approvalTxHash,
-    onSuccess: () => {
       refetch();
-      handleDeposit();
+      onOpenChange(false);
+      toast.success("Deposit successful!");
     }
   });
 
   const handleDeposit = async () => {
-    if (!amount || !token) return;
+    console.log({
+      connected: isConnected,
+      address,
+      chainId,
+      walletClient,
+    });
+
+    if (!isConnected || !walletClient || !address) {
+      toast.error("Please connect your wallet first.");
+      return;
+    }
+    if (!amount || parseFloat(amount) <= 0) {
+        toast.error("Please enter a valid amount.");
+        return;
+    }
+    if (!token) {
+        toast.error("Selected asset is not valid.");
+        return;
+    }
+
+    setIsDepositing(true);
+    toast.loading("Initiating deposit...");
 
     try {
       const parsedAmount = parseUnits(amount, token.decimals);
 
       if (asset === 'ETH') {
-        // Wrap ETH to WETH
+        // Multi-step deposit for ETH: 1. Wrap ETH to WETH, 2. Approve vault, 3. Deposit WETH
+        toast.loading("Wrapping ETH to WETH...");
         const wrapHash = await writeContractAsync({
             address: WETH_ADDRESS,
             abi: WethAbi,
             functionName: 'deposit',
-            value: parsedAmount,
+            value: parsedAmount
         });
-        setDepositTxHash(wrapHash);
+        await waitForTransactionReceipt(wagmiConfig, { hash: wrapHash });
+        toast.success("ETH wrapped successfully! Proceeding with approval.");
 
-        // Deposit WETH
+        toast.loading("Approving vault to spend WETH...");
+        const approvalHash = await writeContractAsync({
+            address: WETH_ADDRESS,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [VAULT_SPOT_ADDRESS, parsedAmount]
+        });
+        await waitForTransactionReceipt(wagmiConfig, { hash: approvalHash });
+        toast.success("Approval successful! Depositing WETH.");
+
         const depositHash = await writeContractAsync({
             address: VAULT_SPOT_ADDRESS,
             abi: VaultSpotAbi,
             functionName: 'deposit',
             args: [WETH_ADDRESS, parsedAmount]
-        });
+          });
         setDepositTxHash(depositHash);
+
       } else {
+        // Standard ERC20 deposit flow
         const needsApproval = allowance === undefined || allowance < parsedAmount;
 
         if (needsApproval) {
+          toast.loading("Requesting approval to spend your " + asset);
           const approvalHash = await writeContractAsync({
             address: token.address,
             abi: erc20Abi,
             functionName: 'approve',
             args: [VAULT_SPOT_ADDRESS, parsedAmount]
           });
-          setApprovalTxHash(approvalHash);
-        } else {
-            const depositHash = await writeContractAsync({
-                address: VAULT_SPOT_ADDRESS,
-                abi: VaultSpotAbi,
-                functionName: 'deposit',
-                args: [token.address, parsedAmount]
-              });
-              setDepositTxHash(depositHash);
+          
+          toast.loading("Waiting for approval transaction to complete...");
+          await waitForTransactionReceipt(wagmiConfig, { hash: approvalHash });
+          toast.success("Approval successful! Proceeding with deposit.");
+          refetch();
         }
+
+        const depositHash = await writeContractAsync({
+            address: VAULT_SPOT_ADDRESS,
+            abi: VaultSpotAbi,
+            functionName: 'deposit',
+            args: [token.address, parsedAmount]
+          });
+        setDepositTxHash(depositHash);
       }
       
       setAmount('');
-    } catch (err) {
-      toast.error('Deposit failed.');
+
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.shortMessage || "An error occurred during the deposit.");
+    } finally {
+      setIsDepositing(false);
     } 
   };
 
@@ -116,7 +157,7 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
         <DialogHeader>
           <DialogTitle>Deposit {asset}</DialogTitle>
           <DialogDescription>
-            Add funds to your {asset} balance
+            Enter the amount of {asset} you want to deposit.
           </DialogDescription>
         </DialogHeader>
 
@@ -129,16 +170,24 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
               placeholder={`0.00`}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              disabled={isDepositing}
             />
           </div>
 
           <Button
             onClick={handleDeposit}
-            disabled={!amount}
+            disabled={!amount || isDepositing}
             className="w-full"
             data-testid="button-confirm-deposit"
           >
-            Confirm Deposit
+            {isDepositing ? (
+              <>
+                <FiLoader className="mr-2 h-4 w-4 animate-spin" />
+                Depositing...
+              </>
+            ) : (
+              "Confirm Deposit"
+            )}
           </Button>
         </div>
       </DialogContent>

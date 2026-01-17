@@ -46,4 +46,4 @@ export const publicClient = createPublicClient({
   transport: http(),
 });
 
-export const RELAYER_URL = process.env.RELAYER_URL || "https://forge-exchange-relayer.onrender.com";
+export const RELAYER_URL = "https://forge-exchange-api.onrender.com";

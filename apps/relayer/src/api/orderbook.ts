@@ -53,12 +53,12 @@ function generateSyntheticDepth(midPrice: number): { bids: [string, string][], a
 
 // --- Order Book Logic ---
 export async function getOrderBook(req: Request, res: Response) {
-    const { market } = req.query;
-    if (typeof market !== 'string') {
-        return res.status(400).json({ error: 'Market query parameter is required' });
+    const { pair } = req.params;
+    if (typeof pair !== 'string') {
+        return res.status(400).json({ error: 'Pair parameter is required' });
     }
 
-    const [baseCurrency, quoteCurrency] = market.split('-');
+    const [baseCurrency, quoteCurrency] = pair.split('-');
     const tokenIn = TOKENS[baseCurrency];
     const tokenOut = TOKENS[quoteCurrency];
 
@@ -67,7 +67,7 @@ export async function getOrderBook(req: Request, res: Response) {
     }
 
     // 1. Fetch real orders from the DB
-    const realOrders = await repository.getOrdersByMarket(market);
+    const realOrders = await repository.getOrdersByMarket(pair);
     const realBids = realOrders.filter(o => o.side === 'buy').map(o => [o.price, o.amount]);
     const realAsks = realOrders.filter(o => o.side === 'sell').map(o => [o.price, o.amount]);
 
