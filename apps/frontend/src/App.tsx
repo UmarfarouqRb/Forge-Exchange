@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navigation } from "@/components/Navigation";
@@ -13,32 +13,28 @@ import Portfolio from "@/pages/Portfolio";
 import Docs from "@/pages/Docs";
 import NotFound from "@/pages/not-found";
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/market" component={Market} />
-      <Route path="/spot" component={Spot} />
-      <Route path="/futures" component={Futures} />
-      <Route path="/assets" component={Assets} />
-      <Route path="/settings" component={Settings} />
-      <Route path="/portfolio" component={Portfolio} />
-      <Route path="/docs" component={Docs} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
 function App() {
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <ErrorBoundary>
-          <Router />
-        </ErrorBoundary>
-      </div>
-      <Toaster />
+      <BrowserRouter>
+        <div className="min-h-screen bg-background">
+          <Navigation />
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/market" element={<Market />} />
+              <Route path="/spot" element={<Spot />} />
+              <Route path="/futures" element={<Futures />} />
+              <Route path="/assets" element={<Assets />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/portfolio" element={<Portfolio />} />
+              <Route path="/docs" element={<Docs />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundary>
+        </div>
+        <Toaster />
+      </BrowserRouter>
     </TooltipProvider>
   );
 }
