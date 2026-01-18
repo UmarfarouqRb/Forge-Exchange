@@ -1,20 +1,31 @@
 import { OrderBook } from '@/components/OrderBook';
 import { TradePanel } from '@/components/TradePanel';
+import { OrderBookData } from '@/types/orderbook';
 
 interface TradeProps {
   symbol: string;
   currentPrice: string;
   isMobile?: boolean;
+  orderBookData: OrderBookData | null;
+  isOrderBookLoading: boolean;
+  isOrderBookError: boolean;
 }
 
-export default function Trade({ symbol, currentPrice, isMobile }: TradeProps) {
+export default function Trade({ 
+  symbol, 
+  currentPrice, 
+  isMobile, 
+  orderBookData,
+  isOrderBookLoading,
+  isOrderBookError 
+}: TradeProps) {
   return (
     <div className="grid grid-cols-2 gap-2 p-2 h-full bg-background">
       <div className="col-span-1">
         <TradePanel symbol={symbol} currentPrice={currentPrice} isMobile={isMobile} />
       </div>
       <div className="col-span-1">
-        <OrderBook />
+        <OrderBook data={orderBookData} isLoading={isOrderBookLoading} isError={isOrderBookError} />
       </div>
     </div>
   );

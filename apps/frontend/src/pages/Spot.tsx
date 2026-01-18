@@ -14,6 +14,7 @@ import { NewAssetSelector } from "@/components/NewAssetSelector";
 import { TradeHistory } from '@/components/TradeHistory';
 import { OrderHistory } from '@/components/OrderHistory';
 import Trade from './Trade';
+import { OrderBookData } from '@/types/orderbook';
 
 export default function Spot() {
   const { search } = useLocation();
@@ -51,14 +52,14 @@ export default function Spot() {
       return getOrders(wallet.address);
     },
     enabled: authenticated && !!wallet?.address,
-    refetchInterval: 3000,
+    refetchInterval: 10000,
   });
 
-  useQuery({
+  const { data: orderBookData, isLoading: isOrderBookLoading, isError: isOrderBookError } = useQuery<OrderBookData>({
     queryKey: ['order-book', selectedPair],
     queryFn: () => getOrderBook(selectedPair),
     enabled: !!selectedPair,
-    refetchInterval: 3000,
+    refetchInterval: 10000,
   });
 
   const currentPrice = tradingPair?.currentPrice || '0';
@@ -67,90 +68,94 @@ export default function Spot() {
   const low = tradingPair?.low24h || '0';
   const volume = tradingPair?.volume24h || '0';
 
-  const renderOpenOrders = () => (
-    <TabsContent value={!isDesktop ? "orders" : "open"} className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-      {authenticated ? (
-        <div className="overflow-auto">
-          {isDesktop && (
-            <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
-              <div>Date</div>
-              <div>Pair</div>
-              <div>Type</div>
-              <div className="text-right">Price</div>
-              <div className="text-right">Amount</div>
-              <div className="text-right">Total</div>
-              <div className="text-right">Action</div>
-            </div>
-          )}
-          {areUserOrdersLoading && <div className="text-center py-8 text-muted-foreground">Loading open orders...</div>}
-          {areUserOrdersError && <div className="text-center py-8 text-destructive">Failed to load open orders.</div>}
-          {!areUserOrdersLoading && !areUserOrdersError && userOrders && userOrders.length > 0 ? (
-            userOrders
-              .filter((order) => order.status === 'open')
-              .map((order) => (
-                <div
-                  key={order.id}
-                  className={`grid ${!isDesktop ? 'grid-cols-2' : 'grid-cols-7'} gap-1 md:gap-2 text-xs py-2 border-b border-border hover-elevate`}
-                  data-testid={`row-open-order-${order.id}`}
-                >
-                  {!isDesktop ? (
-                    <>
-                      <div>
-                        <div className="font-medium">{order.symbol}</div>
-                        <div className="text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className={`font-mono ${order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}`}>{order.side.toUpperCase()}</div>
-                        <div className="font-mono">${order.price}</div>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Amount:</span> {order.amount}
-                      </div>
-                      <div className="text-right">
-                        <span className="text-muted-foreground">Total:</span> ${order.total}
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <button className="text-destructive hover:underline text-xs">
-                          Cancel
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-muted-foreground md:table-cell">
-                        {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}
-                      </div>
-                      <div>{order.symbol}</div>
-                      <div
-                        className={order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}
-                      >
-                        {order.side.toUpperCase()}
-                      </div>
-                      <div className="md:text-right font-mono">${order.price}</div>
-                      <div className="md:text-right font-mono">{order.amount}</div>
-                      <div className="md:text-right font-mono">${order.total}</div>
-                      <div className="md:text-right">
-                        <button className="text-destructive hover:underline text-xs">
-                          Cancel
-                        </button>
-                      </div>
-                    </>
-                  )}
+  const renderOpenOrders = () => {
+    const openOrders = userOrders?.filter((order) => order.status === 'open');
+
+    return (
+        <TabsContent value={!isDesktop ? "orders" : "open"} className="flex-1 overflow-auto p-2 md:p-4 mt-0">
+            {authenticated ? (
+                <div className="overflow-auto">
+                    {isDesktop && (
+                        <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
+                            <div>Date</div>
+                            <div>Pair</div>
+                            <div>Type</div>
+                            <div className="text-right">Price</div>
+                            <div className="text-right">Amount</div>
+                            <div className="text-right">Total</div>
+                            <div className="text-right">Action</div>
+                        </div>
+                    )}
+                    {areUserOrdersLoading ? (
+                        <div className="text-center py-8 text-muted-foreground">Loading open orders...</div>
+                    ) : areUserOrdersError ? (
+                        <div className="text-center py-8 text-destructive">Failed to load open orders.</div>
+                    ) : openOrders && openOrders.length > 0 ? (
+                        openOrders.map((order) => (
+                          <div
+                            key={order.id}
+                            className={`grid ${!isDesktop ? 'grid-cols-2' : 'grid-cols-7'} gap-1 md:gap-2 text-xs py-2 border-b border-border hover-elevate`}
+                            data-testid={`row-open-order-${order.id}`}
+                          >
+                            {!isDesktop ? (
+                              <>
+                                <div>
+                                  <div className="font-medium">{order.symbol}</div>
+                                  <div className="text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className={`font-mono ${order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}`}>{order.side.toUpperCase()}</div>
+                                  <div className="font-mono">${order.price}</div>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground">Amount:</span> {order.amount}
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-muted-foreground">Total:</span> ${order.total}
+                                </div>
+                                <div className="col-span-2 text-right">
+                                  <button className="text-destructive hover:underline text-xs">
+                                    Cancel
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="text-muted-foreground md:table-cell">
+                                  {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}
+                                </div>
+                                <div>{order.symbol}</div>
+                                <div
+                                  className={order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}
+                                >
+                                  {order.side.toUpperCase()}
+                                </div>
+                                <div className="md:text-right font-mono">${order.price}</div>
+                                <div className="md:text-right font-mono">{order.amount}</div>
+                                <div className="md:text-right font-mono">${order.total}</div>
+                                <div className="md:text-right">
+                                  <button className="text-destructive hover:underline text-xs">
+                                    Cancel
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                            No open orders
+                        </div>
+                    )}
                 </div>
-              ))
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No open orders
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          Connect wallet to view orders
-        </div>
-      )}
-    </TabsContent>
-  );
+            ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                    Connect wallet to view orders
+                </div>
+            )}
+        </TabsContent>
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
@@ -201,7 +206,14 @@ export default function Spot() {
             <TradingChart symbol={selectedPair} />
           </TabsContent>
           <TabsContent value="trade" className="overflow-auto">
-            <Trade symbol={selectedPair} currentPrice={currentPrice} isMobile={!isDesktop} />
+            <Trade 
+              symbol={selectedPair} 
+              currentPrice={currentPrice} 
+              isMobile={!isDesktop} 
+              orderBookData={orderBookData || null} 
+              isOrderBookLoading={isOrderBookLoading} 
+              isOrderBookError={isOrderBookError} 
+            />
           </TabsContent>
           {renderOpenOrders()}
         </Tabs>
@@ -243,7 +255,14 @@ export default function Spot() {
 
             {/* Order Book and Trade Panel - Right */}
             <div className="col-span-4 overflow-hidden">
-              <Trade symbol={selectedPair} currentPrice={currentPrice} isMobile={!isDesktop} />
+              <Trade 
+                symbol={selectedPair} 
+                currentPrice={currentPrice} 
+                isMobile={!isDesktop} 
+                orderBookData={orderBookData || null} 
+                isOrderBookLoading={isOrderBookLoading} 
+                isOrderBookError={isOrderBookError} 
+              />
             </div>
           </div>
         </div>

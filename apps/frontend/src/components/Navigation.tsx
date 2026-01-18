@@ -1,5 +1,5 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { usePrivy } from '@privy-io/react-auth';
 import { formatAddress, cn } from '@/lib/utils';
 import { ChainSelector } from '@/components/ChainSelector';
@@ -61,18 +61,19 @@ export function Navigation() {
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
-                <Button asChild variant="ghost" size="sm" key={item.path}>
-                  <NavLink
-                    to={item.path}
-                    className={cn(
-                      'w-full flex items-center justify-center md:justify-start',
-                      pathname === item.path && 'bg-accent text-accent-foreground'
-                    )}
-                    data-testid={`link-nav-${item.label.toLowerCase()}`}>
-                    <Icon className="w-4 h-4 mr-2" />
-                    {item.label}
-                  </NavLink>
-                </Button>
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    buttonVariants({ variant: 'ghost', size: 'sm' }),
+                    'justify-start',
+                    pathname === item.path && 'bg-accent text-accent-foreground'
+                  )}
+                  data-testid={`link-nav-${item.label.toLowerCase()}`}
+                >
+                  <Icon className="w-4 h-4 mr-2" />
+                  {item.label}
+                </NavLink>
               );
             })}
           </div>
@@ -128,18 +129,19 @@ export function Navigation() {
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <Button asChild variant="ghost" size="sm" key={item.path} className="flex-col h-auto py-2 leading-none">
-                 <NavLink
-                    to={item.path}
-                    className={cn(
-                      'w-full flex flex-col items-center justify-center h-auto py-2 leading-none',
-                      pathname === item.path && 'bg-accent text-accent-foreground'
-                    )}
-                    data-testid={`link-mobile-${item.label.toLowerCase()}`}>
-                  <Icon className="w-5 h-5 mb-1" />
-                  <span className="text-xs">{item.label}</span>
-                </NavLink>
-              </Button>
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  buttonVariants({ variant: 'ghost', size: 'sm' }),
+                  'flex-col h-auto py-2 leading-none',
+                  pathname === item.path && 'bg-accent text-accent-foreground'
+                )}
+                data-testid={`link-mobile-${item.label.toLowerCase()}`}
+              >
+                <Icon className="w-5 h-5 mb-1" />
+                <span className="text-xs">{item.label}</span>
+              </NavLink>
             );
           })}
         </div>

@@ -1,7 +1,9 @@
-const API_BASE_URL = "https://forge-exchange-api.onrender.com";
-
 import { apiRequest } from './queryClient';
 import type { Order } from '../types';
+import { generateSyntheticOrderBook, aggregateAndSortOrderBook } from './orderbook';
+import { OrderBookData } from '@/types/orderbook';
+
+const API_BASE_URL = "https://forge-exchange-api.onrender.com";
 
 const checkApiConfig = () => {
   if (!API_BASE_URL) {
@@ -11,7 +13,24 @@ const checkApiConfig = () => {
   }
 }
 
-export const getOrderBook = async (pair: string) => {
+export const getAMMPrice = async (pair: string): Promise<number | null> => {
+  checkApiConfig();
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/amm-price/${pair}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error: Failed to fetch AMM price for pair ${pair}. Status: ${response.status}. Message: ${errorText}`);
+      return null;
+    }
+    const data = await response.json();
+    return data.price;
+  } catch (error) {
+    console.error("Network or API Error: Could not fetch AMM price. Please ensure the API services are running and accessible.", error);
+    return null;
+  }
+};
+
+export const getOrderBook = async (pair: string): Promise<OrderBookData> => {
   checkApiConfig();
   try {
     const response = await fetch(`${API_BASE_URL}/api/order-book/${pair}`);
@@ -20,7 +39,22 @@ export const getOrderBook = async (pair: string) => {
       console.error(`API Error: Failed to fetch order book for pair ${pair}. Status: ${response.status}. Message: ${errorText}`);
       throw new Error('Failed to fetch order book');
     }
-    return response.json();
+    const realOrderBook = await response.json();
+
+    const midPrice = await getAMMPrice(pair);
+
+    if (midPrice === null) {
+      return realOrderBook;
+    }
+
+    const syntheticOrderBook = generateSyntheticOrderBook(midPrice);
+
+    return aggregateAndSortOrderBook(
+      realOrderBook.bids,
+      realOrderBook.asks,
+      syntheticOrderBook.bids,
+      syntheticOrderBook.asks
+    );
   } catch (error) {
     console.error("Network or API Error: Could not fetch order book. Please ensure the API services are running and accessible.", error);
     throw error;

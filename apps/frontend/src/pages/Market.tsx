@@ -19,8 +19,19 @@ const allSymbols = [...new Set([...spotSymbols, ...futuresSymbols])];
 
 export default function Market() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
   const [category, setCategory] = useState<'all' | 'spot' | 'futures'>('all');
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
 
   const symbols = useMemo(() => {
     let baseSymbols;
@@ -31,37 +42,44 @@ export default function Market() {
     } else {
       baseSymbols = allSymbols;
     }
-    if (!searchQuery) return baseSymbols;
-    return baseSymbols.filter(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [category, searchQuery]);
+    if (!debouncedSearchQuery) return baseSymbols;
+    return baseSymbols.filter(s => s.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
+  }, [category, debouncedSearchQuery]);
 
   useEffect(() => {
     setIsLoading(true);
     const widgetContainer = document.getElementById('tradingview-widget-market');
+
+    if (symbols.length === 0) {
+      if (widgetContainer) {
+        widgetContainer.innerHTML = '';
+      }
+      setIsLoading(false);
+      return;
+    }
+    
     if (widgetContainer) {
       widgetContainer.innerHTML = '';
-    }
 
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      width: '100%',
-      height: 700,
-      defaultColumn: 'overview',
-      screener_type: 'crypto_mkt',
-      displayCurrency: 'USD',
-      colorTheme: 'dark',
-      locale: 'en',
-      isTransparent: true,
-      showToolbar: false,
-      "symbols": {
-        "proNames": symbols,
-      },
-      "tabs": [],
-    });
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        width: '100%',
+        height: 700,
+        defaultColumn: 'overview',
+        screener_type: 'crypto_mkt',
+        displayCurrency: 'USD',
+        colorTheme: 'dark',
+        locale: 'en',
+        isTransparent: true,
+        showToolbar: false,
+        "symbols": {
+          "proNames": symbols,
+        },
+        "tabs": [],
+      });
 
-    if (widgetContainer) {
       widgetContainer.appendChild(script);
       script.onload = () => setIsLoading(false);
     } else {

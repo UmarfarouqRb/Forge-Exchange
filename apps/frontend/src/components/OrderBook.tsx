@@ -1,37 +1,13 @@
-import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RELAYER_URL } from '../config';
+import { OrderBookData } from '@/types/orderbook';
 
-interface OrderbookData {
-  bids: [string, string][];
-  asks: [string, string][];
+interface OrderBookProps {
+  data: OrderBookData | null;
+  isLoading: boolean;
+  isError: boolean;
 }
 
-export function OrderBook() {
-  const [data, setData] = useState<OrderbookData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchOrderbook = async () => {
-      try {
-        const response = await fetch(`${RELAYER_URL}/orderbook?market=WETH-USDC`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch order book');
-        }
-        const fetchedData: OrderbookData = await response.json();
-        setData(fetchedData);
-      } catch (error) {
-        console.error("Error fetching orderbook:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchOrderbook();
-    const interval = setInterval(fetchOrderbook, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
+export function OrderBook({ data, isLoading, isError }: OrderBookProps) {
   if (isLoading) {
     return (
       <div className="h-full p-2">
@@ -42,12 +18,12 @@ export function OrderBook() {
     );
   }
 
-  if (!data) {
+  if (isError || !data) {
     return (
       <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
         Could not load order book.
       </div>
-    )
+    );
   }
 
   const { bids, asks } = data;
