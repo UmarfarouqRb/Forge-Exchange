@@ -119,27 +119,17 @@ export default function Home() {
               No KYC • Low Fees • Lightning Fast Execution
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link to="/spot">
-                <Button 
-                  variant="default" 
-                  size="lg" 
-                  className="w-full sm:w-auto text-base px-8"
-                  data-testid="button-start-trading"
-                >
-                  Start Trading Now
-                  <FiArrowRight className="ml-2 w-5 h-5" />
+                <Button asChild size="lg" className="w-full sm:w-auto text-base px-8">
+                    <Link to="/spot" data-testid="button-start-trading">
+                        Start Trading Now
+                        <FiArrowRight className="ml-2 w-5 h-5" />
+                    </Link>
                 </Button>
-              </Link>
-              <Link to="/market">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
-                  className="w-full sm:w-auto text-base px-8"
-                  data-testid="button-view-markets"
-                >
-                  Explore Markets
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base px-8">
+                    <Link to="/market" data-testid="button-view-markets">
+                        Explore Markets
+                    </Link>
                 </Button>
-              </Link>
             </div>
           </div>
         </div>
@@ -237,12 +227,12 @@ export default function Home() {
                 Real-time cryptocurrency prices powered by TradingView
               </p>
             </div>
-            <Link to="/market">
-              <Button variant="ghost" size="sm" data-testid="link-view-all-markets">
-                View All Markets
-                <FiArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+                <Link to="/market" data-testid="link-view-all-markets">
+                    View All Markets
+                    <FiArrowRight className="ml-2 w-4 h-4" />
+                </Link>
+            </Button>
           </div>
           
           <Card className="border-border/50 overflow-hidden">
@@ -341,17 +331,17 @@ export default function Home() {
                 Connect your wallet and start trading on multiple chains with professional tools and real-time market data
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/spot">
-                  <Button size="lg" className="w-full sm:w-auto px-8" data-testid="button-cta-spot">
-                    Trade Spot
-                    <FiArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                </Link>
-                <Link to="/futures">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto px-8" data-testid="button-cta-futures">
-                    Trade Futures
-                  </Button>
-                </Link>
+                <Button asChild size="lg" className="w-full sm:w-auto px-8">
+                    <Link to="/spot" data-testid="button-cta-spot">
+                        Trade Spot
+                        <FiArrowRight className="ml-2 w-5 h-5" />
+                    </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="w-full sm:w-auto px-8">
+                    <Link to="/futures" data-testid="button-cta-futures">
+                        Trade Futures
+                    </Link>
+                </Button>
               </div>
             </CardContent>
           </Card>

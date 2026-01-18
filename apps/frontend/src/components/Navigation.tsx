@@ -1,7 +1,7 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { usePrivy } from '@privy-io/react-auth';
-import { formatAddress } from '@/lib/utils';
+import { formatAddress, cn } from '@/lib/utils';
 import { ChainSelector } from '@/components/ChainSelector';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -36,6 +36,7 @@ const navItems = [
 
 export function Navigation() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { ready, authenticated, user, login, logout } = usePrivy();
   const wallet = user?.wallet;
   const { toast } = useToast();
@@ -60,12 +61,18 @@ export function Navigation() {
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
-                <NavLink key={item.path} to={item.path} className={({ isActive }) => isActive ? 'bg-accent text-accent-foreground' : ''}>
-                  <Button variant="ghost" size="sm" data-testid={`link-nav-${item.label.toLowerCase()}`}>
+                <Button asChild variant="ghost" size="sm" key={item.path}>
+                  <NavLink
+                    to={item.path}
+                    className={cn(
+                      'w-full flex items-center justify-center md:justify-start',
+                      pathname === item.path && 'bg-accent text-accent-foreground'
+                    )}
+                    data-testid={`link-nav-${item.label.toLowerCase()}`}>
                     <Icon className="w-4 h-4 mr-2" />
                     {item.label}
-                  </Button>
-                </NavLink>
+                  </NavLink>
+                </Button>
               );
             })}
           </div>
@@ -121,12 +128,18 @@ export function Navigation() {
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <NavLink key={item.path} to={item.path} className={({ isActive }) => `flex-col h-auto py-2 ${isActive ? 'bg-accent text-accent-foreground' : ''}`}>
-                <Button variant="ghost" size="sm" data-testid={`link-mobile-${item.label.toLowerCase()}`}>
+              <Button asChild variant="ghost" size="sm" key={item.path} className="flex-col h-auto py-2 leading-none">
+                 <NavLink
+                    to={item.path}
+                    className={cn(
+                      'w-full flex flex-col items-center justify-center h-auto py-2 leading-none',
+                      pathname === item.path && 'bg-accent text-accent-foreground'
+                    )}
+                    data-testid={`link-mobile-${item.label.toLowerCase()}`}>
                   <Icon className="w-5 h-5 mb-1" />
                   <span className="text-xs">{item.label}</span>
-                </Button>
-              </NavLink>
+                </NavLink>
+              </Button>
             );
           })}
         </div>

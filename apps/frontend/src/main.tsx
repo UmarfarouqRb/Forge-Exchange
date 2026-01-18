@@ -9,7 +9,8 @@ import { ChainProvider } from "@/contexts/ChainContext";
 import { MarketDataProvider } from '@/contexts/MarketDataProvider';
 import { base, bsc, arbitrum } from 'viem/chains';
 import App from './App';
-import './index.css'
+import './index.css';
+import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
 
@@ -20,6 +21,34 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
+
+function Main() {
+  const { theme } = useThemeContext();
+
+  return (
+    <PrivyProvider
+      appId={privyAppId!}
+      config={{
+        appearance: {
+          theme: theme,
+          accentColor: '#ff6b00',
+        },
+        defaultChain: base,
+        supportedChains: [base, bsc, arbitrum],
+      }}
+    >
+      <WagmiProvider config={wagmiConfig}>
+        <QueryClientProvider client={queryClient}>
+          <ChainProvider>
+            <MarketDataProvider>
+              <App />
+            </MarketDataProvider>
+          </ChainProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </PrivyProvider>
+  )
+}
 
 root.render(
   <React.StrictMode>
@@ -33,27 +62,9 @@ root.render(
         </div>
       </div>
     ) : (
-      <PrivyProvider
-        appId={privyAppId}
-        config={{
-          appearance: {
-            theme: 'dark',
-            accentColor: '#ff6b00',
-          },
-          defaultChain: base,
-          supportedChains: [base, bsc, arbitrum],
-        }}
-      >
-        <WagmiProvider config={wagmiConfig}>
-          <QueryClientProvider client={queryClient}>
-            <ChainProvider>
-              <MarketDataProvider>
-                <App />
-              </MarketDataProvider>
-            </ChainProvider>
-          </QueryClientProvider>
-        </WagmiProvider>
-      </PrivyProvider>
+      <ThemeProvider>
+        <Main />
+      </ThemeProvider>
     )}
   </React.StrictMode>
 );
