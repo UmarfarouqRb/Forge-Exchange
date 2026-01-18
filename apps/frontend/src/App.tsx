@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navigation } from "@/components/Navigation";
@@ -12,28 +12,34 @@ import { Settings } from "@/pages/Settings";
 import Portfolio from "@/pages/Portfolio";
 import Docs from "@/pages/Docs";
 
+function AppLayout() {
+  return (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <ErrorBoundary>
+        <Outlet />
+      </ErrorBoundary>
+    </div>
+  );
+}
+
 function App() {
   return (
     <TooltipProvider>
-      <BrowserRouter>
-        <div className="min-h-screen bg-background">
-          <Navigation />
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/market" element={<Market />} />
-              <Route path="/spot" element={<Spot />} />
-              <Route path="/futures" element={<Futures />} />
-              <Route path="/assets" element={<Assets />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/docs" element={<Docs />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </ErrorBoundary>
-        </div>
-        <Toaster />
-      </BrowserRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/market" element={<Market />} />
+          <Route path="/spot" element={<Spot />} />
+          <Route path="/futures" element={<Futures />} />
+          <Route path="/assets" element={<Assets />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/docs" element={<Docs />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+      <Toaster />
     </TooltipProvider>
   );
 }
