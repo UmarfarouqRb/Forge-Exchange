@@ -27,7 +27,6 @@ type NewAssetSelectorProps = {
 };
 
 export function NewAssetSelector(props: NewAssetSelectorProps) {
-  const { isPairSelector } = props;
   const { tradingPairs, isLoading, isError } = useMarket();
   const [open, setOpen] = React.useState(false);
 

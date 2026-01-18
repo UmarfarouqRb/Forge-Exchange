@@ -61,7 +61,7 @@ const Docs: React.FC = () => {
             <CardContent className="space-y-6">
               <DocSection id="introduction" title="Introduction to Forge Exchange">
                 <p>
-                  Forge is a professional CEX-style decentralized cryptocurrency exchange with multi-chain support. Users can trade crypto without KYC by connecting their Web3 wallet (e.g., MetaMask). The platform features a modern dark theme with gradient accents, TradingView integration for live market data, and full mobile responsiveness.
+                  Forge is a professional CEX-style decentralized cryptocurrency exchange with multi-chain support. Users can trade crypto without KYC by connecting their Email, Socials or Web3 wallet (e.g., MetaMask). The platform features a modern user interface for easy interaction and trade based on intent trading, TradingView integration for live market data, and full mobile responsiveness.
                 </p>
               </DocSection>
 

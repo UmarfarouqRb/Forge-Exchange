@@ -143,9 +143,15 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
       
       setAmount('');
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.shortMessage || "An error occurred during the deposit.");
+      let message = "An error occurred during the deposit.";
+      if (err && typeof err === 'object' && 'shortMessage' in err) {
+        message = String(err.shortMessage) || message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      toast.error(message);
     } finally {
       setIsDepositing(false);
     } 

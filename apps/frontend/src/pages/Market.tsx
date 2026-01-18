@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PriceChange } from '@/components/PriceChange';
 import { MiniChart } from '@/components/MiniChart';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link } from 'wouter';
+import { Link } from 'react-router-dom';
 import { FiSearch, FiStar } from 'react-icons/fi';
 import type { TradingPair } from '../types';
 
@@ -118,7 +118,7 @@ export default function Market() {
                 ))
               ) : filteredPairs && filteredPairs.length > 0 ? (
                 filteredPairs.map((pair) => (
-                  <Link key={pair.id} href={`/${pair.category}?pair=${pair.symbol}`}>
+                  <Link key={pair.id} to={`/${pair.category}?pair=${pair.symbol}`}>
                     <div
                       className="grid grid-cols-12 gap-4 p-4 items-center hover-elevate cursor-pointer"
                       data-testid={`row-market-${pair.symbol}`}>

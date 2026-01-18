@@ -105,9 +105,15 @@ export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProp
       }
       
       setAmount('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err.shortMessage || 'An error occurred during the withdrawal.');
+      let message = "An error occurred during the withdrawal.";
+      if (err && typeof err === 'object' && 'shortMessage' in err) {
+        message = String(err.shortMessage) || message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      toast.error(message);
     } finally {
       setIsWithdrawing(false);
     }
