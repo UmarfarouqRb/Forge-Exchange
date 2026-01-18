@@ -94,8 +94,8 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
          <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => {
           if (value) setSide(value);
         }} className="w-full mb-2">
-          <ToggleGroupItem value="buy" className="w-full data-[state=on]:bg-green-500 data-[state=on]:text-primary-foreground">Buy</ToggleGroupItem>
-          <ToggleGroupItem value="sell" className="w-full data-[state=on]:bg-red-500 data-[state=on]:text-primary-foreground">Sell</ToggleGroupItem>
+          <ToggleGroupItem value="buy" className="w-full data-[state=on]:bg-blue-500 data-[state=on]:text-primary-foreground">Buy</ToggleGroupItem>
+          <ToggleGroupItem value="sell" className="w-full data-[state=on]:bg-orange-500 data-[state=on]:text-primary-foreground">Sell</ToggleGroupItem>
         </ToggleGroup>
 
         <div className="mb-2">
@@ -154,7 +154,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
         </div>
         
         <Button
-          className={`w-full text-lg p-6 ${side === 'buy' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
+          className={`w-full text-lg p-6 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}`}
           onClick={handlePlaceOrder}
           disabled={disabled || submitIntent.isPending || !ready || !authenticated || !hasSufficientBalance}
         >

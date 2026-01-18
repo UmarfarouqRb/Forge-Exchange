@@ -1,17 +1,11 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import SectionHeader from '@/components/SectionHeader';
 
 const CodeBlock: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <pre className="bg-gray-800/50 p-4 rounded-md my-2 overflow-x-auto">
     <code className="text-sm font-mono text-white">{children}</code>
   </pre>
-);
-
-const DocSection: React.FC<{ title: string; children: React.ReactNode; id: string }> = ({ title, children, id }) => (
-  <div id={id} className="mb-8 scroll-mt-20">
-    <h2 className="text-2xl font-bold mb-4 text-primary-foreground bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">{title}</h2>
-    {children}
-  </div>
 );
 
 const Docs: React.FC = () => {
@@ -59,35 +53,35 @@ const Docs: React.FC = () => {
               <CardTitle className="text-3xl font-bold">User Guide</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <DocSection id="introduction" title="Introduction to Forge Exchange">
+              <SectionHeader title="Introduction to Forge Exchange">
                 <p>
                   Forge is a professional CEX-style decentralized cryptocurrency exchange with multi-chain support. Users can trade crypto without KYC by connecting their Email, Socials or Web3 wallet (e.g., MetaMask). The platform features a modern user interface for easy interaction and trade based on intent trading, TradingView integration for live market data, and full mobile responsiveness.
                 </p>
-              </DocSection>
+              </SectionHeader>
 
-              <DocSection id="getting-started-user" title="Getting Started">
+              <SectionHeader title="Getting Started">
                 <ol className="list-decimal list-inside space-y-2">
                   <li><strong>Connect Your Wallet</strong>: Click the "Connect Wallet" button and approve the connection in your MetaMask wallet.</li>
                   <li><strong>Select a Chain</strong>: Use the dropdown menu to select your desired blockchain network.</li>
                   <li><strong>Explore the Platform</strong>: Navigate between the Home, Market, Spot, Futures, and Assets pages.</li>
                 </ol>
-              </DocSection>
+              </SectionHeader>
 
-              <DocSection id="trading" title="Trading">
+              <SectionHeader title="Trading">
                 <ul className="list-disc list-inside space-y-2">
                   <li><strong>Spot Trading</strong>: Instantly buy or sell cryptocurrencies at the current market price.</li>
                   <li><strong>Limit Orders</strong>: Place orders to buy or sell at a specific price.</li>
                   <li><strong>Futures Trading</strong>: Trade perpetual contracts with leverage.</li>
                 </ul>
-              </DocSection>
+              </SectionHeader>
 
-              <DocSection id="assets" title="Assets">
+              <SectionHeader title="Assets">
                 <ul className="list-disc list-inside space-y-2">
                   <li><strong>View Your Balances</strong>: See an overview of your token balances.</li>
                   <li><strong>Deposit and Withdraw</strong>: Transfer funds to and from the exchange.</li>
                   <li><strong>Transaction History</strong>: Track the status of your deposits, withdrawals, and trades.</li>
                 </ul>
-              </DocSection>
+              </SectionHeader>
             </CardContent>
           </Card>
 
@@ -96,14 +90,14 @@ const Docs: React.FC = () => {
               <CardTitle className="text-3xl font-bold">Developer Guide</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <DocSection id="tech-stack" title="Tech Stack">
+              <SectionHeader title="Tech Stack">
                 <ul className="list-disc list-inside space-y-2">
                   <li><strong>Frontend</strong>: React 18 with TypeScript, Vite, TanStack Query, Shadcn UI, Tailwind CSS, Recharts, ethers.js, TradingView widgets, Lucide React icons.</li>
                   <li><strong>Backend</strong>: Node.js/Express, Drizzle ORM, in-memory storage.</li>
                   <li><strong>Smart Contracts</strong>: Solidity, Foundry.</li>
                 </ul>
-              </DocSection>
-              <DocSection id="getting-started-dev" title="Getting Started">
+              </SectionHeader>
+              <SectionHeader title="Getting Started">
                 <ol className="list-decimal list-inside space-y-2">
                   <li><strong>Prerequisites</strong>: Node.js (v18+), pnpm, and Foundry.</li>
                   <li><strong>Installation</strong>:
@@ -114,22 +108,22 @@ const Docs: React.FC = () => {
                     <CodeBlock># Terminal 1: Start the Local Blockchain\npnpm run chain\n\n# Terminal 2: Start the Backend Relayer\npnpm run dev:relayer\n\n# Terminal 3: Start the Frontend Application\npnpm run dev:frontend</CodeBlock>
                   </li>
                 </ol>
-              </DocSection>
+              </SectionHeader>
 
-              <DocSection id="smart-contracts" title="Smart Contracts">
+              <SectionHeader title="Smart Contracts">
                 <h3 className='text-xl font-bold'>VaultSpot.sol</h3>
                 <p>The central custody and accounting contract. It holds all user assets in a non-custodial manner, tracking individual balances through a direct 1-to-1 internal ledger.</p>
                 <h3 className='text-xl font-bold'>IntentSpotRouter.sol</h3>
                 <p>A gas-less swap router for processing off-chain signed intents. It enables a gas-less experience for the end-user, as a third-party "relayer" can submit the transaction on their behalf.</p>
-              </DocSection>
+              </SectionHeader>
 
-              <DocSection id="the-relayer" title="The Relayer">
+              <SectionHeader title="The Relayer">
                 <p>
                   The relayer is a trust-minimized executor that submits signed intents to the <code>IntentSpotRouter</code> for on-chain execution. It is responsible for receiving and matching user intents, executing them against various decentralized exchanges (DEXs), and ensuring that users get the best possible price for their trades.
                 </p>
-              </DocSection>
+              </SectionHeader>
 
-              <DocSection id="api-endpoints" title="API Endpoints">
+              <SectionHeader title="API Endpoints">
                 <ul className="list-disc list-inside space-y-2">
                   <li><code>POST /api/session/authorize</code>: Authorizes a user\'s session.</li>
                   <li><code>GET /api/orders/:address</code>: Retrieves orders for a specific user.</li>
@@ -137,7 +131,7 @@ const Docs: React.FC = () => {
                   <li><code>POST /api/spot</code>: Executes a spot trade.</li>
                   <li><code>GET /api/tokens/:chainId</code>: Retrieves supported tokens for a chain.</li>
                 </ul>
-              </DocSection>
+              </SectionHeader>
             </CardContent>
           </Card>
         </main>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearch } from 'wouter';
+import { useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,7 +16,7 @@ import { OrderHistory } from '@/components/OrderHistory';
 import Trade from './Trade';
 
 export default function Spot() {
-  const search = useSearch();
+  const { search } = useLocation();
   const params = new URLSearchParams(search);
   const pairFromUrl = params.get('pair');
 

@@ -12,15 +12,13 @@ import { WithdrawDialog } from '@/components/WithdrawDialog';
 import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { formatUnits } from 'viem';
-import { NewAssetSelector } from '@/components/NewAssetSelector';
 
 export default function Assets() {
   const { authenticated } = usePrivy();
   const { address } = useAccount();
   const [hideSmallBalances, setHideSmallBalances] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAsset, setSelectedAsset] = useState<Token | ''>('');
-  const [depositDialog, setDepositDialog] = useState<{ open: boolean; asset: Token }>({ open: false, asset: 'USDT' });
+  const [depositDialog, setDepositDialog] = useState<{ open: boolean; asset?: Token }>({ open: false });
   const [withdrawDialog, setWithdrawDialog] = useState<{ open: boolean; asset: Token }>({ open: false, asset: 'USDT' });
 
   const tokenContracts = useMemo(() => {
@@ -85,18 +83,15 @@ export default function Assets() {
 
         {/* Deposit/Withdraw Card for Mobile */}
         <Card className="mb-6 md:hidden">
-          <CardContent className="p-4 flex flex-col gap-4">
-            <NewAssetSelector asset={selectedAsset} setAsset={setSelectedAsset} />
-            <div className="flex gap-4">
-                <Button className="flex-1" onClick={() => setDepositDialog({ open: true, asset: selectedAsset || 'USDT' })} disabled={!selectedAsset}>
-                <FiDownload className="w-4 h-4 mr-2" />
-                Deposit
-                </Button>
-                <Button className="flex-1" variant="outline" onClick={() => setWithdrawDialog({ open: true, asset: selectedAsset || 'USDT' })} disabled={!selectedAsset}>
-                <FiUpload className="w-4 h-4 mr-2" />
-                Withdraw
-                </Button>
-            </div>
+          <CardContent className="p-4 flex gap-4">
+            <Button className="flex-1" onClick={() => setDepositDialog({ open: true })}>
+              <FiDownload className="w-4 h-4 mr-2" />
+              Deposit
+            </Button>
+            <Button className="flex-1" variant="outline" onClick={() => setWithdrawDialog({ open: true, asset: 'USDT' })}>
+              <FiUpload className="w-4 h-4 mr-2" />
+              Withdraw
+            </Button>
           </CardContent>
         </Card>
 

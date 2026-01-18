@@ -1,43 +1,85 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PriceChange } from '@/components/PriceChange';
-import { MiniChart } from '@/components/MiniChart';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link } from 'react-router-dom';
-import { FiSearch, FiStar } from 'react-icons/fi';
-import type { TradingPair } from '../types';
+import { FiSearch } from 'react-icons/fi';
+
+declare global {
+  interface Window {
+    TradingView?: {
+      widget: new (options: Record<string, unknown>) => void;
+    };
+  }
+}
+
+const spotSymbols = ['BINANCE:BTCUSDT', 'BINANCE:ETHUSDT', 'BINANCE:SOLUSDT', 'BINANCE:TRUMPUSDT'];
+const futuresSymbols = ['BINANCE:BTCUSDT', 'BINANCE:ETHUSDT'];
+const allSymbols = [...new Set([...spotSymbols, ...futuresSymbols])];
 
 export default function Market() {
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState<'all' | 'spot' | 'futures'>('all');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: pairs, isLoading, error } = useQuery<TradingPair[]>({
-    queryKey: ['/api/trading-pairs', category],
-    queryFn: async () => {
-      const url = category === 'all' 
-        ? '/api/trading-pairs'
-        : `/api/trading-pairs?category=${category}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch trading pairs');
-      return response.json();
-    },
-    refetchInterval: 3000,
-  });
+  const symbols = useMemo(() => {
+    let baseSymbols;
+    if (category === 'spot') {
+      baseSymbols = spotSymbols;
+    } else if (category === 'futures') {
+      baseSymbols = futuresSymbols;
+    } else {
+      baseSymbols = allSymbols;
+    }
+    if (!searchQuery) return baseSymbols;
+    return baseSymbols.filter(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [category, searchQuery]);
 
-  const filteredPairs = pairs?.filter((pair) =>
-    pair.symbol.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    setIsLoading(true);
+    const widgetContainer = document.getElementById('tradingview-widget-market');
+    if (widgetContainer) {
+      widgetContainer.innerHTML = '';
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      width: '100%',
+      height: 700,
+      defaultColumn: 'overview',
+      screener_type: 'crypto_mkt',
+      displayCurrency: 'USD',
+      colorTheme: 'dark',
+      locale: 'en',
+      isTransparent: true,
+      showToolbar: false,
+      "symbols": {
+        "proNames": symbols,
+      },
+      "tabs": [],
+    });
+
+    if (widgetContainer) {
+      widgetContainer.appendChild(script);
+      script.onload = () => setIsLoading(false);
+    } else {
+      setIsLoading(false);
+    }
+
+    return () => {
+      if (widgetContainer) {
+        widgetContainer.innerHTML = '';
+      }
+    };
+  }, [symbols]);
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="container mx-auto max-w-7xl">
         <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-foreground">Markets</h1>
 
-        {/* Filters */}
         <Card className="mb-6">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
@@ -63,113 +105,19 @@ export default function Market() {
           </CardContent>
         </Card>
 
-        {/* Trading Pairs Table */}
-        <Card>
+        <Card className="border-border/50 overflow-hidden">
           <CardContent className="p-0">
-            {/* Table Header (Desktop) */}
-            <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-border text-xs font-medium text-muted-foreground">
-              <div className="col-span-1"></div>
-              <div className="col-span-3 lg:col-span-2">Pair</div>
-              <div className="col-span-2 text-right">Price</div>
-              <div className="col-span-2 text-right">24h Change</div>
-              <div className="hidden lg:block col-span-2 text-right">24h Volume</div>
-              <div className="col-span-2">Chart</div>
-            </div>
-
-            {/* Table Body */}
-            <div className="divide-y divide-border">
-              {error ? (
-                <div className="p-12 text-center">
-                  <div className="max-w-md mx-auto">
-                    <p className="text-destructive font-medium mb-2">Failed to load trading pairs</p>
-                    <p className="text-sm text-muted-foreground mb-4">{(error as Error).message}</p>
-                    <Button
-                      onClick={() => window.location.reload()}
-                      variant="outline"
-                      size="sm"
-                      data-testid="button-retry-pairs"
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                </div>
-              ) : isLoading ? (
-                Array.from({ length: 10 }).map((_, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-4 p-4 items-center">
-                    <div className="col-span-1">
-                      <Skeleton className="h-4 w-4" />
-                    </div>
-                    <div className="col-span-3 lg:col-span-2">
-                      <Skeleton className="h-5 w-20" />
-                    </div>
-                    <div className="col-span-2">
-                      <Skeleton className="h-5 w-24 ml-auto" />
-                    </div>
-                    <div className="col-span-2">
-                      <Skeleton className="h-5 w-16 ml-auto" />
-                    </div>
-                    <div className="hidden lg:block col-span-2">
-                      <Skeleton className="h-5 w-20 ml-auto" />
-                    </div>
-                    <div className="col-span-4 lg:col-span-2">
-                      <Skeleton className="h-10 w-full" />
-                    </div>
-                  </div>
-                ))
-              ) : filteredPairs && filteredPairs.length > 0 ? (
-                filteredPairs.map((pair) => (
-                  <Link key={pair.id} to={`/${pair.category}?pair=${pair.symbol}`}>
-                    <div
-                      className="grid grid-cols-12 gap-4 p-4 items-center hover-elevate cursor-pointer"
-                      data-testid={`row-market-${pair.symbol}`}>
-                      <div className="col-span-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          data-testid={`button-favorite-${pair.symbol}`}>
-                          <FiStar
-                            className={`w-4 h-4 ${pair.isFavorite ? 'fill-primary text-primary' : ''}`}>
-                          </FiStar>
-                        </Button>
-                      </div>
-                      <div className="col-span-5 sm:col-span-3 lg:col-span-2">
-                        <div className="font-medium text-foreground">{pair.symbol}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {pair.category === 'futures' ? 'Perps' : 'Spot'}
-                        </div>
-                      </div>
-                      <div className="col-span-3 sm:col-span-2 text-right">
-                        <div className="font-mono font-medium text-foreground" data-testid={`text-price-${pair.symbol}`}>
-                          ${parseFloat(pair.currentPrice).toLocaleString()}
-                        </div>
-                      </div>
-                      <div className="col-span-3 sm:col-span-2 flex justify-end">
-                        <PriceChange value={parseFloat(pair.priceChange24h)} />
-                      </div>
-                      <div className="hidden lg:block col-span-2 text-right">
-                        <div className="font-mono text-sm text-foreground">
-                          ${parseFloat(pair.volume24h).toLocaleString()}
-                        </div>
-                      </div>
-                      <div className="hidden sm:block col-span-12 sm:col-span-3 lg:col-span-2">
-                        <MiniChart
-                          data={pair.historicalData || []}
-                          isPositive={parseFloat(pair.priceChange24h) >= 0}
-                        />
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                <div className="p-12 text-center text-muted-foreground">
-                  No trading pairs found
+            <div className="tradingview-widget-container" id="tradingview-widget-market">
+              {(isLoading || symbols.length === 0) && (
+                <div className="h-[700px] w-full flex items-center justify-center">
+                  {symbols.length === 0 && !isLoading ? (
+                     <p className="text-muted-foreground">No symbols match your search.</p>
+                  ) : (
+                    <Skeleton className="h-[700px] w-full" />
+                  )}
                 </div>
               )}
+              <div className="tradingview-widget-container__widget"></div>
             </div>
           </CardContent>
         </Card>

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PriceChange } from '@/components/PriceChange';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Link } from 'wouter';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
   FiArrowRight, 
@@ -119,7 +119,7 @@ export default function Home() {
               No KYC • Low Fees • Lightning Fast Execution
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link href="/spot" asChild>
+              <Link to="/spot">
                 <Button 
                   variant="default" 
                   size="lg" 
@@ -130,7 +130,7 @@ export default function Home() {
                   <FiArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </Link>
-              <Link href="/market" asChild>
+              <Link to="/market">
                 <Button 
                   variant="outline" 
                   size="lg" 
@@ -237,7 +237,7 @@ export default function Home() {
                 Real-time cryptocurrency prices powered by TradingView
               </p>
             </div>
-            <Link href="/market" asChild>
+            <Link to="/market">
               <Button variant="ghost" size="sm" data-testid="link-view-all-markets">
                 View All Markets
                 <FiArrowRight className="ml-2 w-4 h-4" />
@@ -269,7 +269,7 @@ export default function Home() {
               <CardContent className="p-0">
                 <div className="divide-y divide-border">
                   {topGainers?.slice(0, 5).map((pair) => (
-                    <Link key={pair.id} href={`/spot?pair=${pair.symbol}`} asChild>
+                    <Link key={pair.id} to={`/spot?pair=${pair.symbol}`}>
                       <div
                         className="flex items-center justify-between p-4 hover-elevate transition-colors cursor-pointer"
                         data-testid={`row-gainer-${pair.symbol}`}
@@ -304,7 +304,7 @@ export default function Home() {
               <CardContent className="p-0">
                 <div className="divide-y divide-border">
                   {topLosers?.slice(0, 5).map((pair) => (
-                    <Link key={pair.id} href={`/spot?pair=${pair.symbol}`} asChild>
+                    <Link key={pair.id} to={`/spot?pair=${pair.symbol}`}>
                       <div
                         className="flex items-center justify-between p-4 hover-elevate transition-colors cursor-pointer"
                         data-testid={`row-loser-${pair.symbol}`}
@@ -341,13 +341,13 @@ export default function Home() {
                 Connect your wallet and start trading on multiple chains with professional tools and real-time market data
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/spot" asChild>
+                <Link to="/spot">
                   <Button size="lg" className="w-full sm:w-auto px-8" data-testid="button-cta-spot">
                     Trade Spot
                     <FiArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
-                <Link href="/futures" asChild>
+                <Link to="/futures">
                   <Button size="lg" variant="outline" className="w-full sm:w-auto px-8" data-testid="button-cta-futures">
                     Trade Futures
                   </Button>

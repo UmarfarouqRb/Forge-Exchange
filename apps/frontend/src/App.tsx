@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navigation } from "@/components/Navigation";
@@ -11,7 +11,6 @@ import Assets from "@/pages/Assets";
 import { Settings } from "@/pages/Settings";
 import Portfolio from "@/pages/Portfolio";
 import Docs from "@/pages/Docs";
-import NotFound from "@/pages/not-found";
 
 function App() {
   return (
@@ -29,7 +28,7 @@ function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/docs" element={<Docs />} />
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </ErrorBoundary>
         </div>

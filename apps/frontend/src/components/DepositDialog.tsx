@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -20,30 +19,37 @@ import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
+import { NewAssetSelector } from './NewAssetSelector';
 
 interface DepositDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  asset: Token;
+  asset?: Token;
 }
 
 export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps) {
   const [amount, setAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
-  
+  const [selectedAsset, setSelectedAsset] = useState<Token | ''>(asset || '');
+
+  useEffect(() => {
+    setSelectedAsset(asset || '');
+    setAmount('');
+  }, [asset, open]);
+
   const { address, isConnected, chainId } = useAccount();
   const { data: walletClient } = useWalletClient();
   const { writeContractAsync } = useWriteContract();
-  const token = TOKENS[asset];
+  const token = selectedAsset ? TOKENS[selectedAsset] : undefined;
 
   const { data: allowance, refetch } = useReadContract({
-    address: token.address,
+    address: token?.address,
     abi: erc20Abi,
     functionName: 'allowance',
     args: address ? [address, VAULT_SPOT_ADDRESS] : undefined,
     query: {
-      enabled: !!address && !!token && asset !== 'ETH',
+      enabled: !!address && !!token && selectedAsset !== 'ETH',
     }
   });
 
@@ -57,13 +63,6 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
   });
 
   const handleDeposit = async () => {
-    console.log({
-      connected: isConnected,
-      address,
-      chainId,
-      walletClient,
-    });
-
     if (!isConnected || !walletClient || !address) {
       toast.error("Please connect your wallet first.");
       return;
@@ -72,7 +71,7 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
         toast.error("Please enter a valid amount.");
         return;
     }
-    if (!token) {
+    if (!token || !selectedAsset) {
         toast.error("Selected asset is not valid.");
         return;
     }
@@ -83,8 +82,7 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
     try {
       const parsedAmount = parseUnits(amount, token.decimals);
 
-      if (asset === 'ETH') {
-        // Multi-step deposit for ETH: 1. Wrap ETH to WETH, 2. Approve vault, 3. Deposit WETH
+      if (selectedAsset === 'ETH') {
         toast.loading("Wrapping ETH to WETH...");
         const wrapHash = await writeContractAsync({
             address: WETH_ADDRESS,
@@ -114,11 +112,10 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
         setDepositTxHash(depositHash);
 
       } else {
-        // Standard ERC20 deposit flow
         const needsApproval = allowance === undefined || allowance < parsedAmount;
 
         if (needsApproval) {
-          toast.loading("Requesting approval to spend your " + asset);
+          toast.loading("Requesting approval to spend your " + selectedAsset);
           const approvalHash = await writeContractAsync({
             address: token.address,
             abi: erc20Abi,
@@ -161,13 +158,21 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-testid="dialog-deposit">
         <DialogHeader>
-          <DialogTitle>Deposit {asset}</DialogTitle>
+          <DialogTitle>Deposit</DialogTitle>
           <DialogDescription>
-            Enter the amount of {asset} you want to deposit.
+            Select an asset and enter the amount you want to deposit.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+            <div className="space-y-2">
+                <Label htmlFor="asset-selector">Asset</Label>
+                <NewAssetSelector
+                asset={selectedAsset}
+                setAsset={setSelectedAsset}
+                />
+            </div>
+
           <div className="space-y-2">
             <Label htmlFor="deposit-amount">Amount</Label>
             <Input
@@ -176,13 +181,13 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
               placeholder={`0.00`}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              disabled={isDepositing}
+              disabled={isDepositing || !selectedAsset}
             />
           </div>
 
           <Button
             onClick={handleDeposit}
-            disabled={!amount || isDepositing}
+            disabled={!amount || isDepositing || !selectedAsset}
             className="w-full"
             data-testid="button-confirm-deposit"
           >
