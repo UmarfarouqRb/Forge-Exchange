@@ -143,8 +143,8 @@ export class MemStorage extends EventEmitter implements IStorage {
         category: "spot",
       },
       {
-        symbol: "TRIUMPUSDT",
-        baseAsset: "TRIUMP",
+        symbol: "TRUMPUSDT",
+        baseAsset: "TRUMP",
         quoteAsset: "USDT",
         currentPrice: "5.3",
         priceChange24h: "10.5",

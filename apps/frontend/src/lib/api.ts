@@ -1,6 +1,5 @@
 import { apiRequest } from './queryClient';
 import type { Order } from '../types';
-import { generateSyntheticOrderBook, aggregateAndSortOrderBook } from './orderbook';
 import { OrderBookData } from '@/types/orderbook';
 
 const API_BASE_URL = "https://forge-exchange-api.onrender.com";
@@ -39,22 +38,7 @@ export const getOrderBook = async (pair: string): Promise<OrderBookData> => {
       console.error(`API Error: Failed to fetch order book for pair ${pair}. Status: ${response.status}. Message: ${errorText}`);
       throw new Error('Failed to fetch order book');
     }
-    const realOrderBook = await response.json();
-
-    const midPrice = await getAMMPrice(pair);
-
-    if (midPrice === null) {
-      return realOrderBook;
-    }
-
-    const syntheticOrderBook = generateSyntheticOrderBook(midPrice);
-
-    return aggregateAndSortOrderBook(
-      realOrderBook.bids,
-      realOrderBook.asks,
-      syntheticOrderBook.bids,
-      syntheticOrderBook.asks
-    );
+    return response.json();
   } catch (error) {
     console.error("Network or API Error: Could not fetch order book. Please ensure the API services are running and accessible.", error);
     throw error;

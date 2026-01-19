@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +31,10 @@ export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProp
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
 
+  useEffect(() => {
+    setAmount('');
+  }, [open, asset]);
+
   const { address, isConnected, chainId } = useAccount();
   const { data: walletClient } = useWalletClient();
   const { writeContractAsync } = useWriteContract();
@@ -46,13 +49,6 @@ export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProp
   });
 
   const handleWithdraw = async () => {
-    console.log({
-      connected: isConnected,
-      address,
-      chainId,
-      walletClient,
-    });
-
     if (!isConnected || !walletClient || !address) {
       toast.error("Please connect your wallet first.");
       return;
@@ -67,13 +63,13 @@ export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProp
     }
 
     setIsWithdrawing(true);
-    toast.loading("Initiating withdrawal...");
+    const toastId = toast.loading("Initiating withdrawal...");
 
     try {
       const parsedAmount = parseUnits(amount, token.decimals);
 
       if (asset === 'ETH') {
-        toast.loading("Withdrawing WETH from vault...");
+        toast.loading("Withdrawing WETH from vault...", { id: toastId });
         const withdrawWethHash = await writeContractAsync({
             address: VAULT_SPOT_ADDRESS,
             abi: VaultSpotAbi,
@@ -81,11 +77,11 @@ export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProp
             args: [WETH_ADDRESS, parsedAmount]
         });
 
-        toast.loading("Waiting for vault withdrawal to complete...");
+        toast.loading("Waiting for vault withdrawal to complete...", { id: toastId });
         await waitForTransactionReceipt(wagmiConfig, { hash: withdrawWethHash });
-        toast.success("Vault withdrawal successful! Now unwrapping to ETH.");
+        toast.success("Vault withdrawal successful! Now unwrapping to ETH.", { id: toastId });
 
-        toast.loading("Unwrapping WETH to ETH...");
+        toast.loading("Unwrapping WETH to ETH...", { id: toastId });
         const unwrapHash = await writeContractAsync({
             address: WETH_ADDRESS,
             abi: WethAbi,
@@ -95,6 +91,7 @@ export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProp
 
         setWithdrawTxHash(unwrapHash);
       } else {
+        toast.loading("Withdrawing asset from vault...", { id: toastId });
         const withdrawHash = await writeContractAsync({
           address: VAULT_SPOT_ADDRESS,
           abi: VaultSpotAbi,
@@ -113,7 +110,7 @@ export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProp
       } else if (err instanceof Error) {
         message = err.message;
       }
-      toast.error(message);
+      toast.error(message, { id: toastId });
     } finally {
       setIsWithdrawing(false);
     }

@@ -77,13 +77,13 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
     }
 
     setIsDepositing(true);
-    toast.loading("Initiating deposit...");
+    const toastId = toast.loading("Initiating deposit...");
 
     try {
       const parsedAmount = parseUnits(amount, token.decimals);
 
       if (selectedAsset === 'ETH') {
-        toast.loading("Wrapping ETH to WETH...");
+        toast.loading("Wrapping ETH to WETH...", { id: toastId });
         const wrapHash = await writeContractAsync({
             address: WETH_ADDRESS,
             abi: WethAbi,
@@ -91,9 +91,9 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
             value: parsedAmount
         });
         await waitForTransactionReceipt(wagmiConfig, { hash: wrapHash });
-        toast.success("ETH wrapped successfully! Proceeding with approval.");
+        toast.success("ETH wrapped successfully! Proceeding with approval.", { id: toastId });
 
-        toast.loading("Approving vault to spend WETH...");
+        toast.loading("Approving vault to spend WETH...", { id: toastId });
         const approvalHash = await writeContractAsync({
             address: WETH_ADDRESS,
             abi: erc20Abi,
@@ -101,7 +101,7 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
             args: [VAULT_SPOT_ADDRESS, parsedAmount]
         });
         await waitForTransactionReceipt(wagmiConfig, { hash: approvalHash });
-        toast.success("Approval successful! Depositing WETH.");
+        toast.success("Approval successful! Depositing WETH.", { id: toastId });
 
         const depositHash = await writeContractAsync({
             address: VAULT_SPOT_ADDRESS,
@@ -115,7 +115,7 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
         const needsApproval = allowance === undefined || allowance < parsedAmount;
 
         if (needsApproval) {
-          toast.loading("Requesting approval to spend your " + selectedAsset);
+          toast.loading(`Requesting approval to spend your ${selectedAsset}`, { id: toastId });
           const approvalHash = await writeContractAsync({
             address: token.address,
             abi: erc20Abi,
@@ -123,12 +123,13 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
             args: [VAULT_SPOT_ADDRESS, parsedAmount]
           });
           
-          toast.loading("Waiting for approval transaction to complete...");
+          toast.loading("Waiting for approval transaction to complete...", { id: toastId });
           await waitForTransactionReceipt(wagmiConfig, { hash: approvalHash });
-          toast.success("Approval successful! Proceeding with deposit.");
+          toast.success("Approval successful! Proceeding with deposit.", { id: toastId });
           refetch();
         }
 
+        toast.loading("Depositing asset...", { id: toastId });
         const depositHash = await writeContractAsync({
             address: VAULT_SPOT_ADDRESS,
             abi: VaultSpotAbi,
@@ -148,7 +149,7 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
       } else if (err instanceof Error) {
         message = err.message;
       }
-      toast.error(message);
+      toast.error(message, { id: toastId });
     } finally {
       setIsDepositing(false);
     } 
