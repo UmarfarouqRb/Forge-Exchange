@@ -34,7 +34,8 @@
     "postgres": "^3.4.4",
     "sqlite3": "^5.1.7",
     "viem": "2.43.1",
-    "zod": "^4.3.5"
+    "zod": "^4.3.5",
+    "ethers": "^6.15.0"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.1",
