@@ -64,7 +64,7 @@ export function TradingChart({ symbol }: TradingChartProps) {
           widgetRef.current = null;
         }
 
-        widgetRef.current = new ((window as { TradingView: TradingView }).TradingView.widget)({
+        widgetRef.current = new ((window as unknown as { TradingView: TradingView }).TradingView.widget)({
           autosize: true,
           symbol: `BINANCE:${symbol}`,
           interval: '60',

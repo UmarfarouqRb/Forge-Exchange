@@ -1,10 +1,10 @@
 import { http, createPublicClient, parseUnits, formatUnits } from 'viem';
 import { foundry } from 'viem/chains';
-import { intentSpotRouterABI } from '../../relayer/src/config/abis';
-import { TOKENS } from '../../relayer/src/config/tokens';
-import { relayerConfig } from '../../relayer/src/config';
-import { repository } from '../../relayer/src/db';
+import { relayerConfig } from '@forge/common';
+import { getOrders } from '@forge/db';
 import { Request, Response } from 'express';
+import { TOKENS } from '../../frontend/src/config';
+import { intentSpotRouterABI } from '../../frontend/src/abis/IntentSpotRouter';
 
 // --- Blockchain Client Setup ---
 const transport = http(relayerConfig.networks.local.providerUrl);
@@ -59,17 +59,17 @@ export async function getOrderBook(req: Request, res: Response) {
     }
 
     const [baseCurrency, quoteCurrency] = pair.split('-');
-    const tokenIn = TOKENS[baseCurrency];
-    const tokenOut = TOKENS[quoteCurrency];
+    const tokenIn = TOKENS[baseCurrency as keyof typeof TOKENS];
+    const tokenOut = TOKENS[quoteCurrency as keyof typeof TOKENS];
 
     if (!tokenIn || !tokenOut) {
         return res.status(400).json({ error: 'Invalid market specified' });
     }
 
     // 1. Fetch real orders from the DB
-    const realOrders = await repository.getOrdersByMarket(pair);
-    const realBids = realOrders.filter(o => o.side === 'buy').map(o => [o.price, o.amount]);
-    const realAsks = realOrders.filter(o => o.side === 'sell').map(o => [o.price, o.amount]);
+    const realOrders = await getOrders(pair);
+    const realBids = realOrders.filter((o: any) => o.side === 'buy').map((o: any) => [o.price, o.amount]);
+    const realAsks = realOrders.filter((o: any) => o.side === 'sell').map((o: any) => [o.price, o.amount]);
 
     // 2. Fetch the AMM mid-price
     const midPrice = await getAMMPrice(tokenIn, tokenOut);
@@ -105,3 +105,5 @@ export async function getOrderBook(req: Request, res: Response) {
     // 5. Return the combined order book
     res.json({ bids, asks });
 }
+
+export {};

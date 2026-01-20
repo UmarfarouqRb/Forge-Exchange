@@ -1,3 +1,4 @@
+
 import { ethers } from "ethers";
 
 type NetworkName = 'base' | 'local';
@@ -14,6 +15,7 @@ type Networks = {
 };
 
 export const relayerConfig = {
+    relayerUrl: process.env.RELAYER_URL || 'http://localhost:3000',
     networks: {
         base: {
             chainId: 8453,

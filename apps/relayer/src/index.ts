@@ -1,28 +1,21 @@
 
-import express from "express";
-import cors from "cors";
-import { Order } from "./models/order";
-import { getMarkets } from "./api/markets";
-import { health } from "./api/health";
-import { getOrderBook } from "./api/orderbook";
-import { addOrder, getOrders } from "./api/orders";
+// apps/relayer/src/index.ts
+import express from 'express'
+import { executeSpotTrade } from './spot';
 
-const app = express();
-app.use(express.json());
-app.use(cors());
+const app = express()
+app.use(express.json())
 
-// TODO: move to a separate file
-const orders: Order[] = [];
-
-app.get("/health", health);
-
-app.get("/api/markets", getMarkets);
-
-app.get("/api/order-book/:pair", getOrderBook);
-app.get("/api/orders/:address", getOrders);
-app.post("/api/orders", addOrder);
-
-const port = 3001;
-app.listen(port, () => {
-  console.log(`Relayer listening on port ${port}`);
+app.post('/execute', async (req, res) => {
+    const { intent, signature, orderType } = req.body;
+    try {
+        const result = await executeSpotTrade(intent, signature, orderType);
+        res.json(result);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
 });
+
+app.get('/health', (_, res) => res.json({ ok: true }))
+
+export default app

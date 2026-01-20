@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { TOKENS } from "../config/contracts";
+import { TOKENS } from "../../frontend/src/config";
 
 const markets = [
   {

@@ -1,12 +1,11 @@
 
-import { Request, Response } from 'express';
 import { relayerConfig } from '@forge/common';
 import { saveOrder, updateOrderStatus } from '@forge/db';
 import { createPublicClient, createWalletClient, http, keccak256, parseUnits, formatUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
-import IntentSpotRouter from '../../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
-import { getTokenDecimals } from '../utils/tokens';
+import IntentSpotRouter from '../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
+import { getTokenDecimals } from './utils/tokens';
 
 const intentSpotRouterABI = IntentSpotRouter.abi;
 
@@ -42,11 +41,10 @@ async function getMarketPrice(tokenIn: string, tokenOut: string, chainId: number
     }
 }
 
-export const spot = async (req: Request, res: Response) => {
-    const { intent, signature, orderType } = req.body;
+export const executeSpotTrade = async (intent: any, signature: `0x${string}`, orderType: string) => {
 
     if (!intent || !signature || !orderType) {
-        return res.status(400).json({ error: 'Missing required fields' });
+        throw new Error('Missing required fields');
     }
 
     const orderId = keccak256(signature);
@@ -94,7 +92,7 @@ export const spot = async (req: Request, res: Response) => {
 
             await updateOrderStatus(orderId, 'filled');
 
-            res.json({ success: true, txHash: tx, price });
+            return { success: true, txHash: tx, price };
         } else {
             throw new Error(`Unsupported order type: ${orderType}`);
         }
@@ -102,6 +100,6 @@ export const spot = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Failed to execute spot trade:', error);
         await updateOrderStatus(orderId, 'canceled');
-        res.status(500).json({ error: `Failed to execute spot trade: ${error.message}` });
+        throw new Error(`Failed to execute spot trade: ${error.message}`);
     }
 };

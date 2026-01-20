@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "@neondatabase/serverless": "^0.10.4",
     "@forge/db": "workspace:^",
     "@supabase/supabase-js": "^2.88.0",
@@ -33,6 +34,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "4.17.21",
     "@types/express-session": "^1.18.0",

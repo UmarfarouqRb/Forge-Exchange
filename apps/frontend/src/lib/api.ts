@@ -2,9 +2,7 @@ import { apiRequest } from './queryClient';
 import type { Order, Transaction } from '../types';
 import { OrderBookData } from '@/types/orderbook';
 
-const API_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? 'http://localhost:3001' 
-  : 'https://forge-exchange-api.onrender.com';
+const API_BASE_URL = 'https://forge-exchange-api.onrender.com';
 
 const checkApiConfig = () => {
   if (!API_BASE_URL) {

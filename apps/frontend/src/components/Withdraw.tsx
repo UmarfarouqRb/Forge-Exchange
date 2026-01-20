@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/lib/contracts';
+import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 
 // Simplified ABIs for the contracts
 const wethAbi = [

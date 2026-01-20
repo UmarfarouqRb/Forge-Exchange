@@ -13,7 +13,7 @@ export default function FuturesTrade({ symbol, currentPrice }: FuturesTradeProps
         <FuturesTradePanel symbol={symbol} currentPrice={currentPrice} isMobile />
       </div>
       <div className="col-span-1">
-        <OrderBook />
+        <OrderBook data={{ bids: [], asks: [] }} isLoading={false} isError={false} />
       </div>
     </div>
   );
