@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,26 +13,23 @@ import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
-import { NewAssetSelector } from './NewAssetSelector';
+import { NewAssetSelector } from '@/components/NewAssetSelector';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-interface DepositDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  asset?: Token;
-  amount?: string;
-}
-
-export function DepositDialog({ open, onOpenChange, asset, amount: initialAmount }: DepositDialogProps) {
+export default function Deposit() {
   const [amount, setAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
-  const [selectedAsset, setSelectedAsset] = useState<Token | ''>(asset || '');
+  const [selectedAsset, setSelectedAsset] = useState<Token | ''>( '');
+
+  const { search } = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(search);
+  const asset = params.get('asset') as Token;
 
   useEffect(() => {
     setSelectedAsset(asset || '');
-    // Set the amount from the prop, but don't trigger the deposit
-    setAmount(initialAmount || '');
-  }, [asset, open, initialAmount]);
+  }, [asset]);
 
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -67,8 +58,8 @@ export function DepositDialog({ open, onOpenChange, asset, amount: initialAmount
     hash: depositTxHash,
     onSuccess: () => {
       refetch();
-      onOpenChange(false);
       toast.success("Deposit successful!");
+      navigate('/assets');
     }
   });
 
@@ -167,19 +158,16 @@ export function DepositDialog({ open, onOpenChange, asset, amount: initialAmount
       toast.error(message, { id: toastId });
     } finally {
       setIsDepositing(false);
-    } 
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid="dialog-deposit">
-        <DialogHeader>
-          <DialogTitle>Deposit</DialogTitle>
-          <DialogDescription>
-            Select an asset and enter the amount you want to deposit.
-          </DialogDescription>
-        </DialogHeader>
-
+    <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Deposit</CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="space-y-4 py-4">
             <div className="space-y-2">
                 <Label htmlFor="asset-selector">Asset</Label>
@@ -217,7 +205,8 @@ export function DepositDialog({ open, onOpenChange, asset, amount: initialAmount
             )}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

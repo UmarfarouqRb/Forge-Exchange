@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,23 +13,17 @@ import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-interface WithdrawDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  asset: Token;
-  amount?: string;
-}
-
-export function WithdrawDialog({ open, onOpenChange, asset, amount: initialAmount }: WithdrawDialogProps) {
-  const [amount, setAmount] = useState(initialAmount || '');
+export default function Withdraw() {
+  const [amount, setAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
 
-  useEffect(() => {
-    // Set the amount from the prop, but don't trigger the withdrawal
-    setAmount(initialAmount || '');
-  }, [open, initialAmount]);
+  const { search } = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(search);
+  const asset = params.get('asset') as Token;
 
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
@@ -45,8 +33,8 @@ export function WithdrawDialog({ open, onOpenChange, asset, amount: initialAmoun
   useTrackedTx({
     hash: withdrawTxHash,
     onSuccess: () => {
-      onOpenChange(false);
       toast.success("Withdrawal successful!");
+      navigate('/assets');
     }
   });
 
@@ -119,46 +107,44 @@ export function WithdrawDialog({ open, onOpenChange, asset, amount: initialAmoun
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid="dialog-withdraw">
-        <DialogHeader>
-          <DialogTitle>Withdraw {asset}</DialogTitle>
-          <DialogDescription>
-            Enter the amount of {asset} you want to withdraw.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+            <CardHeader>
+                <CardTitle>Withdraw {asset}</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="withdraw-amount">Amount</Label>
+                    <Input
+                    id="withdraw-amount"
+                    type="number"
+                    placeholder={`0.00`}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    disabled={isWithdrawing}
+                    />
+                </div>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="withdraw-amount">Amount</Label>
-            <Input
-              id="withdraw-amount"
-              type="number"
-              placeholder={`0.00`}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              disabled={isWithdrawing}
-            />
-          </div>
-
-          <Button
-            onClick={handleWithdraw}
-            disabled={!amount || isWithdrawing}
-            className="w-full"
-            variant="destructive"
-            data-testid="button-confirm-withdraw"
-          >
-            {isWithdrawing ? (
-              <>
-                <FiLoader className="mr-2 h-4 w-4 animate-spin" />
-                Withdrawing...
-              </>
-            ) : (
-              'Confirm Withdrawal'
-            )}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+                <Button
+                    onClick={handleWithdraw}
+                    disabled={!amount || isWithdrawing}
+                    className="w-full"
+                    variant="destructive"
+                    data-testid="button-confirm-withdraw"
+                >
+                    {isWithdrawing ? (
+                    <>
+                        <FiLoader className="mr-2 h-4 w-4 animate-spin" />
+                        Withdrawing...
+                    </>
+                    ) : (
+                    'Confirm Withdrawal'
+                    )}
+                </Button>
+                </div>
+            </CardContent>
+        </Card>
+    </div>
   );
 }

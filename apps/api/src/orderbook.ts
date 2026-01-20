@@ -58,7 +58,33 @@ export async function getOrderBook(req: Request, res: Response) {
         return res.status(400).json({ error: 'Pair parameter is required' });
     }
 
-    const [baseCurrency, quoteCurrency] = pair.split('-');
+    let baseCurrency: string | undefined;
+    let quoteCurrency: string | undefined;
+
+    // Common quote currencies suffixes
+    const commonQuotes = ['USDT', 'USDC', 'DAI', 'BTC', 'ETH', 'WETH'];
+
+    for (const quote of commonQuotes) {
+        if (pair.endsWith(quote)) {
+            const base = pair.slice(0, -quote.length);
+            if (base.length > 0) {
+                baseCurrency = base;
+                quoteCurrency = quote;
+                break;
+            }
+        }
+    }
+
+    // If no common quote currency suffix is found, try splitting at 3 characters
+    if (!baseCurrency && pair.length > 3) {
+        baseCurrency = pair.slice(0, 3);
+        quoteCurrency = pair.slice(3);
+    }
+
+    if (!baseCurrency) {
+        return res.status(400).json({ error: 'Could not determine base and quote currency from pair' });
+    }
+
     const tokenIn = TOKENS[baseCurrency as keyof typeof TOKENS];
     const tokenOut = TOKENS[quoteCurrency as keyof typeof TOKENS];
 

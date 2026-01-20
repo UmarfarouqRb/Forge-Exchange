@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const CodeBlock: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <pre className="bg-muted p-4 rounded-md my-4 overflow-x-auto">
@@ -12,7 +11,13 @@ const Step: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 const Docs: React.FC = () => {
-  const [selectedSection, setSelectedSection] = useState('user-guide');
+  const [openSections, setOpenSections] = useState<string[]>(['user-guide']);
+
+  const toggleSection = (id: string) => {
+    setOpenSections(prev => 
+      prev.includes(id) ? prev.filter(s => s !== id) : [id]
+    );
+  };
 
   const sections = {
     'user-guide': {
@@ -135,34 +140,23 @@ const Docs: React.FC = () => {
                 </p>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <aside className="md:col-span-1 md:sticky top-24 h-screen">
-                <nav className="flex flex-col space-y-2">
-                    {Object.entries(sections).map(([id, { title }]) => (
-                    <a
-                        key={id}
-                        href={`#${id}`}
-                        onClick={(e) => {
-                        e.preventDefault();
-                        setSelectedSection(id);
-                        }}
-                        className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${selectedSection === id ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50'}`}>
-                        {title}
-                    </a>
-                    ))}
-                </nav>
-                </aside>
-
-                <main className="md:col-span-3">
-                <Card id={selectedSection} className="bg-card border-card-border mb-8">
-                    <CardHeader>
-                    <CardTitle className="text-2xl font-bold">{sections[selectedSection as keyof typeof sections].title}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                    {sections[selectedSection as keyof typeof sections].content}
-                    </CardContent>
-                </Card>
-                </main>
+            <div className="space-y-4">
+                {Object.entries(sections).map(([id, { title, content }]) => (
+                <div key={id} className="border border-border rounded-lg overflow-hidden">
+                    <button
+                    onClick={() => toggleSection(id)}
+                    className="w-full text-left p-4 bg-muted/50 hover:bg-muted/80 transition-colors duration-200 flex justify-between items-center"
+                    >
+                    <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+                     <svg className={`w-5 h-5 text-muted-foreground transform transition-transform ${openSections.includes(id) ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    {openSections.includes(id) && (
+                    <div className="p-6 bg-card">
+                        {content}
+                    </div>
+                    )}
+                </div>
+                ))}
             </div>
         </div>
     </div>

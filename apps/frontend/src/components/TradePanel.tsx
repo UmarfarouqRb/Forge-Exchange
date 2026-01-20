@@ -13,10 +13,9 @@ import { parseUnits, formatUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { Orders } from './Orders';
 import { TradeHistory } from './TradeHistory';
-import { DepositDialog } from './DepositDialog';
-import { WithdrawDialog } from './WithdrawDialog';
 import { OrderTypeSelector } from './OrderTypeSelector';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useNavigate } from 'react-router-dom';
 
 interface TradePanelProps {
   symbol: string;
@@ -32,10 +31,9 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState('0.05');
   const [isConfirming, setIsConfirming] = useState(false);
-  const [depositDialog, setDepositDialog] = useState(false);
-  const [withdrawDialog, setWithdrawDialog] = useState(false);
   const { ready, authenticated } = usePrivy();
   const submitIntent = useSubmitIntent();
+  const navigate = useNavigate();
 
   const baseCurrency = symbol.replace('USDT', '') as Token;
   const quoteCurrency = 'USDT' as Token;
@@ -146,10 +144,10 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
 
         <div className="mb-4">
           <div className="mt-2">
-              <Button onClick={() => setDepositDialog(true)} variant="outline" size="sm" className="w-full">Deposit</Button>
+              <Button onClick={() => navigate('/assets/deposit')} variant="outline" size="sm" className="w-full">Deposit</Button>
           </div>
           <div className="mt-2">
-              <Button onClick={() => setWithdrawDialog(true)} variant="outline" size="sm" className="w-full">Withdraw</Button>
+              <Button onClick={() => navigate('/assets/withdraw')} variant="outline" size="sm" className="w-full">Withdraw</Button>
           </div>
         </div>
         
@@ -230,10 +228,10 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
             <Label>USDT Balance: {quoteBalance ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
           </div>
           <div className="mt-2">
-            <Button onClick={() => setDepositDialog(true)} className="w-full">Deposit</Button>
+            <Button onClick={() => navigate('/assets/deposit')} className="w-full">Deposit</Button>
           </div>
           <div className="mt-2">
-            <Button onClick={() => setWithdrawDialog(true)} className="w-full">Withdraw</Button>
+            <Button onClick={() => navigate('/assets/withdraw')} className="w-full">Withdraw</Button>
           </div>
         </div>
 
@@ -249,18 +247,6 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
           orderType,
           total
         }}
-      />
-
-      <DepositDialog
-        open={depositDialog}
-        onOpenChange={setDepositDialog}
-        asset={quoteCurrency}
-      />
-
-      <WithdrawDialog
-        open={withdrawDialog}
-        onOpenChange={setWithdrawDialog}
-        asset={quoteCurrency}
       />
       </CardContent>
     </Card>

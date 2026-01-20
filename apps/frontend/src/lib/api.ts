@@ -31,7 +31,7 @@ export const getTrendingPairs = async (): Promise<any[]> => {
 export const getOrderBook = async (pair: string): Promise<OrderBookData> => {
   checkApiConfig();
   try {
-    const response = await fetch(`${API_BASE_URL}/api/order-book/${pair}`);
+    const response = await fetch(`${API_BASE_URL}/api/orderbook/${pair}`);
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API Error: Failed to fetch order book for pair ${pair}. Status: ${response.status}. Message: ${errorText}`);

@@ -11,6 +11,8 @@ import Assets from "@/pages/Assets";
 import { Settings } from "@/pages/Settings";
 import Portfolio from "@/pages/Portfolio";
 import Docs from "@/pages/Docs";
+import Deposit from "@/pages/Deposit";
+import Withdraw from "@/pages/Withdraw";
 
 function AppLayout() {
   return (
@@ -32,7 +34,10 @@ function App() {
           <Route path="/market" element={<Market />} />
           <Route path="/spot" element={<Spot />} />
           <Route path="/futures" element={<Futures />} />
-          <Route path="/assets" element={<Assets />} />
+          <Route path="/assets/*" element={<Assets />}>
+            <Route path="deposit" element={<Deposit />} />
+            <Route path="withdraw" element={<Withdraw />} />
+          </Route>
           <Route path="/settings" element={<Settings />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/docs" element={<Docs />} />

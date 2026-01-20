@@ -10,13 +10,6 @@ declare global {
   }
 }
 
-const symbols = [
-    'BINANCE:BTCUSDT',
-    'BINANCE:ETHUSDT',
-    'BINANCE:SOLUSDT',
-    'BINANCE:XRPUSDT'
-];
-
 export default function Market() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -34,14 +27,11 @@ export default function Market() {
         width: '100%',
         height: 700,
         defaultColumn: 'overview',
+        screener_type: 'crypto_mkt',
         displayCurrency: 'USD',
         colorTheme: 'dark',
         locale: 'en',
-        isTransparent: true,
-        showToolbar: false,
-        "symbols": {
-          "proNames": symbols,
-        },
+        isTransparent: true
       });
 
       widgetContainer.appendChild(script);
