@@ -20,7 +20,8 @@ export default function Deposit() {
   const [amount, setAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
-  const [selectedAsset, setSelectedAsset] = useState<Token | ''>( '');
+  const [selectedAsset, setSelectedAsset] = useState<Token | ''>('');
+  const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -51,112 +52,118 @@ export default function Deposit() {
     args: address ? [address, VAULT_SPOT_ADDRESS] : undefined,
     query: {
       enabled: !!address && !!token && selectedAsset !== 'ETH',
-    }
+    },
   });
 
   useTrackedTx({
     hash: depositTxHash,
     onSuccess: () => {
       refetch();
-      toast.success("Deposit successful!");
-      navigate('/assets');
-    }
+      setMessage({ type: 'success', text: 'Deposit successful! Your balance will update shortly.' });
+      toast.success('Deposit successful!');
+    },
   });
 
   const handleDeposit = async () => {
+    setMessage(null);
     if (!isConnected || !walletClient || !address) {
-      toast.error("Please connect your wallet first.");
+      const errorMessage = 'Please connect your wallet first.';
+      setMessage({ type: 'error', text: errorMessage });
       return;
     }
     if (!amount || parseFloat(amount) <= 0) {
-        toast.error("Please enter a valid amount.");
-        return;
+      const errorMessage = 'Please enter a valid amount.';
+      setMessage({ type: 'error', text: errorMessage });
+      return;
     }
     if (!token || !selectedAsset) {
-        toast.error("Selected asset is not valid.");
-        return;
+      const errorMessage = 'Please select a valid asset to deposit.';
+      setMessage({ type: 'error', text: errorMessage });
+      return;
     }
 
     const parsedAmount = parseUnits(amount, token.decimals);
 
     if (balance && balance.value < parsedAmount) {
-      toast.error("Insufficient balance to make this deposit.");
+      const errorMessage = 'Insufficient balance for this deposit.';
+      setMessage({ type: 'error', text: errorMessage });
       return;
     }
 
     setIsDepositing(true);
-    const toastId = toast.loading("Initiating deposit...");
+    const toastId = toast.loading('Initiating deposit...');
 
     try {
       if (selectedAsset === 'ETH') {
-        toast.loading("Wrapping ETH to WETH...", { id: toastId });
+        toast.loading('Step 1/3: Wrapping ETH to WETH...', { id: toastId });
         const wrapHash = await writeContractAsync({
-            address: WETH_ADDRESS,
-            abi: WethAbi,
-            functionName: 'deposit',
-            value: parsedAmount
+          address: WETH_ADDRESS,
+          abi: WethAbi,
+          functionName: 'deposit',
+          value: parsedAmount,
         });
+
+        toast.loading(`Step 1/3: Waiting for wrapping transaction... (tx: ${wrapHash.substring(0, 10)}...)`, { id: toastId });
         await waitForTransactionReceipt(wagmiConfig, { hash: wrapHash });
-        toast.success("ETH wrapped successfully! Proceeding with approval.", { id: toastId });
-
-        toast.loading("Approving vault to spend WETH...", { id: toastId });
+        
+        toast.loading('Step 2/3: Approving vault to spend WETH...', { id: toastId });
         const approvalHash = await writeContractAsync({
-            address: WETH_ADDRESS,
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [VAULT_SPOT_ADDRESS, parsedAmount]
+          address: WETH_ADDRESS,
+          abi: erc20Abi,
+          functionName: 'approve',
+          args: [VAULT_SPOT_ADDRESS, parsedAmount],
         });
+
+        toast.loading(`Step 2/3: Waiting for approval... (tx: ${approvalHash.substring(0, 10)}...)`, { id: toastId });
         await waitForTransactionReceipt(wagmiConfig, { hash: approvalHash });
-        toast.success("Approval successful! Depositing WETH.", { id: toastId });
-
+        
+        toast.loading('Step 3/3: Depositing WETH into vault...', { id: toastId });
         const depositHash = await writeContractAsync({
-            address: VAULT_SPOT_ADDRESS,
-            abi: VaultSpotAbi,
-            functionName: 'deposit',
-            args: [WETH_ADDRESS, parsedAmount]
-          });
+          address: VAULT_SPOT_ADDRESS,
+          abi: VaultSpotAbi,
+          functionName: 'deposit',
+          args: [WETH_ADDRESS, parsedAmount],
+        });
+        toast.loading(`Step 3/3: Waiting for deposit transaction... (tx: ${depositHash.substring(0, 10)}...)`, { id: toastId });
         setDepositTxHash(depositHash);
-
       } else {
         const needsApproval = allowance === undefined || allowance < parsedAmount;
 
         if (needsApproval) {
-          toast.loading(`Requesting approval to spend your ${selectedAsset}`, { id: toastId });
+          toast.loading(`Step 1/2: Requesting approval to spend your ${selectedAsset}...`, { id: toastId });
           const approvalHash = await writeContractAsync({
             address: token.address,
             abi: erc20Abi,
             functionName: 'approve',
-            args: [VAULT_SPOT_ADDRESS, parsedAmount]
+            args: [VAULT_SPOT_ADDRESS, parsedAmount],
           });
           
-          toast.loading("Waiting for approval transaction to complete...", { id: toastId });
+          toast.loading(`Step 1/2: Waiting for approval transaction... (tx: ${approvalHash.substring(0, 10)}...)`, { id: toastId });
           await waitForTransactionReceipt(wagmiConfig, { hash: approvalHash });
-          toast.success("Approval successful! Proceeding with deposit.", { id: toastId });
+          toast.success('Approval successful!', { id: toastId });
           refetch();
         }
 
-        toast.loading("Depositing asset...", { id: toastId });
+        toast.loading(`Step 2/2: Depositing ${selectedAsset} into vault...`, { id: toastId });
         const depositHash = await writeContractAsync({
-            address: VAULT_SPOT_ADDRESS,
-            abi: VaultSpotAbi,
-            functionName: 'deposit',
-            args: [token.address, parsedAmount]
-          });
+          address: VAULT_SPOT_ADDRESS,
+          abi: VaultSpotAbi,
+          functionName: 'deposit',
+          args: [token.address, parsedAmount],
+        });
+        toast.loading(`Step 2/2: Waiting for deposit transaction... (tx: ${depositHash.substring(0, 10)}...)`, { id: toastId });
         setDepositTxHash(depositHash);
       }
       
       setAmount('');
-
     } catch (err: unknown) {
       console.error(err);
-      let message = "An error occurred during the deposit.";
+      let errorMessage = 'An error occurred during the deposit.';
       if (err && typeof err === 'object' && 'shortMessage' in err) {
-        message = String(err.shortMessage) || message;
-      } else if (err instanceof Error) {
-        message = err.message;
+        errorMessage = String(err.shortMessage) || errorMessage;
       }
-      toast.error(message, { id: toastId });
-    } finally {
+      setMessage({ type: 'error', text: errorMessage });
+      toast.error(errorMessage, { id: toastId });
       setIsDepositing(false);
     }
   };
@@ -168,43 +175,50 @@ export default function Deposit() {
           <CardTitle>Deposit</CardTitle>
         </CardHeader>
         <CardContent>
-        <div className="space-y-4 py-4">
+          {message && (
+            <div
+              className={`p-4 rounded-md my-4 ${message.type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`}>
+              <p>{message.text}</p>
+            </div>
+          )}
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
-                <Label htmlFor="asset-selector">Asset</Label>
-                <NewAssetSelector
-                asset={selectedAsset}
-                setAsset={setSelectedAsset}
-                />
+              <Label htmlFor="asset-selector">Asset</Label>
+              <NewAssetSelector asset={selectedAsset} setAsset={setSelectedAsset} />
             </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="deposit-amount">Amount</Label>
-            <Input
-              id="deposit-amount"
-              type="number"
-              placeholder={`0.00`}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              disabled={isDepositing || !selectedAsset}
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="deposit-amount">Amount</Label>
+              <Input
+                id="deposit-amount"
+                type="number"
+                placeholder={`0.00`}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                disabled={isDepositing || !selectedAsset}
+              />
+            </div>
 
-          <Button
-            onClick={handleDeposit}
-            disabled={!amount || isDepositing || !selectedAsset}
-            className="w-full"
-            data-testid="button-confirm-deposit"
-          >
-            {isDepositing ? (
-              <>
-                <FiLoader className="mr-2 h-4 w-4 animate-spin" />
-                Depositing...
-              </>
-            ) : (
-              "Confirm Deposit"
+            <Button
+              onClick={handleDeposit}
+              disabled={!amount || isDepositing || !selectedAsset}
+              className="w-full"
+              data-testid="button-confirm-deposit">
+              {isDepositing ? (
+                <>
+                  <FiLoader className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Confirm Deposit'
+              )}
+            </Button>
+            {message?.type === 'success' && (
+              <Button onClick={() => navigate('/assets')} className="w-full mt-2" variant="outline">
+                Back to Assets
+              </Button>
             )}
-          </Button>
-        </div>
+          </div>
         </CardContent>
       </Card>
     </div>

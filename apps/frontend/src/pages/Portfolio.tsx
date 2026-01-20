@@ -1,16 +1,15 @@
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { usePrivy } from '@privy-io/react-auth';
-import { DepositDialog } from '@/components/DepositDialog';
-import { WithdrawDialog } from '@/components/WithdrawDialog';
 import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
 import { useAccount, useReadContracts } from 'wagmi';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { formatUnits } from 'viem';
 import { FiDownload, FiUpload } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 
 // Define a type for our asset object
 interface Asset {
@@ -21,8 +20,7 @@ interface Asset {
 export default function Portfolio() {
   const { authenticated } = usePrivy();
   const { address } = useAccount();
-  const [depositDialog, setDepositDialog] = useState<{ open: boolean; asset: Token | '' }>({ open: false, asset: '' });
-  const [withdrawDialog, setWithdrawDialog] = useState<{ open: boolean; asset: Token | '' }>({ open: false, asset: '' });
+  const navigate = useNavigate();
 
   const tokenContracts = useMemo(() => {
     return (Object.keys(TOKENS) as Token[]).map(tokenSymbol => ({
@@ -81,11 +79,11 @@ export default function Portfolio() {
           {/* Deposit/Withdraw Card for Mobile */}
           <Card className="mb-6 md:hidden">
             <CardContent className="p-4 flex gap-4">
-              <Button className="flex-1" onClick={() => setDepositDialog({ open: true, asset: '' })}>
+              <Button className="flex-1" onClick={() => navigate('/assets/deposit')}>
                 <FiDownload className="w-4 h-4 mr-2" />
                 Deposit
               </Button>
-              <Button className="flex-1" variant="outline" onClick={() => setWithdrawDialog({ open: true, asset: '' })}>
+              <Button className="flex-1" variant="outline" onClick={() => navigate('/assets/withdraw')}>
                 <FiUpload className="w-4 h-4 mr-2" />
                 Withdraw
               </Button>
@@ -101,8 +99,8 @@ export default function Portfolio() {
                 <CardContent>
                   <div className="text-lg font-bold">{asset.balance}</div>
                   <div className="flex gap-2 mt-2">
-                    <Button size="sm" variant="outline" onClick={() => setDepositDialog({ open: true, asset: asset.symbol as Token })}>Deposit</Button>
-                    <Button size="sm" variant="destructive" onClick={() => setWithdrawDialog({ open: true, asset: asset.symbol as Token })}>Withdraw</Button>
+                    <Button size="sm" variant="outline" onClick={() => navigate(`/assets/deposit?asset=${asset.symbol}`)}>Deposit</Button>
+                    <Button size="sm" variant="destructive" onClick={() => navigate(`/assets/withdraw?asset=${asset.symbol}`)}>Withdraw</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -113,24 +111,6 @@ export default function Portfolio() {
           <p className="text-center p-4 text-muted-foreground">Futures portfolio coming soon.</p>
         </TabsContent>
       </Tabs>
-
-      {/* Deposit Dialog */}
-      {depositDialog.asset &&
-        <DepositDialog
-          open={depositDialog.open}
-          onOpenChange={(open) => setDepositDialog({ open, asset: open ? depositDialog.asset : '' })}
-          asset={depositDialog.asset}
-        />
-      }
-
-      {/* Withdraw Dialog */}
-      {withdrawDialog.asset &&
-        <WithdrawDialog
-          open={withdrawDialog.open}
-          onOpenChange={(open) => setWithdrawDialog({ open, asset: open ? withdrawDialog.asset : '' })}
-          asset={withdrawDialog.asset}
-        />
-      }
     </div>
   );
 }

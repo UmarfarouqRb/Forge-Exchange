@@ -19,6 +19,7 @@ export default function Withdraw() {
   const [amount, setAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
+  const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -33,22 +34,26 @@ export default function Withdraw() {
   useTrackedTx({
     hash: withdrawTxHash,
     onSuccess: () => {
+      setMessage({ type: 'success', text: 'Withdrawal successful! Your balance will update shortly.' });
       toast.success("Withdrawal successful!");
-      navigate('/assets');
     }
   });
 
   const handleWithdraw = async () => {
+    setMessage(null);
     if (!isConnected || !walletClient || !address) {
-      toast.error("Please connect your wallet first.");
+      const errorMessage = 'Please connect your wallet first.';
+      setMessage({ type: 'error', text: errorMessage });
       return;
     }
     if (!amount || parseFloat(amount) <= 0) {
-        toast.error("Please enter a valid amount.");
+        const errorMessage = 'Please enter a valid amount.';
+        setMessage({ type: 'error', text: errorMessage });
         return;
     }
     if (!token) {
-        toast.error("Selected asset is not valid.");
+        const errorMessage = 'Selected asset is not valid.';
+        setMessage({ type: 'error', text: errorMessage });
         return;
     }
 
@@ -59,7 +64,7 @@ export default function Withdraw() {
       const parsedAmount = parseUnits(amount, token.decimals);
 
       if (asset === 'ETH') {
-        toast.loading("Withdrawing WETH from vault...", { id: toastId });
+        toast.loading("Step 1/2: Withdrawing WETH from vault...", { id: toastId });
         const withdrawWethHash = await writeContractAsync({
             address: VAULT_SPOT_ADDRESS,
             abi: VaultSpotAbi,
@@ -67,11 +72,11 @@ export default function Withdraw() {
             args: [WETH_ADDRESS, parsedAmount]
         });
 
-        toast.loading("Waiting for vault withdrawal to complete...", { id: toastId });
+        toast.loading(`Step 1/2: Waiting for vault withdrawal... (tx: ${withdrawWethHash.substring(0, 10)}...)`, { id: toastId });
         await waitForTransactionReceipt(wagmiConfig, { hash: withdrawWethHash });
-        toast.success("Vault withdrawal successful! Now unwrapping to ETH.", { id: toastId });
+        toast.success("Vault withdrawal successful!", { id: toastId });
 
-        toast.loading("Unwrapping WETH to ETH...", { id: toastId });
+        toast.loading("Step 2/2: Unwrapping WETH to ETH...", { id: toastId });
         const unwrapHash = await writeContractAsync({
             address: WETH_ADDRESS,
             abi: WethAbi,
@@ -79,6 +84,7 @@ export default function Withdraw() {
             args: [parsedAmount]
         });
 
+        toast.loading(`Step 2/2: Waiting for unwrap transaction... (tx: ${unwrapHash.substring(0, 10)}...)`, { id: toastId });
         setWithdrawTxHash(unwrapHash);
       } else {
         toast.loading("Withdrawing asset from vault...", { id: toastId });
@@ -88,20 +94,19 @@ export default function Withdraw() {
           functionName: 'withdraw',
           args: [token.address, parsedAmount]
         });
+        toast.loading(`Waiting for withdrawal transaction... (tx: ${withdrawHash.substring(0, 10)}...)`, { id: toastId });
         setWithdrawTxHash(withdrawHash);
       }
       
       setAmount('');
     } catch (err: unknown) {
       console.error(err);
-      let message = "An error occurred during the withdrawal.";
+      let errorMessage = "An error occurred during the withdrawal.";
       if (err && typeof err === 'object' && 'shortMessage' in err) {
-        message = String(err.shortMessage) || message;
-      } else if (err instanceof Error) {
-        message = err.message;
+        errorMessage = String(err.shortMessage) || errorMessage;
       }
-      toast.error(message, { id: toastId });
-    } finally {
+      setMessage({ type: 'error', text: errorMessage });
+      toast.error(errorMessage, { id: toastId });
       setIsWithdrawing(false);
     }
   };
@@ -113,6 +118,11 @@ export default function Withdraw() {
                 <CardTitle>Withdraw {asset}</CardTitle>
             </CardHeader>
             <CardContent>
+                {message && (
+                    <div className={`p-4 rounded-md my-4 ${message.type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`}>
+                        <p>{message.text}</p>
+                    </div>
+                )}
                 <div className="space-y-4 py-4">
                 <div className="space-y-2">
                     <Label htmlFor="withdraw-amount">Amount</Label>
@@ -136,12 +146,17 @@ export default function Withdraw() {
                     {isWithdrawing ? (
                     <>
                         <FiLoader className="mr-2 h-4 w-4 animate-spin" />
-                        Withdrawing...
+                        Processing...
                     </>
                     ) : (
                     'Confirm Withdrawal'
                     )}
                 </Button>
+                {message?.type === 'success' && (
+                    <Button onClick={() => navigate('/assets')} className="w-full mt-2" variant="outline">
+                        Back to Assets
+                    </Button>
+                )}
                 </div>
             </CardContent>
         </Card>

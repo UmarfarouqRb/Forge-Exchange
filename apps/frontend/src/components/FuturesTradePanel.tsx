@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -8,8 +9,6 @@ import { Slider } from '@/components/ui/slider';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { TOKENS, Token } from '@/config/contracts';
 import { formatUnits } from 'viem';
-import { DepositDialog } from './DepositDialog';
-import { WithdrawDialog } from './WithdrawDialog';
 
 interface FuturesTradePanelProps {
   symbol: string;
@@ -23,8 +22,7 @@ export function FuturesTradePanel({ symbol, currentPrice, isMobile = false }: Fu
   const [price, setPrice] = useState(currentPrice);
   const [amount, setAmount] = useState('');
   const [leverage, setLeverage] = useState(10);
-  const [depositDialog, setDepositDialog] = useState(false);
-  const [withdrawDialog, setWithdrawDialog] = useState(false);
+  const navigate = useNavigate();
 
   const baseCurrency = symbol.replace('USDT', '') as Token;
   const quoteCurrency = 'USDT' as Token;
@@ -214,22 +212,10 @@ export function FuturesTradePanel({ symbol, currentPrice, isMobile = false }: Fu
             </Button>
 
             <div className="flex mt-2 space-x-2">
-              <Button onClick={() => setDepositDialog(true)} className="w-full">Deposit</Button>
-              <Button onClick={() => setWithdrawDialog(true)} className="w-full">Withdraw</Button>
+              <Button onClick={() => navigate(`/assets/deposit?asset=${quoteCurrency}`)} className="w-full">Deposit</Button>
+              <Button onClick={() => navigate(`/assets/withdraw?asset=${quoteCurrency}`)} className="w-full">Withdraw</Button>
             </div>
         </div>
-
-        <DepositDialog
-          open={depositDialog}
-          onOpenChange={setDepositDialog}
-          asset={quoteCurrency}
-        />
-
-        <WithdrawDialog
-          open={withdrawDialog}
-          onOpenChange={setWithdrawDialog}
-          asset={quoteCurrency}
-        />
       </CardContent>
     </Card>
   );
