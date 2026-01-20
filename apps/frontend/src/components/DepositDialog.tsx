@@ -14,7 +14,7 @@ import { TOKENS, VAULT_SPOT_ADDRESS, Token, WETH_ADDRESS } from '@/config/contra
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { WethAbi } from '@/abis/Weth';
 import { parseUnits, erc20Abi } from 'viem';
-import { useWriteContract, useReadContract, useAccount, useWalletClient } from 'wagmi';
+import { useWriteContract, useReadContract, useAccount, useWalletClient, useBalance } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
@@ -25,9 +25,10 @@ interface DepositDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   asset?: Token;
+  amount?: string;
 }
 
-export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps) {
+export function DepositDialog({ open, onOpenChange, asset, amount: initialAmount }: DepositDialogProps) {
   const [amount, setAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
@@ -35,13 +36,22 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
 
   useEffect(() => {
     setSelectedAsset(asset || '');
-    setAmount('');
-  }, [asset, open]);
+    // Set the amount from the prop, but don't trigger the deposit
+    setAmount(initialAmount || '');
+  }, [asset, open, initialAmount]);
 
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const { writeContractAsync } = useWriteContract();
   const token = selectedAsset ? TOKENS[selectedAsset] : undefined;
+
+  const { data: balance } = useBalance({
+    address,
+    token: selectedAsset === 'ETH' ? undefined : token?.address,
+    query: {
+      enabled: !!address && !!selectedAsset,
+    },
+  });
 
   const { data: allowance, refetch } = useReadContract({
     address: token?.address,
@@ -76,12 +86,17 @@ export function DepositDialog({ open, onOpenChange, asset }: DepositDialogProps)
         return;
     }
 
+    const parsedAmount = parseUnits(amount, token.decimals);
+
+    if (balance && balance.value < parsedAmount) {
+      toast.error("Insufficient balance to make this deposit.");
+      return;
+    }
+
     setIsDepositing(true);
     const toastId = toast.loading("Initiating deposit...");
 
     try {
-      const parsedAmount = parseUnits(amount, token.decimals);
-
       if (selectedAsset === 'ETH') {
         toast.loading("Wrapping ETH to WETH...", { id: toastId });
         const wrapHash = await writeContractAsync({

@@ -2,9 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 import { Redis } from '@upstash/redis';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { eq } from "drizzle-orm";
 
 import * as schema from './schema';
-import { Order } from './schema';
+import { Order, orders } from './schema';
 
 // --- PostgreSQL (Supabase) Client ---
 
@@ -61,18 +62,14 @@ export const saveSession = async (sessionKey: string, expiration: number) => {
     if (error) throw error;
 };
 
-export const getOrders = async (address: string): Promise<Order[]> => {
-    const { data, error } = await supabase.from('orders').select('*').eq('user', address);
-    if (error) throw error;
-    return data as Order[];
+export const getOrders = async (address: string) => {
+    return db.select().from(orders).where(eq(orders.user, address));
 };
 
-export const saveOrder = async (intent: any) => {
-    const { error } = await supabase.from('orders').insert([intent]);
-    if (error) throw error;
+export const saveOrder = async (order: Order) => {
+    return db.insert(orders).values(order);
 };
 
-export const updateOrderStatus = async (orderId: string, status: string) => {
-    const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
-    if (error) throw error;
+export const updateOrderStatus = async (orderId: string, status: 'open' | 'filled' | 'canceled') => {
+    return db.update(orders).set({ status }).where(eq(orders.id, orderId));
 };

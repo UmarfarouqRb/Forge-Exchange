@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { getOrderBook } from "./src/orderbook";
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
 // Define the proxy middleware for the relayer service
@@ -17,10 +18,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/session/authorize', relayerProxy);
   app.use('/api/orders', relayerProxy);
   app.use('/api/tokens', relayerProxy);
-  app.use('/api/order-book', relayerProxy);
   app.use('/api/markets', relayerProxy);
   app.use('/api/health', relayerProxy);
 
+  // Order book
+  app.get("/api/order-book/:pair", getOrderBook);
 
   // Trading Pairs Routes
   app.get("/api/trading-pairs", async (req: Request, res: Response) => {

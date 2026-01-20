@@ -24,18 +24,20 @@ interface WithdrawDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   asset: Token;
+  amount?: string;
 }
 
-export function WithdrawDialog({ open, onOpenChange, asset }: WithdrawDialogProps) {
-  const [amount, setAmount] = useState('');
+export function WithdrawDialog({ open, onOpenChange, asset, amount: initialAmount }: WithdrawDialogProps) {
+  const [amount, setAmount] = useState(initialAmount || '');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
 
   useEffect(() => {
-    setAmount('');
-  }, [open, asset]);
+    // Set the amount from the prop, but don't trigger the withdrawal
+    setAmount(initialAmount || '');
+  }, [open, initialAmount]);
 
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const { writeContractAsync } = useWriteContract();
   const token = TOKENS[asset];

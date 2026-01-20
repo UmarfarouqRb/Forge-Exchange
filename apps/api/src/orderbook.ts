@@ -1,9 +1,9 @@
 import { http, createPublicClient, parseUnits, formatUnits } from 'viem';
 import { foundry } from 'viem/chains';
-import { intentSpotRouterABI } from '../config/abis';
-import { TOKENS } from '../config/tokens';
-import { relayerConfig } from '../config';
-import { repository } from '../db';
+import { intentSpotRouterABI } from '../../relayer/src/config/abis';
+import { TOKENS } from '../../relayer/src/config/tokens';
+import { relayerConfig } from '../../relayer/src/config';
+import { repository } from '../../relayer/src/db';
 import { Request, Response } from 'express';
 
 // --- Blockchain Client Setup ---

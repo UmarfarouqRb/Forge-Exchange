@@ -1,4 +1,26 @@
+import { pgTable, text, pgEnum } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
+
+export const orderSide = pgEnum('order_side', ['buy', 'sell']);
+export const orderType = pgEnum('order_type', ['limit', 'market']);
+export const orderStatus = pgEnum('order_status', ['open', 'filled', 'canceled']);
+
+export const orders = pgTable('orders', {
+  id: text('id').primaryKey(),
+  user: text('user').notNull(),
+  pair: text('pair').notNull(),
+  side: orderSide('side').notNull(),
+  type: orderType('type').notNull(),
+  price: text('price').notNull(),
+  amount: text('amount').notNull(),
+  filled: text('filled').notNull(),
+  status: orderStatus('status').notNull(),
+  createdAt: text('created_at').notNull(),
+  symbol: text('symbol').notNull(),
+  total: text('total').notNull(),
+  leverage: text('leverage').notNull(),
+});
+
 
 export const Order = z.object({
   id: z.string(),

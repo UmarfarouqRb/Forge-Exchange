@@ -14,7 +14,6 @@ const symbols = [
     'BINANCE:BTCUSDT',
     'BINANCE:ETHUSDT',
     'BINANCE:SOLUSDT',
-    'BINANCE:TRUMPUSDT',
     'BINANCE:XRPUSDT'
 ];
 

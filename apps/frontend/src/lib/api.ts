@@ -1,8 +1,10 @@
 import { apiRequest } from './queryClient';
-import type { Order } from '../types';
+import type { Order, Transaction } from '../types';
 import { OrderBookData } from '@/types/orderbook';
 
-const API_BASE_URL = "https://forge-exchange-api.onrender.com";
+const API_BASE_URL = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:3001' 
+  : 'https://forge-exchange-api.onrender.com';
 
 const checkApiConfig = () => {
   if (!API_BASE_URL) {
@@ -12,21 +14,20 @@ const checkApiConfig = () => {
   }
 }
 
-export const getAMMPrice = async (pair: string): Promise<number | null> => {
-  checkApiConfig();
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/amm-price/${pair}`);
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Error: Failed to fetch AMM price for pair ${pair}. Status: ${response.status}. Message: ${errorText}`);
-      return null;
+export const getTrendingPairs = async (): Promise<any[]> => {
+    checkApiConfig();
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/trading-pairs/trending`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`API Error: Failed to fetch trending pairs. Status: ${response.status}. Message: ${errorText}`);
+            return [];
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Network or API Error: Could not fetch trending pairs. Please ensure the API services are running and accessible.", error);
+        return [];
     }
-    const data = await response.json();
-    return data.price;
-  } catch (error) {
-    console.error("Network or API Error: Could not fetch AMM price. Please ensure the API services are running and accessible.", error);
-    return null;
-  }
 };
 
 export const getOrderBook = async (pair: string): Promise<OrderBookData> => {
@@ -49,7 +50,7 @@ export const getOrders = async (address: string | undefined): Promise<Order[]> =
   if (!address) return [];
   checkApiConfig();
   try {
-    const response = await fetch(`${API_BASE_URL}/api/orders/${address}?category=spot`);
+    const response = await fetch(`${API_BASE_URL}/api/orders/${address}`);
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API Error: Failed to fetch orders for address ${address}. Status: ${response.status}. Message: ${errorText}`);
@@ -123,4 +124,37 @@ export const getAssets = async (address: string | null) => {
     console.error("Network or API Error: Could not fetch assets. Please ensure the API services are running and accessible.", error);
     throw error;
   }
+};
+
+export const getTradingPair = async (symbol: string) => {
+  checkApiConfig();
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/trading-pairs/${symbol}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error: Failed to fetch trading pair ${symbol}. Status: ${response.status}. Message: ${errorText}`);
+      throw new Error('Failed to fetch trading pair');
+    }
+    return response.json();
+  } catch (error) {
+    console.error("Network or API Error: Could not fetch trading pair. Please ensure the API services are running and accessible.", error);
+    throw error;
+  }
+}
+
+export const getTransactions = async (address: string | undefined): Promise<Transaction[]> => {
+    if (!address) return [];
+    checkApiConfig();
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/transactions/${address}`);
+        if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API Error: Failed to fetch transactions for address ${address}. Status: ${response.status}. Message: ${errorText}`);
+        throw new Error('Failed to fetch transactions');
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Network or API Error: Could not fetch transactions. Please ensure the API services are running and accessible.", error);
+        throw error;
+    }
 };
