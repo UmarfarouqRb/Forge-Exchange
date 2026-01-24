@@ -1,4 +1,4 @@
-import { getOrders } from '@forge/db';
+import { getOrdersByPair } from '@forge/db';
 import { http, createPublicClient, parseUnits, formatUnits, Abi } from 'viem';
 import { base } from 'viem/chains';
 import { TOKENS } from '../../frontend/src/config';
@@ -109,7 +109,7 @@ async function getOrderBook(pair: string) {
         throw new Error('Invalid market specified');
     }
 
-    const realOrders = await getOrders(pair);
+    const realOrders = await getOrdersByPair(pair);
     const realBids = realOrders.filter((o: any) => o.side === 'buy').map((o: any) => [o.price, o.amount]);
     const realAsks = realOrders.filter((o: any) => o.side === 'sell').map((o: any) => [o.price, o.amount]);
 

@@ -67,6 +67,10 @@ export const getOrders = async (address: string) => {
     return db.select().from(orders).where(eq(orders.user, address));
 };
 
+export const getOrdersByPair = async (pair: string) => {
+    return db.select().from(orders).where(eq(orders.pair, pair));
+};
+
 export const saveOrder = async (order: Order) => {
     return db.insert(orders).values(order);
 };
