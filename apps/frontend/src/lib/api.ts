@@ -2,7 +2,9 @@ import { apiRequest } from './queryClient';
 import type { Order, Transaction } from '../types';
 import { OrderBookData } from '@/types/orderbook';
 
-const API_BASE_URL = 'https://forge-exchange-api.onrender.com';
+const API_BASE_URL = process.env.NODE_ENV === 'production'
+  ? 'https://forge-exchange-api.onrender.com'
+  : 'http://localhost:3001';
 
 const checkApiConfig = () => {
   if (!API_BASE_URL) {
@@ -11,6 +13,22 @@ const checkApiConfig = () => {
     throw new Error(errorMessage);
   }
 }
+
+export const getMarket = async (pair: string) => {
+    checkApiConfig();
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/markets/${pair}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`API Error: Failed to fetch market data for pair ${pair}. Status: ${response.status}. Message: ${errorText}`);
+            return null;
+        }
+        return response.json();
+    } catch (error) {
+        console.error(`Network or API Error: Could not fetch market data for pair ${pair}. Please ensure the API services are running and accessible.`, error);
+        return null;
+    }
+};
 
 export const getTrendingPairs = async (): Promise<any[]> => {
     checkApiConfig();
@@ -29,19 +47,12 @@ export const getTrendingPairs = async (): Promise<any[]> => {
 };
 
 export const getOrderBook = async (pair: string): Promise<OrderBookData> => {
-  checkApiConfig();
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/orderbook/${pair}`);
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Error: Failed to fetch order book for pair ${pair}. Status: ${response.status}. Message: ${errorText}`);
-      throw new Error('Failed to fetch order book');
+    const marketData = await getMarket(pair);
+    if (marketData) {
+        return { bids: marketData.bids, asks: marketData.asks };
     }
-    return response.json();
-  } catch (error) {
-    console.error("Network or API Error: Could not fetch order book. Please ensure the API services are running and accessible.", error);
-    throw error;
-  }
+    // Return empty order book on error to avoid breaking components that use this
+    return { bids: [], asks: [] };
 };
 
 export const getOrders = async (address: string | undefined): Promise<Order[]> => {

@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react'; // Added useEffect
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,13 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
   const { ready, authenticated } = usePrivy();
   const submitIntent = useSubmitIntent();
   const navigate = useNavigate();
+
+  // Update price when currentPrice prop changes
+  useEffect(() => {
+    if (orderType === 'limit') {
+      setPrice(currentPrice);
+    }
+  }, [currentPrice, orderType]);
 
   const baseCurrency = symbol.replace('USDT', '') as Token;
   const quoteCurrency = 'USDT' as Token;

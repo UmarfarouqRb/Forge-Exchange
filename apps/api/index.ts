@@ -7,12 +7,9 @@ import { createWebSocketServer } from "./websocket";
 const app = express();
 const server = http.createServer(app);
 
-// Initialize WebSocket server
-createWebSocketServer(server);
-
-// Enable CORS
+// Loosen CORS policy
 app.use(cors({
-  origin: 'https://forge-exchange.onrender.com',
+  origin: '*'
 }));
 
 declare module 'http' {
@@ -26,6 +23,11 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: false }));
+
+// Add health check endpoint
+app.get("/", (_req, res) => {
+  res.status(200).send("Forge API is running");
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -77,5 +79,7 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     console.log(`serving on port ${port}`);
+    // Initialize WebSocket server after HTTP server starts
+    createWebSocketServer(server);
   });
 })();

@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { getOrderBook } from "./src/orderbook";
+import { getMarketState } from "./src/market"; // Updated import
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
 // Define the proxy middleware for the relayer service
@@ -14,15 +14,30 @@ const relayerProxy = createProxyMiddleware({
 export async function registerRoutes(app: Express): Promise<Server> {
 
   // --- Relayer Proxy Routes ---
+  // We leave the transaction-related routes proxied for now
   app.use('/api/spot', relayerProxy);
   app.use('/api/session/authorize', relayerProxy);
   app.use('/api/orders', relayerProxy);
   app.use('/api/tokens', relayerProxy);
-  app.use('/api/markets', relayerProxy);
   app.use('/api/health', relayerProxy);
 
-  // Order book
-  app.get("/api/order-book/:pair", getOrderBook);
+  // --- New Market State Endpoint ---
+  app.get("/api/markets/:pair", async (req: Request, res: Response) => {
+    const { pair } = req.params;
+    if (typeof pair !== 'string') {
+        return res.status(400).json({ error: 'Pair parameter is required' });
+    }
+
+    try {
+      const marketState = await getMarketState(pair);
+      if (!marketState) {
+          return res.status(404).json({ error: "Market not found" });
+      }
+      res.json(marketState);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Trading Pairs Routes
   app.get("/api/trading-pairs", async (req: Request, res: Response) => {

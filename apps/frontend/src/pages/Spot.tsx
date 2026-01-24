@@ -6,10 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TradingChart } from '@/components/TradingChart';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
-import { getOrders, getOrderBook } from '@/lib/api';
+import { getOrders, getMarket } from '@/lib/api'; // Changed to getMarket
 import type { Order } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
-import { useMarket } from '@/hooks/use-market';
+import { useMarket as useMarketDataHook } from '@/hooks/use-market'; // Renamed for clarity
 import { NewAssetSelector } from "@/components/NewAssetSelector";
 import { TradeHistory } from '@/components/TradeHistory';
 import { OrderHistory } from '@/components/OrderHistory';
@@ -25,7 +25,7 @@ export default function Spot() {
   const { user, authenticated } = usePrivy();
   const wallet = user?.wallet;
   const isDesktop = useBreakpoint('md');
-  const { tradingPairs } = useMarket();
+  const { tradingPairs } = useMarketDataHook(); // Using renamed hook
 
   useEffect(() => {
     const newPair = new URLSearchParams(search).get('pair');
@@ -43,7 +43,12 @@ export default function Spot() {
     }
   }, [tradingPairs, selectedPair]);
 
-  const tradingPair = tradingPairs instanceof Map ? tradingPairs.get(selectedPair) : undefined;
+  const { data: marketData, isLoading: isMarketDataLoading, isError: isMarketDataError } = useQuery<any>({ // Changed to marketData
+    queryKey: ['market-data', selectedPair], // Changed queryKey
+    queryFn: () => getMarket(selectedPair), // Changed to getMarket
+    enabled: !!selectedPair,
+    refetchInterval: 5000, // Refetch every 5 seconds
+  });
 
   const { data: userOrders, isLoading: areUserOrdersLoading, isError: areUserOrdersError } = useQuery<Order[]>({
     queryKey: ['user-orders', wallet?.address, 'spot'],
@@ -55,18 +60,12 @@ export default function Spot() {
     refetchInterval: 10000,
   });
 
-  const { data: orderBookData, isLoading: isOrderBookLoading, isError: isOrderBookError } = useQuery<OrderBookData>({
-    queryKey: ['order-book', selectedPair],
-    queryFn: () => getOrderBook(selectedPair),
-    enabled: !!selectedPair,
-    refetchInterval: 10000,
-  });
-
-  const currentPrice = tradingPair?.currentPrice || '0';
-  const priceChange = tradingPair?.priceChange24h || '0';
-  const high = tradingPair?.high24h || '0';
-  const low = tradingPair?.low24h || '0';
-  const volume = tradingPair?.volume24h || '0';
+  const orderBookData: OrderBookData | null = marketData ? { bids: marketData.bids, asks: marketData.asks } : null;
+  const currentPrice = marketData?.price?.toFixed(2) || '0';
+  const priceChange = marketData?.priceChange24h || '0'; // This will be null for now
+  const high = marketData?.high24h || '0'; // This will be null for now
+  const low = marketData?.low24h || '0'; // This will be null for now
+  const volume = marketData?.volume24h || '0'; // This will be null for now
 
   const renderOpenOrders = () => {
     const openOrders = userOrders?.filter((order) => order.status === 'open');
@@ -210,9 +209,9 @@ export default function Spot() {
               symbol={selectedPair} 
               currentPrice={currentPrice} 
               isMobile={!isDesktop} 
-              orderBookData={orderBookData || null} 
-              isOrderBookLoading={isOrderBookLoading} 
-              isOrderBookError={isOrderBookError} 
+              orderBookData={orderBookData} 
+              isOrderBookLoading={isMarketDataLoading} // Changed to market data loading
+              isOrderBookError={isMarketDataError} // Changed to market data error
             />
           </TabsContent>
           {renderOpenOrders()}
@@ -259,9 +258,9 @@ export default function Spot() {
                 symbol={selectedPair} 
                 currentPrice={currentPrice} 
                 isMobile={!isDesktop} 
-                orderBookData={orderBookData || null} 
-                isOrderBookLoading={isOrderBookLoading} 
-                isOrderBookError={isOrderBookError} 
+                orderBookData={orderBookData} 
+                isOrderBookLoading={isMarketDataLoading} // Changed to market data loading
+                isOrderBookError={isMarketDataError} // Changed to market data error
               />
             </div>
           </div>
