@@ -12,14 +12,14 @@ import { Order, orders } from './schema';
 
 // IMPORTANT: These environment variables must be set for the server to connect to Supabase.
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase environment variables (SUPABASE_URL, SUPABASE_ANON_KEY) are not set.');
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  throw new Error('Supabase environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) are not set.');
 }
 
 // Standard Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 // Drizzle ORM client for type-safe SQL queries
 // We use this for our application logic

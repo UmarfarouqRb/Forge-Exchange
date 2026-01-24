@@ -3,8 +3,8 @@ services:
     name: forge-exchange-api
     env: node
     plan: starter
-    buildCommand: "pnpm install --frozen-lockfile && pnpm build"
-    startCommand: "pnpm --filter api start"
+    buildCommand: "pnpm install --frozen-lockfile && pnpm --filter forge-exchange-api build"
+    startCommand: "pnpm --filter forge-exchange-api start"
     envVars:
       - key: RELAYER_URL
         fromService:
@@ -13,7 +13,9 @@ services:
           envVarKey: URL
       - key: DATABASE_URL
         sync: false
-      - key: SUPABASE_KEY
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: UPSTASH_REDIS_URL
         sync: false
@@ -33,7 +35,9 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
-      - key: SUPABASE_KEY
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: UPSTASH_REDIS_URL
         sync: false
