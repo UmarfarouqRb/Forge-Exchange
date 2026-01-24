@@ -27,9 +27,9 @@ export default function Market() {
         "colorTheme": "dark",
         "showChart": true,
         "locale": "en",
-        "isTransparent": true,
         "width": "100%",
         "height": 700,
+        "displayMode": "compact",
         "tabs": [
           {
             "title": "Crypto",
@@ -42,40 +42,6 @@ export default function Market() {
               { "s": "KRAKEN:LINKUSD", "d": "Chainlink" }
             ],
             "originalTitle": "Crypto"
-          },
-          {
-            "title": "Indices",
-            "symbols": [
-              { "s": "FOREXCOM:SPXUSD", "d": "S&P 500" },
-              { "s": "FOREXCOM:NSXUSD", "d": "US 100" },
-              { "s": "FOREXCOM:DJI", "d": "Dow 30" },
-              { "s": "INDEX:VIX", "d": "VIX" },
-              { "s": "INDEX:DAX", "d": "DAX" }
-            ],
-            "originalTitle": "Indices"
-          },
-          {
-            "title": "Forex",
-            "symbols": [
-              { "s": "FX:EURUSD", "d": "EUR/USD" },
-              { "s": "FX:GBPUSD", "d": "GBP/USD" },
-              { "s": "FX:USDJPY", "d": "USD/JPY" },
-              { "s": "FX:USDCHF", "d": "USD/CHF" },
-              { "s": "FX:AUDUSD", "d": "AUD/USD" },
-              { "s": "FX:USDCAD", "d": "USD/CAD" }
-            ],
-            "originalTitle": "Forex"
-          },
-          {
-            "title": "Commodities",
-            "symbols": [
-              { "s": "OANDA:XAUUSD", "d": "Gold" },
-              { "s": "OANDA:XAGUSD", "d": "Silver" },
-              { "s": "TVC:USOIL", "d": "Crude Oil" },
-              { "s": "TVC:UKOIL", "d": "Brent Oil" },
-              { "s": "COMEX:GC1!", "d": "Gold Futures" }
-            ],
-            "originalTitle": "Commodities"
           }
         ]
       });

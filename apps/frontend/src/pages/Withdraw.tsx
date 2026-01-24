@@ -130,8 +130,8 @@ export default function Withdraw() {
                     </div>
                 )}
                 <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="asset-selector">Select Asset</Label>
+                    <div className="grid w-full items-center gap-1.5">
+                        <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
                         <NewAssetSelector asset={selectedAsset} setAsset={setSelectedAsset} />
                     </div>
                     <div className="space-y-2">
@@ -162,11 +162,9 @@ export default function Withdraw() {
                         'Confirm Withdrawal'
                         )}
                     </Button>
-                    {message?.type === 'success' && (
-                        <Button onClick={() => navigate('/assets')} className="w-full mt-2" variant="outline">
-                            Back to Assets
-                        </Button>
-                    )}
+                    <Button onClick={() => navigate('/assets')} className="w-full mt-2" variant="outline">
+                        Back to Assets
+                    </Button>
                 </div>
             </CardContent>
         </Card>

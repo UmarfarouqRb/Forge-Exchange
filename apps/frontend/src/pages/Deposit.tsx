@@ -182,8 +182,8 @@ export default function Deposit() {
             </div>
           )}
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="asset-selector">Select Asset</Label>
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
               <NewAssetSelector asset={selectedAsset} setAsset={setSelectedAsset} />
             </div>
 
@@ -213,11 +213,9 @@ export default function Deposit() {
                 'Confirm Deposit'
               )}
             </Button>
-            {message?.type === 'success' && (
-              <Button onClick={() => navigate('/assets')} className="w-full mt-2" variant="outline">
+            <Button onClick={() => navigate('/assets')} className="w-full mt-2" variant="outline">
                 Back to Assets
-              </Button>
-            )}
+            </Button>
           </div>
         </CardContent>
       </Card>

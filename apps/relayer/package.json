@@ -24,18 +24,19 @@
     "@forge/crypto": "workspace:^",
     "@forge/db": "workspace:^",
     "@forge/intent-types": "workspace:^",
+    "@openzeppelin/defender-relay-client": "^1.54.6",
     "@types/sqlite3": "^3.1.11",
     "@upstash/redis": "^1.33.0",
     "amqplib": "^0.10.3",
     "body-parser": "^1.20.1",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.32.1",
-    "express": "^4.19.2",
+    "ethers": "^6.15.0",
+    "express": "^4.22.1",
     "postgres": "^3.4.4",
     "sqlite3": "^5.1.7",
     "viem": "2.43.1",
-    "zod": "^4.3.5",
-    "ethers": "^6.15.0"
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.1",
