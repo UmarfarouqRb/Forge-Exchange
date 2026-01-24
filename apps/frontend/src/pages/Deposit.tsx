@@ -183,7 +183,7 @@ export default function Deposit() {
           )}
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="asset-selector">Asset</Label>
+              <Label htmlFor="asset-selector">Select Asset</Label>
               <NewAssetSelector asset={selectedAsset} setAsset={setSelectedAsset} />
             </div>
 

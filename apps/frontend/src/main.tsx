@@ -8,7 +8,7 @@ import { WagmiProvider } from 'wagmi';
 import { wagmiConfig } from './wagmi';
 import { ChainProvider } from "@/contexts/ChainContext";
 import { MarketDataProvider } from '@/contexts/MarketDataProvider';
-import { base, bsc, arbitrum } from 'viem/chains';
+import { mainnet, base, bsc, arbitrum } from 'viem/chains';
 import App from './App';
 import './index.css';
 import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
@@ -35,7 +35,12 @@ function Main() {
           accentColor: '#ff6b00',
         },
         defaultChain: base,
-        supportedChains: [base, bsc, arbitrum],
+        supportedChains: [mainnet, base, bsc, arbitrum],
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: 'users-without-wallets',
+          },
+        },
       }}
     >
       <WagmiProvider config={wagmiConfig}>

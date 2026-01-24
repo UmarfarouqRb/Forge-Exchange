@@ -21,17 +21,63 @@ export default function Market() {
       widgetContainer.innerHTML = '';
 
       const script = document.createElement('script');
-      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js';
       script.async = true;
       script.innerHTML = JSON.stringify({
-        width: '100%',
-        height: 700,
-        defaultColumn: 'overview',
-        screener_type: 'crypto_mkt',
-        displayCurrency: 'USD',
-        colorTheme: 'dark',
-        locale: 'en',
-        isTransparent: true
+        "colorTheme": "dark",
+        "showChart": true,
+        "locale": "en",
+        "isTransparent": true,
+        "width": "100%",
+        "height": 700,
+        "tabs": [
+          {
+            "title": "Crypto",
+            "symbols": [
+              { "s": "BITSTAMP:BTCUSD", "d": "Bitcoin" },
+              { "s": "BITSTAMP:ETHUSD", "d": "Ethereum" },
+              { "s": "COINBASE:SOLUSD", "d": "Solana" },
+              { "s": "COINBASE:AVAXUSD", "d": "Avalanche" },
+              { "s": "BINANCE:BNBUSD", "d": "BNB" },
+              { "s": "KRAKEN:LINKUSD", "d": "Chainlink" }
+            ],
+            "originalTitle": "Crypto"
+          },
+          {
+            "title": "Indices",
+            "symbols": [
+              { "s": "FOREXCOM:SPXUSD", "d": "S&P 500" },
+              { "s": "FOREXCOM:NSXUSD", "d": "US 100" },
+              { "s": "FOREXCOM:DJI", "d": "Dow 30" },
+              { "s": "INDEX:VIX", "d": "VIX" },
+              { "s": "INDEX:DAX", "d": "DAX" }
+            ],
+            "originalTitle": "Indices"
+          },
+          {
+            "title": "Forex",
+            "symbols": [
+              { "s": "FX:EURUSD", "d": "EUR/USD" },
+              { "s": "FX:GBPUSD", "d": "GBP/USD" },
+              { "s": "FX:USDJPY", "d": "USD/JPY" },
+              { "s": "FX:USDCHF", "d": "USD/CHF" },
+              { "s": "FX:AUDUSD", "d": "AUD/USD" },
+              { "s": "FX:USDCAD", "d": "USD/CAD" }
+            ],
+            "originalTitle": "Forex"
+          },
+          {
+            "title": "Commodities",
+            "symbols": [
+              { "s": "OANDA:XAUUSD", "d": "Gold" },
+              { "s": "OANDA:XAGUSD", "d": "Silver" },
+              { "s": "TVC:USOIL", "d": "Crude Oil" },
+              { "s": "TVC:UKOIL", "d": "Brent Oil" },
+              { "s": "COMEX:GC1!", "d": "Gold Futures" }
+            ],
+            "originalTitle": "Commodities"
+          }
+        ]
       });
 
       widgetContainer.appendChild(script);

@@ -13,12 +13,14 @@ import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
+import { NewAssetSelector } from '@/components/NewAssetSelector';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
+  const [selectedAsset, setSelectedAsset] = useState<Token | ''>('');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   const { search } = useLocation();
@@ -26,10 +28,14 @@ export default function Withdraw() {
   const params = new URLSearchParams(search);
   const asset = params.get('asset') as Token;
 
+  useEffect(() => {
+    setSelectedAsset(asset || '');
+  }, [asset]);
+
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const { writeContractAsync } = useWriteContract();
-  const token = TOKENS[asset];
+  const token = selectedAsset ? TOKENS[selectedAsset] : undefined;
 
   useTrackedTx({
     hash: withdrawTxHash,
@@ -51,8 +57,8 @@ export default function Withdraw() {
         setMessage({ type: 'error', text: errorMessage });
         return;
     }
-    if (!token) {
-        const errorMessage = 'Selected asset is not valid.';
+    if (!token || !selectedAsset) {
+        const errorMessage = 'Please select a valid asset to withdraw.';
         setMessage({ type: 'error', text: errorMessage });
         return;
     }
@@ -63,7 +69,7 @@ export default function Withdraw() {
     try {
       const parsedAmount = parseUnits(amount, token.decimals);
 
-      if (asset === 'ETH') {
+      if (selectedAsset === 'ETH') {
         toast.loading("Step 1/2: Withdrawing WETH from vault...", { id: toastId });
         const withdrawWethHash = await writeContractAsync({
             address: VAULT_SPOT_ADDRESS,
@@ -115,7 +121,7 @@ export default function Withdraw() {
     <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <Card className="w-full max-w-md">
             <CardHeader>
-                <CardTitle>Withdraw {asset}</CardTitle>
+                <CardTitle>Withdraw</CardTitle>
             </CardHeader>
             <CardContent>
                 {message && (
@@ -124,39 +130,43 @@ export default function Withdraw() {
                     </div>
                 )}
                 <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                    <Label htmlFor="withdraw-amount">Amount</Label>
-                    <Input
-                    id="withdraw-amount"
-                    type="number"
-                    placeholder={`0.00`}
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    disabled={isWithdrawing}
-                    />
-                </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="asset-selector">Select Asset</Label>
+                        <NewAssetSelector asset={selectedAsset} setAsset={setSelectedAsset} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="withdraw-amount">Amount</Label>
+                        <Input
+                        id="withdraw-amount"
+                        type="number"
+                        placeholder={`0.00`}
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        disabled={isWithdrawing || !selectedAsset}
+                        />
+                    </div>
 
-                <Button
-                    onClick={handleWithdraw}
-                    disabled={!amount || isWithdrawing}
-                    className="w-full"
-                    variant="destructive"
-                    data-testid="button-confirm-withdraw"
-                >
-                    {isWithdrawing ? (
-                    <>
-                        <FiLoader className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                    </>
-                    ) : (
-                    'Confirm Withdrawal'
-                    )}
-                </Button>
-                {message?.type === 'success' && (
-                    <Button onClick={() => navigate('/assets')} className="w-full mt-2" variant="outline">
-                        Back to Assets
+                    <Button
+                        onClick={handleWithdraw}
+                        disabled={!amount || isWithdrawing || !selectedAsset}
+                        className="w-full"
+                        variant="destructive"
+                        data-testid="button-confirm-withdraw"
+                    >
+                        {isWithdrawing ? (
+                        <>
+                            <FiLoader className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                        </>
+                        ) : (
+                        'Confirm Withdrawal'
+                        )}
                     </Button>
-                )}
+                    {message?.type === 'success' && (
+                        <Button onClick={() => navigate('/assets')} className="w-full mt-2" variant="outline">
+                            Back to Assets
+                        </Button>
+                    )}
                 </div>
             </CardContent>
         </Card>
