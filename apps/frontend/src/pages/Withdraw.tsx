@@ -8,7 +8,8 @@ import { TOKENS, VAULT_SPOT_ADDRESS, Token, WETH_ADDRESS } from '@/config/contra
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { WethAbi } from '@/abis/Weth';
 import { parseUnits } from 'viem';
-import { useWriteContract, useAccount, useWalletClient } from 'wagmi';
+import { useWriteContract, useAccount } from 'wagmi';
+import { useWallets } from '@privy-io/react-auth';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
@@ -32,8 +33,9 @@ export default function Withdraw() {
     setSelectedAsset(asset || '');
   }, [asset]);
 
-  const { address, isConnected } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const { wallets } = useWallets();
+  const connectedWallet = wallets[0];
+  const { address } = connectedWallet || {};
   const { writeContractAsync } = useWriteContract();
   const token = selectedAsset ? TOKENS[selectedAsset] : undefined;
 
@@ -47,7 +49,7 @@ export default function Withdraw() {
 
   const handleWithdraw = async () => {
     setMessage(null);
-    if (!isConnected || !walletClient || !address) {
+    if (!connectedWallet) {
       const errorMessage = 'Please connect your wallet first.';
       setMessage({ type: 'error', text: errorMessage });
       return;

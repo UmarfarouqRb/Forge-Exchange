@@ -44,7 +44,7 @@ async function getAMMPrice(tokenIn: { address: `0x${string}`; decimals: number }
                 return parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals));
             }
         } catch (error) {
-
+            console.error(`Error fetching from PancakeSwap for fee ${fee}:`, error);
         }
     }
     console.error("Error fetching PancakeSwap price: Could not find a valid pool for the given pair.");

@@ -22,7 +22,8 @@ export function useSubmitIntent() {
   const { ready, authenticated } = usePrivy();
   const { toast } = useToast();
 
-  const connectedWallet = wallets[0];
+  const embeddedWallet = wallets.find((wallet) => wallet.walletClientType === 'privy');
+  const connectedWallet = embeddedWallet || wallets[0];
   const isWalletReady = ready && authenticated && !!connectedWallet;
 
   const { data: tokens } = useQuery<{ [symbol: string]: { address: `0x${string}`; decimals: number } }>({

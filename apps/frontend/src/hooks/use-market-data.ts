@@ -16,7 +16,7 @@ export function useMarketData() {
         data.forEach((pair: TradingPair) => {
           newTradingPairs.set(pair.symbol, {
             ...pair,
-            currentPrice: pair.price ?? '0',
+            currentPrice: pair.lastPrice ?? '0',
           });
         });
         setTradingPairs(newTradingPairs);

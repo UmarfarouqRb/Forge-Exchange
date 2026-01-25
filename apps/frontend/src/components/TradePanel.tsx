@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useSubmitIntent } from '@/hooks/useSubmitIntent';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { TOKENS, Token } from '@/config/contracts';
@@ -31,9 +31,12 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState('0.05');
   const [isConfirming, setIsConfirming] = useState(false);
-  const { ready, authenticated } = usePrivy();
+  const { ready, authenticated, user, login } = usePrivy();
+  const { wallets } = useWallets();
   const submitIntent = useSubmitIntent();
   const navigate = useNavigate();
+
+  const connectedWallet = wallets[0];
 
   // Update price when currentPrice prop changes
   useEffect(() => {
@@ -68,7 +71,11 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
   }, [amount, side, baseBalance, quoteBalance, baseToken, quoteToken, total]);
 
   const handlePlaceOrder = () => {
-    if (!authenticated || !hasSufficientBalance) {
+    if (!authenticated) {
+      login();
+      return;
+    }
+    if (!hasSufficientBalance) {
       return;
     }
     setIsConfirming(true);
@@ -89,7 +96,9 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
   const getButtonText = () => {
     if (disabled) return 'Disabled';
     if (submitIntent.isPending) return 'Processing...';
-    if (!ready || !authenticated) return 'Wallet Not Connected';
+    if (!ready) return 'Initializing...';
+    if (!authenticated) return 'Connect Wallet';
+    if (authenticated && !connectedWallet) return 'Creating Wallet...';
     if (!hasSufficientBalance) return 'Insufficient Funds';
     return side === 'buy' ? `Buy ${baseCurrency}` : `Sell ${baseCurrency}`;
   }
@@ -162,7 +171,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
         <Button
           className={`w-full text-lg p-6 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${submitIntent.isPending ? 'animate-pulse' : ''}`}
           onClick={handlePlaceOrder}
-          disabled={disabled || submitIntent.isPending || !ready || !authenticated || !hasSufficientBalance}
+          disabled={disabled || submitIntent.isPending || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance}
         >
           {getButtonText()}
         </Button>
@@ -224,7 +233,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
           <Button
             className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${submitIntent.isPending ? 'animate-pulse' : ''}`}
             onClick={handlePlaceOrder}
-            disabled={disabled || submitIntent.isPending || !ready || !authenticated || !hasSufficientBalance}
+            disabled={disabled || submitIntent.isPending || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance}
           >
             {getButtonText()}
           </Button>

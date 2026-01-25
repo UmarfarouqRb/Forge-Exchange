@@ -1,10 +1,10 @@
 
-import { useReadContracts, useAccount } from 'wagmi';
+import { useReadContracts } from 'wagmi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { FiSearch, FiDownload, FiUpload } from 'react-icons/fi';
 import { useState, useMemo } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
@@ -14,7 +14,9 @@ import { formatUnits } from 'viem';
 
 export default function Assets() {
   const { authenticated } = usePrivy();
-  const { address } = useAccount();
+  const { wallets } = useWallets();
+  const connectedWallet = wallets[0];
+  const { address } = connectedWallet || {};
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
