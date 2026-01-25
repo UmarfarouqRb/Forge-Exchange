@@ -15,6 +15,7 @@ import { TradeHistory } from '@/components/TradeHistory';
 import { OrderHistory } from '@/components/OrderHistory';
 import Trade from './Trade';
 import { OrderBookData } from '@/types/orderbook';
+import { MarketData } from '@/types/market-data';
 
 export default function Spot() {
   const { search } = useLocation();
@@ -43,7 +44,7 @@ export default function Spot() {
     }
   }, [tradingPairs, selectedPair]);
 
-  const { data: marketData, isLoading: isMarketDataLoading, isError: isMarketDataError } = useQuery<any>({
+  const { data: marketData, isLoading: isMarketDataLoading, isError: isMarketDataError } = useQuery<MarketData>({
     queryKey: ['market-data', selectedPair],
     queryFn: () => getMarket(selectedPair),
     enabled: !!selectedPair,
@@ -64,7 +65,7 @@ export default function Spot() {
 
   const orderBookData: OrderBookData | null = marketData ? { bids: marketData.bids, asks: marketData.asks } : null;
   const currentPrice = marketData?.price?.toFixed(2) || tradingPair?.currentPrice || '0';
-  const priceChange = tradingPair?.priceChange || '0'; // FIX: Was priceChangePercent
+  const priceChangePercent = tradingPair?.priceChangePercent || 0;
   const high = tradingPair?.high24h || '0';
   const low = tradingPair?.low24h || '0';
   const volume = tradingPair?.volume24h || '0';
@@ -170,12 +171,12 @@ export default function Spot() {
             </div>
             <div>
               <div 
-                className={`text-base md:text-lg font-bold font-mono ${parseFloat(priceChange) >= 0 ? 'text-chart-2' : 'text-chart-1'}`}
+                className={`text-base md:text-lg font-bold font-mono ${priceChangePercent >= 0 ? 'text-chart-2' : 'text-chart-1'}`}
                 data-testid="text-spot-price"
               >
                 ${currentPrice}
               </div>
-              <PriceChange value={parseFloat(priceChange)} />
+              <PriceChange value={priceChangePercent} />
             </div>
             <div className="hidden lg:grid grid-cols-3 gap-6 text-sm ml-auto">
               <div>

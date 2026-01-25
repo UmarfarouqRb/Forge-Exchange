@@ -5,10 +5,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PriceChange } from '@/components/PriceChange';
 import { useNavigate } from 'react-router-dom';
+import { TradingPair } from '@/types/trading-pair';
 
 export default function Market() {
   const navigate = useNavigate();
-  const { data: trendingPairs, isLoading, isError } = useQuery<any[]>({
+  const { data: trendingPairs, isLoading, isError } = useQuery<TradingPair[]>({
     queryKey: ['trending-pairs'],
     queryFn: getTrendingPairs,
     refetchInterval: 10000, // Refetch every 10 seconds
@@ -51,7 +52,7 @@ export default function Market() {
               <TableCell className="font-medium">{pair.symbol}</TableCell>
               <TableCell className="text-right font-mono">${parseFloat(pair.lastPrice).toFixed(2)}</TableCell>
               <TableCell className="text-right">
-                <PriceChange value={parseFloat(pair.priceChangePercent)} />
+                <PriceChange value={pair.priceChangePercent} />
               </TableCell>
               <TableCell className="text-right font-mono">${parseFloat(pair.high24h).toFixed(2)}</TableCell>
               <TableCell className="text-right font-mono">${parseFloat(pair.low24h).toFixed(2)}</TableCell>

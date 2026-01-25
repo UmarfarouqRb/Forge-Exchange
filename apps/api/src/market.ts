@@ -1,16 +1,15 @@
+
 import { getOrdersByPair } from '@forge/db';
 import { http, createPublicClient, parseUnits, formatUnits, Abi } from 'viem';
 import { base } from 'viem/chains';
 import { TOKENS } from '../../frontend/src/config';
 
-// --- Blockchain Client Setup for Base Mainnet ---
 const transport = http('https://mainnet.base.org');
 const client = createPublicClient({
   chain: base,
   transport,
 });
 
-// --- PancakeSwap V3 Quoter Configuration ---
 const PANCAKE_QUOTER_ADDRESS = '0x3c22449C3696145fC75078525E5921835777D43A';
 const PANCAKE_QUOTER_ABI: Abi = [
   {
@@ -30,8 +29,7 @@ const PANCAKE_QUOTER_ABI: Abi = [
   }
 ] as const;
 
-// --- Price Fetching from PancakeSwap (with Fee Tier Iteration) ---
-const FEE_TIERS = [100, 500, 2500, 10000]; // 0.01%, 0.05%, 0.25%, 1%
+const FEE_TIERS = [100, 500, 2500, 10000];
 
 async function getAMMPrice(tokenIn: { address: `0x${string}`; decimals: number }, tokenOut: { address: `0x${string}`; decimals: number }): Promise<number | null> {
     for (const fee of FEE_TIERS) {
@@ -46,15 +44,13 @@ async function getAMMPrice(tokenIn: { address: `0x${string}`; decimals: number }
                 return parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals));
             }
         } catch (error) {
-            // The contract reverts if the pool for the fee tier doesn't exist.
-            // We can safely ignore the error and try the next fee tier.
+
         }
     }
     console.error("Error fetching PancakeSwap price: Could not find a valid pool for the given pair.");
     return null;
 }
 
-// --- Synthetic Liquidity Generation ---
 function generateSyntheticDepth(midPrice: number): { bids: [string, string][], asks: [string, string][] } {
     const bids: [string, string][] = [];
     const asks: [string, string][] = [];
@@ -75,7 +71,6 @@ function generateSyntheticDepth(midPrice: number): { bids: [string, string][], a
     return { bids, asks };
 }
 
-// --- Order Book Logic ---
 async function getOrderBook(pair: string) {
     let baseCurrency: string | undefined;
     let quoteCurrency: string | undefined;
@@ -164,9 +159,9 @@ export async function getMarketState(pair: string) {
         price: price,
         bestBid: book.bids[0]?.[0] ?? null,
         bestAsk: book.asks[0]?.[0] ?? null,
-        lastTrade: book.lastTradePrice ?? null,
-        volume24h: null, // Placeholder for 24h volume
-        bids: book.bids, // Return the full order book
-        asks: book.asks, // Return the full order book
+        lastTrade: price, 
+        volume24h: null, 
+        bids: book.bids, 
+        asks: book.asks, 
     };
 }

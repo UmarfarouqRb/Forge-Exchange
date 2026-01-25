@@ -1,0 +1,2 @@
+-- 004_market_tokens.sql
+-- This file can be used to seed additional market-token relationships if needed in the future.

@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect } from 'react'; // Added useEffect
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ interface TradePanelProps {
 }
 
 export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = false }: TradePanelProps) {
-  const [orderType, setOrderType] = useState<'limit' | 'market'>('limit');
+  const [orderType, setOrderType] = useState<'limit' | 'market'>('market');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(currentPrice);
   const [amount, setAmount] = useState('');
@@ -88,9 +88,10 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
 
   const getButtonText = () => {
     if (disabled) return 'Disabled';
+    if (submitIntent.isPending) return 'Processing...';
     if (!ready || !authenticated) return 'Wallet Not Connected';
     if (!hasSufficientBalance) return 'Insufficient Funds';
-    return 'Place Order';
+    return side === 'buy' ? `Buy ${baseCurrency}` : `Sell ${baseCurrency}`;
   }
 
   if (isMobile) {
@@ -159,11 +160,11 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
         </div>
         
         <Button
-          className={`w-full text-lg p-6 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}`}
+          className={`w-full text-lg p-6 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${submitIntent.isPending ? 'animate-pulse' : ''}`}
           onClick={handlePlaceOrder}
           disabled={disabled || submitIntent.isPending || !ready || !authenticated || !hasSufficientBalance}
         >
-          {side === 'buy' ? `Buy ${baseCurrency}` : `Sell ${baseCurrency}`}
+          {getButtonText()}
         </Button>
       </div>
     )
@@ -221,7 +222,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
           </div>
 
           <Button
-            className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'}`}
+            className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${submitIntent.isPending ? 'animate-pulse' : ''}`}
             onClick={handlePlaceOrder}
             disabled={disabled || submitIntent.isPending || !ready || !authenticated || !hasSufficientBalance}
           >

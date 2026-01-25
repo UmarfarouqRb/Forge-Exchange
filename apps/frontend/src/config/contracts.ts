@@ -26,7 +26,7 @@ export const TOKENS = {
     address: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
     decimals: 18
   },
-  cbBTC: {
+  BTC: {
     address: "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
     decimals: 8
   },

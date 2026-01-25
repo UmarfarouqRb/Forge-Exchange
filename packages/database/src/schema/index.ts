@@ -1,113 +1,89 @@
-import { pgTable, text, pgEnum } from 'drizzle-orm/pg-core';
-import { z } from 'zod';
 
-export const orderSide = pgEnum('order_side', ['buy', 'sell']);
-export const orderType = pgEnum('order_type', ['limit', 'market']);
-export const orderStatus = pgEnum('order_status', ['open', 'filled', 'canceled']);
+import {
+  pgTable,
+  uuid,
+  integer,
+  text,
+  timestamp,
+  boolean,
+  numeric,
+  unique,
+  primaryKey,
+} from 'drizzle-orm/pg-core';
+import type { InferModel } from 'drizzle-orm';
 
+// --- ✅ FINAL EXCHANGE SCHEMA (LOCKED) ---
+
+// This schema is a direct 1-to-1 mapping of the SQL script you executed.
+// It uses `text({ enum: [...] })` to match the `text CHECK(...)` constraints in SQL,
+// preventing Drizzle from trying to create new ENUM types.
+
+// 1. tokens
+export const tokens = pgTable('tokens', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    chainId: integer('chain_id').notNull(),
+    address: text('address').notNull(),
+    symbol: text('symbol').notNull(),
+    name: text('name'),
+    decimals: integer('decimals').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+}, (table) => ({
+    unique_chain_address: unique('tokens_chain_id_address_key').on(table.chainId, table.address),
+}));
+
+// 2. trading_pairs
+export const tradingPairs = pgTable('trading_pairs', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    baseTokenId: uuid('base_token_id').references(() => tokens.id),
+    quoteTokenId: uuid('quote_token_id').references(() => tokens.id),
+    symbol: text('symbol').notNull().unique('trading_pairs_symbol_key'),
+    isActive: boolean('is_active').default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+// 3. orders
 export const orders = pgTable('orders', {
-  id: text('id').primaryKey(),
-  user: text('user').notNull(),
-  pair: text('pair').notNull(),
-  side: orderSide('side').notNull(),
-  type: orderType('type').notNull(),
-  price: text('price').notNull(),
-  amount: text('amount').notNull(),
-  filled: text('filled').notNull(),
-  status: orderStatus('status').notNull(),
-  createdAt: text('created_at').notNull(),
-  symbol: text('symbol').notNull(),
-  total: text('total').notNull(),
-  leverage: text('leverage').notNull(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    userAddress: text('user_address').notNull(),
+    tradingPairId: uuid('trading_pair_id').references(() => tradingPairs.id),
+    side: text('side', { enum: ['buy', 'sell'] }).notNull(),
+    price: numeric('price').notNull(),
+    quantity: numeric('quantity').notNull(),
+    filledQuantity: numeric('filled_quantity').default('0'),
+    status: text('status', { enum: ['open', 'filled', 'cancelled'] }).default('open'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
+// 4. order_books
+export const orderBooks = pgTable('order_books', {
+    tradingPairId: uuid('trading_pair_id').references(() => tradingPairs.id).notNull(),
+    side: text('side', { enum: ['buy', 'sell'] }).notNull(),
+    price: numeric('price').notNull(),
+    quantity: numeric('quantity').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (table) => ({
+    pk: primaryKey({ columns: [table.tradingPairId, table.side, table.price] }),
+}));
 
-export const Order = z.object({
-  id: z.string(),
-  user: z.string(),
-  pair: z.string(),
-  side: z.enum(['buy', 'sell']),
-  type: z.enum(['limit', 'market']),
-  price: z.string(),
-  amount: z.string(),
-  filled: z.string(),
-  status: z.enum(['open', 'filled', 'canceled']),
-  createdAt: z.string(),
-  symbol: z.string(),
-  total: z.string(),
-  leverage: z.string(),
+// 5. trades
+export const trades = pgTable('trades', {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tradingPairId: uuid('trading_pair_id').references(() => tradingPairs.id),
+    price: numeric('price').notNull(),
+    quantity: numeric('quantity').notNull(),
+    makerOrderId: uuid('maker_order_id'), // Can be null
+    takerOrderId: uuid('taker_order_id'), // Can be null
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
-export const InsertOrder = Order.omit({ id: true, status: true, filled: true, createdAt: true });
-
-export const TradingPair = z.object({
-  id: z.string(),
-  symbol: z.string(),
-  baseAsset: z.string(),
-  quoteAsset: z.string(),
-  currentPrice: z.string(),
-  priceChange24h: z.string(),
-  volume24h: z.string(),
-  high24h: z.string(),
-  low24h: z.string(),
-  isFavorite: z.boolean(),
-  category: z.string(),
+// 6. markets
+export const markets = pgTable('markets', {
+    tradingPairId: uuid('trading_pair_id').primaryKey().references(() => tradingPairs.id),
+    lastPrice: numeric('last_price'),
+    volume24h: numeric('volume_24h').default('0'),
+    high24h: numeric('high_24h'),
+    low24h: numeric('low_24h'),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
-export const InsertTradingPair = TradingPair.omit({ id: true });
-
-export const MarketData = z.object({
-  id: z.string(),
-  symbol: z.string(),
-  timestamp: z.date(),
-  open: z.string(),
-  high: z.string(),
-  low: z.string(),
-  close: z.string(),
-  volume: z.string(),
-});
-
-export const InsertMarketData = MarketData.omit({ id: true });
-
-export const Asset = z.object({
-  id: z.string(),
-  walletAddress: z.string(),
-  asset: z.string(),
-  total: z.string(),
-  available: z.string(),
-  inOrder: z.string(),
-  usdValue: z.string(),
-});
-
-export const InsertAsset = Asset.omit({ id: true });
-
-export const Transaction = z.object({
-  id: z.string(),
-  walletAddress: z.string(),
-  type: z.string(),
-  asset: z.string(),
-  amount: z.string(),
-  status: z.string(),
-  txHash: z.string().nullable(),
-  timestamp: z.string(),
-});
-
-export const InsertTransaction = Transaction.omit({ id: true });
-
-export const AuthorizeSessionPayload = z.object({
-  sessionKey: z.string(),
-  expiration: z.number(),
-  signature: z.string(),
-});
-
-export type Order = z.infer<typeof Order>;
-export type InsertOrder = z.infer<typeof InsertOrder>;
-export type TradingPair = z.infer<typeof TradingPair>;
-export type InsertTradingPair = z.infer<typeof InsertTradingPair>;
-export type MarketData = z.infer<typeof MarketData>;
-export type InsertMarketData = z.infer<typeof InsertMarketData>;
-export type Asset = z.infer<typeof Asset>;
-export type InsertAsset = z.infer<typeof InsertAsset>;
-export type Transaction = z.infer<typeof Transaction>;
-export type InsertTransaction = z.infer<typeof InsertTransaction>;
-export type AuthorizeSessionPayload = z.infer<typeof AuthorizeSessionPayload>;
+export type Order = InferModel<typeof orders, 'insert'>;

@@ -1,6 +1,7 @@
 import { apiRequest } from './queryClient';
 import type { Order, Transaction } from '../types';
 import { OrderBookData } from '@/types/orderbook';
+import { TradingPair } from '@/types/trading-pair';
 
 const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? 'https://forge-exchange-api.onrender.com'
@@ -13,6 +14,22 @@ const checkApiConfig = () => {
     throw new Error(errorMessage);
   }
 }
+
+export const getMarketData = async (): Promise<TradingPair[]> => {
+    checkApiConfig();
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/trading-pairs`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`API Error: Failed to fetch market data. Status: ${response.status}. Message: ${errorText}`);
+            return [];
+        }
+        return response.json();
+    } catch (error) {
+        console.error("Network or API Error: Could not fetch market data. Please ensure the API services are running and accessible.", error);
+        return [];
+    }
+};
 
 export const getMarket = async (pair: string) => {
     checkApiConfig();
@@ -30,7 +47,7 @@ export const getMarket = async (pair: string) => {
     }
 };
 
-export const getTrendingPairs = async (): Promise<any[]> => {
+export const getTrendingPairs = async (): Promise<TradingPair[]> => {
     checkApiConfig();
     try {
         const response = await fetch(`${API_BASE_URL}/api/trading-pairs/trending`);
