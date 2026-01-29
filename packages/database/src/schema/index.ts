@@ -12,13 +12,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { InferModel } from 'drizzle-orm';
 
-// --- ✅ FINAL EXCHANGE SCHEMA (LOCKED) ---
+// --- SCHEMA DEFINITIONS ---
 
-// This schema is a direct 1-to-1 mapping of the SQL script you executed.
-// It uses `text({ enum: [...] })` to match the `text CHECK(...)` constraints in SQL,
-// preventing Drizzle from trying to create new ENUM types.
-
-// 1. tokens
 export const tokens = pgTable('tokens', {
     id: uuid('id').primaryKey().defaultRandom(),
     chainId: integer('chain_id').notNull(),
@@ -31,7 +26,6 @@ export const tokens = pgTable('tokens', {
     unique_chain_address: unique('tokens_chain_id_address_key').on(table.chainId, table.address),
 }));
 
-// 2. trading_pairs
 export const tradingPairs = pgTable('trading_pairs', {
     id: uuid('id').primaryKey().defaultRandom(),
     baseTokenId: uuid('base_token_id').references(() => tokens.id),
@@ -41,7 +35,6 @@ export const tradingPairs = pgTable('trading_pairs', {
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
-// 3. orders
 export const orders = pgTable('orders', {
     id: uuid('id').primaryKey().defaultRandom(),
     userAddress: text('user_address').notNull(),
@@ -54,29 +47,6 @@ export const orders = pgTable('orders', {
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 });
 
-// 4. order_books
-export const orderBooks = pgTable('order_books', {
-    tradingPairId: uuid('trading_pair_id').references(() => tradingPairs.id).notNull(),
-    side: text('side', { enum: ['buy', 'sell'] }).notNull(),
-    price: numeric('price').notNull(),
-    quantity: numeric('quantity').notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-}, (table) => ({
-    pk: primaryKey({ columns: [table.tradingPairId, table.side, table.price] }),
-}));
-
-// 5. trades
-export const trades = pgTable('trades', {
-    id: uuid('id').primaryKey().defaultRandom(),
-    tradingPairId: uuid('trading_pair_id').references(() => tradingPairs.id),
-    price: numeric('price').notNull(),
-    quantity: numeric('quantity').notNull(),
-    makerOrderId: uuid('maker_order_id'), // Can be null
-    takerOrderId: uuid('taker_order_id'), // Can be null
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-});
-
-// 6. markets
 export const markets = pgTable('markets', {
     tradingPairId: uuid('trading_pair_id').primaryKey().references(() => tradingPairs.id),
     lastPrice: numeric('last_price'),
@@ -86,4 +56,18 @@ export const markets = pgTable('markets', {
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
-export type Order = InferModel<typeof orders, 'insert'>;
+// --- TYPE INFERENCE ---
+// This creates TypeScript types from your schema, ensuring type safety.
+
+export type Token = InferModel<typeof tokens>;
+export type InsertToken = InferModel<typeof tokens, 'insert'>;
+
+export type TradingPair = InferModel<typeof tradingPairs>;
+export type InsertTradingPair = InferModel<typeof tradingPairs, 'insert'>;
+
+export type Order = InferModel<typeof orders>;
+export type InsertOrder = InferModel<typeof orders, 'insert'>;
+
+export type Market = InferModel<typeof markets>;
+export type InsertMarket = InferModel<typeof markets, 'insert'>;
+

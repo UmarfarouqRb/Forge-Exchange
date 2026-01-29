@@ -1,167 +1,158 @@
 
-import { getOrdersByPair } from '@forge/db';
-import { http, createPublicClient, parseUnits, formatUnits, Abi } from 'viem';
+import { getOrdersByPair, Order, getMarketBySymbol, Market } from '@forge/db';
+import { http, createPublicClient, parseUnits, formatUnits } from 'viem';
 import { base } from 'viem/chains';
 import { TOKENS } from '../../frontend/src/config';
+import { INTENT_SPOT_ROUTER_ADDRESS } from '../../frontend/src/config/contracts';
+import { intentSpotRouterABI } from '../../frontend/src/abis/IntentSpotRouter';
+
+// --- TYPE DEFINITIONS ---
+
+export type OrderBook = {
+    bids: [string, string][];
+    asks: [string, string][];
+};
+
+// This is the composite type that the API returns, combining DB data with live data.
+export type MarketState = Omit<Market, 'tradingPairId' | 'updatedAt'> & {
+    id: string;
+    symbol: string;
+    baseAsset: string;
+    quoteAsset: string;
+    price: number | null; // Mark Price
+    priceChangePercent: number;
+    currentPrice: string | null;
+    bids: [string, string][];
+    asks: [string, string][];
+    source: 'live';
+};
+
+// --- CACHING ---
+const cache: { [key: string]: { data: MarketState, lastFetch: number } } = {};
+const CACHE_DURATION = 5000; // 5 seconds
+
+// --- LIVE DATA FETCHING ---
 
 const transport = http('https://mainnet.base.org');
-const client = createPublicClient({
-  chain: base,
-  transport,
-});
-
-const PANCAKE_QUOTER_ADDRESS = '0x3c22449C3696145fC75078525E5921835777D43A';
-const PANCAKE_QUOTER_ABI: Abi = [
-  {
-    "name": "quoteExactInputSingle",
-    "type": "function",
-    "stateMutability": "nonpayable",
-    "inputs": [
-      { "name": "tokenIn", "type": "address" },
-      { "name": "tokenOut", "type": "address" },
-      { "name": "fee", "type": "uint24" },
-      { "name": "amountIn", "type": "uint256" },
-      { "name": "sqrtPriceLimitX96", "type": "uint160" },
-    ],
-    "outputs": [
-      { "name": "amountOut", "type": "uint256" },
-    ],
-  }
-] as const;
-
-const FEE_TIERS = [100, 500, 2500, 10000];
+const client = createPublicClient({ chain: base, transport });
 
 async function getAMMPrice(tokenIn: { address: `0x${string}`; decimals: number }, tokenOut: { address: `0x${string}`; decimals: number }): Promise<number | null> {
-    for (const fee of FEE_TIERS) {
-        try {
-            const amountOut = await client.readContract({
-                address: PANCAKE_QUOTER_ADDRESS,
-                abi: PANCAKE_QUOTER_ABI,
-                functionName: 'quoteExactInputSingle',
-                args: [tokenIn.address, tokenOut.address, fee, parseUnits('1', tokenIn.decimals), 0],
-            });
-            if (amountOut) {
-                return parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals));
-            }
-        } catch (error) {
-            console.error(`Error fetching from PancakeSwap for fee ${fee}:`, error);
-        }
+    try {
+        const amountOut = await client.readContract({
+            address: INTENT_SPOT_ROUTER_ADDRESS[base.id],
+            abi: intentSpotRouterABI,
+            functionName: 'getAmountOut',
+            args: [tokenIn.address, tokenOut.address, parseUnits('1', tokenIn.decimals)],
+        });
+        return amountOut ? parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals)) : null;
+    } catch (error) {
+        console.error(`Error fetching from IntentSpotRouter:`, error);
+        return null;
     }
-    console.error("Error fetching PancakeSwap price: Could not find a valid pool for the given pair.");
-    return null;
 }
 
-function generateSyntheticDepth(midPrice: number): { bids: [string, string][], asks: [string, string][] } {
+function generateSyntheticDepth(midPrice: number): OrderBook {
     const bids: [string, string][] = [];
     const asks: [string, string][] = [];
-    const depthLevels = 10;
-    const spreadPercentage = 0.002;
-
-    for (let i = 1; i <= depthLevels; i++) {
-        const bidPrice = midPrice * (1 - i * spreadPercentage);
-        const askPrice = midPrice * (1 + i * spreadPercentage);
-        
-        const bidSize = Math.random() * 15 + 5;
-        const askSize = Math.random() * 15 + 5;
-
-        bids.push([bidPrice.toFixed(4), bidSize.toFixed(2)]);
-        asks.push([askPrice.toFixed(4), askSize.toFixed(2)]);
+    for (let i = 1; i <= 10; i++) {
+        bids.push([(midPrice * (1 - i * 0.002)).toFixed(4), (Math.random() * 15 + 5).toFixed(2)]);
+        asks.push([(midPrice * (1 + i * 0.002)).toFixed(4), (Math.random() * 15 + 5).toFixed(2)]);
     }
-
     return { bids, asks };
 }
 
-async function getOrderBook(pair: string) {
-    let baseCurrency: string | undefined;
-    let quoteCurrency: string | undefined;
-
+async function getOrderBook(pair: string): Promise<OrderBook & { lastTradePrice: number | null }> {
     const commonQuotes = ['USDT', 'USDC', 'DAI', 'BTC', 'ETH', 'WETH'];
-
+    let baseCurrency = '', quoteCurrency = '';
     for (const quote of commonQuotes) {
         if (pair.endsWith(quote)) {
-            const base = pair.slice(0, -quote.length);
-            if (base.length > 0) {
-                baseCurrency = base;
-                quoteCurrency = quote;
-                break;
-            }
+            baseCurrency = pair.slice(0, -quote.length);
+            quoteCurrency = quote;
+            break;
         }
     }
-
-    if (!baseCurrency && pair.length > 3) {
+    if (!baseCurrency) {
         baseCurrency = pair.slice(0, 3);
         quoteCurrency = pair.slice(3);
     }
 
-    if (!baseCurrency || !quoteCurrency) {
-        throw new Error('Could not determine base and quote currency from pair');
-    }
-
     const tokenIn = TOKENS[baseCurrency as keyof typeof TOKENS];
     const tokenOut = TOKENS[quoteCurrency as keyof typeof TOKENS];
+    if (!tokenIn || !tokenOut) throw new Error(`Invalid market or tokens for pair ${pair}`);
 
-    if (!tokenIn || !tokenOut) {
-        throw new Error('Invalid market specified');
+    const [realOrdersResult, midPrice] = await Promise.all([
+        getOrdersByPair(pair),
+        getAMMPrice(tokenIn, tokenOut),
+    ]);
+    
+    const realOrders: Order[] = realOrdersResult.map((result) => result.order);
+
+    if (realOrders.length === 0 && midPrice === null) {
+        throw new Error('Could not fetch real orders or AMM price.');
     }
 
-    const realOrders = await getOrdersByPair(pair);
-    const realBids = realOrders.filter((o: any) => o.side === 'buy').map((o: any) => [o.price, o.amount]);
-    const realAsks = realOrders.filter((o: any) => o.side === 'sell').map((o: any) => [o.price, o.amount]);
-
-    const midPrice = await getAMMPrice(tokenIn, tokenOut);
-    const lastTradePrice = midPrice;
+    const realBids: [string, string][] = realOrders.filter(o => o.side === 'buy').map(o => [o.price, o.quantity]);
+    const realAsks: [string, string][] = realOrders.filter(o => o.side === 'sell').map(o => [o.price, o.quantity]);
 
     const syntheticDepth = midPrice ? generateSyntheticDepth(midPrice) : { bids: [], asks: [] };
 
-    const aggregateAndSort = (real: (string | number)[][], synthetic: [string, string][], reverse = false) => {
+    const aggregateAndSort = (real: [string, string][], synthetic: [string, string][], reverse = false): [string, string][] => {
         const book = new Map<string, number>();
         [...real, ...synthetic].forEach(([price, size]) => {
-            const priceStr = String(price);
-            const currentSize = book.get(priceStr) || 0;
-            book.set(priceStr, currentSize + parseFloat(size as string));
+            book.set(price, (book.get(price) || 0) + parseFloat(size));
         });
-
-        const sorted = Array.from(book.entries()).sort((a, b) => {
-            const diff = parseFloat(a[0]) - parseFloat(b[0]);
-            return reverse ? -diff : diff;
-        });
-        
+        const sorted = Array.from(book.entries()).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+        if (reverse) sorted.reverse();
         return sorted.map(([price, size]) => [price, String(size)]);
     };
 
-    const bids = aggregateAndSort(realBids, syntheticDepth.bids, true);
-    const asks = aggregateAndSort(realAsks, syntheticDepth.asks);
-
-    return { bids, asks, lastTradePrice };
+    return {
+        bids: aggregateAndSort(realBids, syntheticDepth.bids, true),
+        asks: aggregateAndSort(realAsks, syntheticDepth.asks),
+        lastTradePrice: midPrice
+    };
 }
 
-export function getMarkPrice(book: { bids: any[][], asks: any[][], lastTradePrice: number | null }) {
+export function getMarkPrice(book: OrderBook & { lastTradePrice: number | null }): number | null {
     const bestBid = book.bids[0]?.[0];
     const bestAsk = book.asks[0]?.[0];
-
-    if (bestBid && bestAsk) {
-        return (parseFloat(bestBid as string) + parseFloat(bestAsk as string)) / 2;
-    }
-    
-    return book.lastTradePrice ?? null;
+    if (bestBid && bestAsk) return (parseFloat(bestBid) + parseFloat(bestAsk)) / 2;
+    return book.lastTradePrice;
 }
 
-export async function getMarketState(pair: string) {
-    const book = await getOrderBook(pair);
-    if (!book) {
+export async function getMarketState(pair: string): Promise<MarketState | null> {
+    const now = Date.now();
+    if (cache[pair] && (now - cache[pair].lastFetch < CACHE_DURATION)) return cache[pair].data;
+
+    try {
+        const [book, marketData] = await Promise.all([
+            getOrderBook(pair),
+            getMarketBySymbol(pair)
+        ]);
+        
+        const markPrice = getMarkPrice(book);
+
+        const marketState: MarketState = {
+            id: pair,
+            symbol: pair,
+            baseAsset: pair.slice(0, 3),
+            quoteAsset: pair.slice(3),
+            price: markPrice,
+            lastPrice: marketData?.lastPrice ?? book.lastTradePrice?.toString() ?? null,
+            priceChangePercent: 0, // This calculation is not yet implemented
+            high24h: marketData?.high24h ?? null,
+            low24h: marketData?.low24h ?? null,
+            volume24h: marketData?.volume24h ?? null,
+            currentPrice: markPrice?.toString() ?? null,
+            bids: book.bids,
+            asks: book.asks,
+            source: 'live',
+        };
+
+        cache[pair] = { data: marketState, lastFetch: now };
+        return marketState;
+    } catch (error) {
+        console.error(`Failed to get market state for ${pair}:`, error);
         return null;
     }
-    
-    const price = getMarkPrice(book);
-
-    return {
-        market: pair,
-        price: price,
-        bestBid: book.bids[0]?.[0] ?? null,
-        bestAsk: book.asks[0]?.[0] ?? null,
-        lastTrade: price, 
-        volume24h: null, 
-        bids: book.bids, 
-        asks: book.asks, 
-    };
 }

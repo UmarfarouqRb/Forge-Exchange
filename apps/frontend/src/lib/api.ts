@@ -1,7 +1,5 @@
 import { apiRequest } from './queryClient';
-import type { Order, Transaction } from '../types';
-import { OrderBookData } from '@/types/orderbook';
-import { TradingPair } from '@/types/trading-pair';
+import type { Order, Market, TradingPair, OrderBook } from '../types/index';
 
 const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? 'https://forge-exchange-api.onrender.com'
@@ -31,7 +29,7 @@ export const getMarketData = async (): Promise<TradingPair[]> => {
     }
 };
 
-export const getMarket = async (pair: string) => {
+export const getMarket = async (pair: string): Promise<Market | null> => {
     checkApiConfig();
     try {
         const response = await fetch(`${API_BASE_URL}/api/markets/${pair}`);
@@ -47,7 +45,7 @@ export const getMarket = async (pair: string) => {
     }
 };
 
-export const getTrendingPairs = async (): Promise<TradingPair[]> => {
+export const getTrendingPairs = async (): Promise<Market[]> => {
     checkApiConfig();
     try {
         const response = await fetch(`${API_BASE_URL}/api/trading-pairs/trending`);
@@ -63,12 +61,11 @@ export const getTrendingPairs = async (): Promise<TradingPair[]> => {
     }
 };
 
-export const getOrderBook = async (pair: string): Promise<OrderBookData> => {
+export const getOrderBook = async (pair: string): Promise<OrderBook> => {
     const marketData = await getMarket(pair);
     if (marketData) {
         return { bids: marketData.bids, asks: marketData.asks };
     }
-    // Return empty order book on error to avoid breaking components that use this
     return { bids: [], asks: [] };
 };
 
@@ -87,6 +84,22 @@ export const getOrders = async (address: string | undefined): Promise<Order[]> =
     console.error("Network or API Error: Could not fetch orders. Please ensure the API services are running and accessible.", error);
     throw error;
   }
+};
+
+export const getTokens = async (chainId: string): Promise<{ [symbol: string]: { address: `0x${string}`; decimals: number } }> => {
+    checkApiConfig();
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/tokens?chainId=${chainId}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`API Error: Failed to fetch tokens for chainId ${chainId}. Status: ${response.status}. Message: ${errorText}`);
+            return {};
+        }
+        return response.json();
+    } catch (error) {
+        console.error(`Network or API Error: Could not fetch tokens for chainId ${chainId}. Please ensure the API services are running and accessible.`, error);
+        return {};
+    }
 };
 
 export type PlaceOrderPayload = {
@@ -117,70 +130,4 @@ export const placeOrder = async (orderData: PlaceOrderPayload) => {
     console.error("Network or API Error: Could not place order. Please ensure the API services are running and accessible.", error);
     throw error;
   }
-};
-
-export const getTokens = async (chainId: string) => {
-  checkApiConfig();
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/tokens/${chainId}`);
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Error: Failed to fetch tokens for chain ${chainId}. Status: ${response.status}. Message: ${errorText}`);
-      throw new Error('Failed to fetch token addresses');
-    }
-    return response.json();
-  } catch (error) {
-    console.error("Network or API Error: Could not fetch tokens. Please ensure the API services are running and accessible.", error);
-    throw error;
-  }
-};
-
-export const getAssets = async (address: string | null) => {
-  if (!address) return [];
-  checkApiConfig();
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/assets/${address}`);
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Error: Failed to fetch assets for address ${address}. Status: ${response.status}. Message: ${errorText}`);
-      throw new Error('Failed to fetch assets');
-    }
-    return response.json();
-  } catch (error) {
-    console.error("Network or API Error: Could not fetch assets. Please ensure the API services are running and accessible.", error);
-    throw error;
-  }
-};
-
-export const getTradingPair = async (symbol: string) => {
-  checkApiConfig();
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/trading-pairs/${symbol}`);
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Error: Failed to fetch trading pair ${symbol}. Status: ${response.status}. Message: ${errorText}`);
-      throw new Error('Failed to fetch trading pair');
-    }
-    return response.json();
-  } catch (error) {
-    console.error("Network or API Error: Could not fetch trading pair. Please ensure the API services are running and accessible.", error);
-    throw error;
-  }
-}
-
-export const getTransactions = async (address: string | undefined): Promise<Transaction[]> => {
-    if (!address) return [];
-    checkApiConfig();
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/transactions/${address}`);
-        if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API Error: Failed to fetch transactions for address ${address}. Status: ${response.status}. Message: ${errorText}`);
-        throw new Error('Failed to fetch transactions');
-        }
-        return response.json();
-    } catch (error) {
-        console.error("Network or API Error: Could not fetch transactions. Please ensure the API services are running and accessible.", error);
-        throw error;
-    }
 };

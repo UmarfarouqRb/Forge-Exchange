@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { placeOrder, getTokens, PlaceOrderPayload } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@/config/contracts';
+import { useRefetchContext } from '@/contexts/RefetchContext';
 
 interface UseSubmitIntentProps {
   symbol: string;
@@ -21,6 +22,7 @@ export function useSubmitIntent() {
   const { wallets } = useWallets();
   const { ready, authenticated } = usePrivy();
   const { toast } = useToast();
+  const { triggerRefetch } = useRefetchContext();
 
   const embeddedWallet = wallets.find((wallet) => wallet.walletClientType === 'privy');
   const connectedWallet = embeddedWallet || wallets[0];
@@ -134,6 +136,7 @@ export function useSubmitIntent() {
       });
       if (connectedWallet?.address) {
         queryClient.invalidateQueries({ queryKey: ['/api/orders', connectedWallet.address] });
+        triggerRefetch();
       }
     },
     onError: (error: unknown) => {

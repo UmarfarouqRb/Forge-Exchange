@@ -12,6 +12,7 @@ import { mainnet, base, bsc, arbitrum } from 'viem/chains';
 import App from './App';
 import './index.css';
 import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
+import { RefetchProvider } from '@/contexts/RefetchContext';
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
 
@@ -45,11 +46,13 @@ function Main() {
     >
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
-          <ChainProvider>
-            <MarketDataProvider>
-              <App />
-            </MarketDataProvider>
-          </ChainProvider>
+          <RefetchProvider>
+            <ChainProvider>
+              <MarketDataProvider>
+                <App />
+              </MarketDataProvider>
+            </ChainProvider>
+          </RefetchProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </PrivyProvider>

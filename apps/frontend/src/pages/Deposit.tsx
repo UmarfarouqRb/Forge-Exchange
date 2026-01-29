@@ -16,6 +16,7 @@ import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
 import { NewAssetSelector } from '@/components/NewAssetSelector';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useRefetchContext } from '@/contexts/RefetchContext';
 
 export default function Deposit() {
   const [amount, setAmount] = useState('');
@@ -23,6 +24,7 @@ export default function Deposit() {
   const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
   const [selectedAsset, setSelectedAsset] = useState<Token | ''>('');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const { triggerRefetch } = useRefetchContext();
 
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -40,18 +42,18 @@ export default function Deposit() {
   const token = selectedAsset ? TOKENS[selectedAsset] : undefined;
 
   const { data: balance } = useBalance({
-    address,
-    token: selectedAsset === 'ETH' ? undefined : token?.address,
+    address: address as `0x${string}` | undefined,
+    token: selectedAsset === 'ETH' ? undefined : (token?.address as `0x${string}` | undefined),
     query: {
       enabled: !!address && !!selectedAsset,
     },
   });
 
   const { data: allowance, refetch } = useReadContract({
-    address: token?.address,
+    address: token?.address as `0x${string}` | undefined,
     abi: erc20Abi,
     functionName: 'allowance',
-    args: address ? [address, VAULT_SPOT_ADDRESS] : undefined,
+    args: address ? [address as `0x${string}`, VAULT_SPOT_ADDRESS] : undefined,
     query: {
       enabled: !!address && !!token && selectedAsset !== 'ETH',
     },
@@ -61,6 +63,7 @@ export default function Deposit() {
     hash: depositTxHash,
     onSuccess: () => {
       refetch();
+      triggerRefetch();
       setMessage({ type: 'success', text: 'Deposit successful! Your balance will update shortly.' });
       toast.success('Deposit successful!');
     },
@@ -134,7 +137,7 @@ export default function Deposit() {
         if (needsApproval) {
           toast.loading(`Step 1/2: Requesting approval to spend your ${selectedAsset}...`, { id: toastId });
           const approvalHash = await writeContractAsync({
-            address: token.address,
+            address: token.address as `0x${string}`,
             abi: erc20Abi,
             functionName: 'approve',
             args: [VAULT_SPOT_ADDRESS, parsedAmount],
@@ -151,7 +154,7 @@ export default function Deposit() {
           address: VAULT_SPOT_ADDRESS,
           abi: VaultSpotAbi,
           functionName: 'deposit',
-          args: [token.address, parsedAmount],
+          args: [token.address as `0x${string}`, parsedAmount],
         });
         toast.loading(`Step 2/2: Waiting for deposit transaction... (tx: ${depositHash.substring(0, 10)}...)`, { id: toastId });
         setDepositTxHash(depositHash);

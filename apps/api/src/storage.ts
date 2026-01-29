@@ -10,9 +10,10 @@ import { randomUUID } from "crypto";
 
 // --- TYPE DEFINITIONS ---
 
+// Standardize OrderBook to use [price, quantity] tuples
 export type OrderBook = {
-  bids: { price: string; quantity: string }[];
-  asks: { price: string; quantity: string }[];
+  bids: [string, string][];
+  asks: [string, string][];
 };
 
 // --- MOCK DATA STORE ---
@@ -29,13 +30,10 @@ class MockDataStore extends EventEmitter {
   }
 
   private initializeMockData(): void {
-    // 1. Create Mock Tokens
     const mockTokens: InsertToken[] = [
       { name: "Bitcoin", symbol: "BTC", decimals: 8, chainId: 1, address: '0xbtc-address' },
       { name: "Ethereum", symbol: "ETH", decimals: 18, chainId: 1, address: '0xeth-address' },
       { name: "Tether", symbol: "USDT", decimals: 6, chainId: 1, address: '0xusdt-address' },
-      { name: "BNB", symbol: "BNB", decimals: 18, chainId: 1, address: '0xbnb-address' },
-      { name: "Solana", symbol: "SOL", decimals: 9, chainId: 1, address: '0xsol-address' },
     ];
 
     for (const token of mockTokens) {
@@ -43,19 +41,10 @@ class MockDataStore extends EventEmitter {
         this.tokens.set(token.symbol, { ...token, id, createdAt: new Date(), name: token.name ?? token.symbol });
     }
 
-    // 2. Create Mock Trading Pairs & Markets
-    const pairsToCreate: [string, string][] = [
-      ["BTC", "USDT"],
-      ["ETH", "USDT"],
-      ["BNB", "USDT"],
-      ["SOL", "USDT"],
-    ];
-
+    const pairsToCreate: [string, string][] = [["BTC", "USDT"],["ETH", "USDT"]];
     const initialMarketData: { [symbol: string]: Omit<InsertMarket, 'tradingPairId'> } = {
-        "BTCUSDT": { lastPrice: "68000.50", volume24h: "1500000000", high24h: "69000.00", low24h: "67000.00" },
-        "ETHUSDT": { lastPrice: "3400.00", volume24h: "950000000", high24h: "3500.00", low24h: "3350.00" },
-        "BNBUSDT": { lastPrice: "600.00", volume24h: "300000000", high24h: "620.00", low24h: "590.00" },
-        "SOLUSDT": { lastPrice: "150.00", volume24h: "450000000", high24h: "155.00", low24h: "148.00" },
+        "BTCUSDT": { lastPrice: "68000.50" },
+        "ETHUSDT": { lastPrice: "3400.00" },
     };
 
     for (const [baseSymbol, quoteSymbol] of pairsToCreate) {
@@ -65,27 +54,11 @@ class MockDataStore extends EventEmitter {
 
       if (baseToken && quoteToken) {
         const pairId = randomUUID();
-        this.tradingPairs.set(symbol, {
-          id: pairId,
-          symbol: symbol,
-          baseTokenId: baseToken.id,
-          quoteTokenId: quoteToken.id,
-          isActive: true,
-          createdAt: new Date(),
-        });
-
+        this.tradingPairs.set(symbol, { id: pairId, symbol: symbol, baseTokenId: baseToken.id, quoteTokenId: quoteToken.id, isActive: true, createdAt: new Date() });
         const marketData = initialMarketData[symbol];
         if (marketData) {
-            this.markets.set(pairId, {
-                tradingPairId: pairId,
-                lastPrice: marketData.lastPrice ?? null,
-                volume24h: marketData.volume24h ?? null,
-                high24h: marketData.high24h ?? null,
-                low24h: marketData.low24h ?? null,
-                updatedAt: new Date(),
-            });
+            this.markets.set(pairId, { tradingPairId: pairId, lastPrice: marketData.lastPrice ?? null, volume24h: '0', high24h: '0', low24h: '0', updatedAt: new Date() });
         }
-
         this.createMockOrderBook(pairId, parseFloat(marketData.lastPrice!));
       }
     }
@@ -100,37 +73,28 @@ class MockDataStore extends EventEmitter {
 
   private createMockOrder(tradingPairId: string, side: 'buy' | 'sell', price: number, quantity: number): void {
     const id = randomUUID();
-    const order: Order = {
-      id,
-      tradingPairId,
-      side,
-      price: price.toFixed(2),
-      quantity: quantity.toFixed(4),
-      userAddress: `0xmock-user-${randomUUID()}`,
-      status: "open",
-      filledQuantity: "0",
-      createdAt: new Date(),
-    };
+    const order: Order = { id, tradingPairId, side, price: price.toFixed(2), quantity: quantity.toFixed(4), userAddress: `0xmock-user-${randomUUID()}`, status: "open", filledQuantity: "0", createdAt: new Date() };
     this.orders.set(id, order);
   }
 
   public getOrderBook(tradingPairId: string): OrderBook {
-    const bids: { price: string; quantity: string }[] = [];
-    const asks: { price: string; quantity: string }[] = [];
+    const bids: [string, string][] = [];
+    const asks: [string, string][] = [];
 
     for (const order of this.orders.values()) {
       if (order.tradingPairId === tradingPairId && order.status === 'open') {
-        const orderData = { price: order.price, quantity: order.quantity };
+        // Ensure data is returned as a tuple
+        const orderTuple: [string, string] = [order.price, order.quantity];
         if (order.side === 'buy') {
-          bids.push(orderData);
+          bids.push(orderTuple);
         } else {
-          asks.push(orderData);
+          asks.push(orderTuple);
         }
       }
     }
 
-    bids.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
-    asks.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+    bids.sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+    asks.sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
 
     return { bids, asks };
   }

@@ -2,9 +2,12 @@
 import { useReadContract, useBalance, useAccount } from 'wagmi';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
+import { useRefetchContext } from '@/contexts/RefetchContext';
+import { useEffect } from 'react';
 
 export function useVaultBalance(tokenAddress: `0x${string}` | undefined) {
   const { address } = useAccount();
+  const { refetchCounter } = useRefetchContext();
 
   const { data: erc20Balance, refetch: refetchErc20 } = useReadContract({
     address: VAULT_SPOT_ADDRESS,
@@ -22,6 +25,16 @@ export function useVaultBalance(tokenAddress: `0x${string}` | undefined) {
         enabled: !!address && tokenAddress === '0x0000000000000000000000000000000000000000',
     }
   });
+
+  useEffect(() => {
+    if (tokenAddress) {
+      if (tokenAddress === '0x0000000000000000000000000000000000000000') {
+        refetchNative();
+      } else {
+        refetchErc20();
+      }
+    }
+  }, [refetchCounter, tokenAddress]);
 
   const isNative = tokenAddress === '0x0000000000000000000000000000000000000000';
 

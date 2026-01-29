@@ -1,5 +1,4 @@
-import { getAllTradingPairs } from '@forge/db';
-import { getMarketState } from './market';
+import { db, tradingPairs, markets, eq } from '@forge/db';
 
 // Temporary in-memory cache to store trending pairs data
 const cache = {
@@ -20,21 +19,24 @@ export async function getTrendingPairs() {
 
     try {
         console.log('Fetching fresh trending pairs data');
-        const tradingPairs = await getAllTradingPairs();
+        const allTradingPairs = await db.select().from(tradingPairs);
 
-        const pairsWithMarketData = await Promise.all(tradingPairs.map(async (pair) => {
-            const marketState = await getMarketState(pair.symbol);
+        const pairsWithMarketData = await Promise.all(allTradingPairs.map(async (pair) => {
+            const marketData = await db.select().from(markets).where(eq(markets.tradingPairId, pair.id)).limit(1);
+            const market = marketData[0];
             return {
                 ...pair,
-                lastPrice: marketState?.price?.toString() || '0',
-                priceChangePercent: marketState?.price ? ((marketState.price - parseFloat(pair.openPrice)) / parseFloat(pair.openPrice)) * 100 : 0,
-                high24h: marketState?.price?.toString() || '0', 
-                low24h: marketState?.price?.toString() || '0', 
-                volume24h: '0', 
+                lastPrice: market?.lastPrice ?? '0',
+                priceChangePercent: 0,
+                high24h: market?.high24h ?? '0', 
+                low24h: market?.low24h ?? '0', 
+                volume24h: market?.volume24h ?? '0', 
             };
         }));
 
-        // Update cache
+        // For now, "trending" is just all pairs. 
+        // In the future, we can add logic to determine trending pairs.
+
         cache.data = pairsWithMarketData as any;
         cache.lastFetch = now;
 

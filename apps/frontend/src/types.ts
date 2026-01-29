@@ -38,6 +38,7 @@ export type Order = {
   }
   
   export type Market = {
+    id: string;
     symbol: string;
     baseAsset: string;
     quoteAsset: string;
@@ -49,10 +50,10 @@ export type Order = {
     isFavorite: boolean;
     category: string;
     historicalData?: number[];
-  };
-
-  export type TradingPair = Market & {
-    id: string;
+    bids: [string, string][];
+    asks: [string, string][];
+    lastPrice: string;
+    source: string;
   };
 
   export type Trade = {

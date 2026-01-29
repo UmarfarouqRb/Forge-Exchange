@@ -1,9 +1,9 @@
-export const VAULT_SPOT_ADDRESS = '0x5b5af2b5f71ebd1e738ebb2f05f15cba38b4cd80';
-export const WETH_ADDRESS = '0x4200000000000000000000000000000000000006';
+export const VAULT_SPOT_ADDRESS = '0x5b5af2b5f71ebd1e738ebb2f05f15cba38b4cd80' as const;
+export const WETH_ADDRESS = '0x4200000000000000000000000000000000000006' as const;
 
 export const INTENT_SPOT_ROUTER_ADDRESS: { [key: number]: `0x${string}` } = {
   8453: '0x4194def5bf4af3ebec559ff705395ff4b7066267',
-};
+} as const;
 
 export const TOKENS = {
   ETH: {

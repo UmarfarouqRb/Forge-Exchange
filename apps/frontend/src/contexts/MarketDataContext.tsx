@@ -1,8 +1,8 @@
 import { createContext } from 'react';
-import type { TradingPair } from '@/types';
+import type { Market } from '@/types';
 
 interface MarketDataContextValue {
-  tradingPairs: Map<string, TradingPair>;
+  tradingPairs: Map<string, Market>;
   isLoading: boolean;
   isError: boolean;
 }

@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { Redis } from '@upstash/redis';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -5,7 +6,7 @@ import postgres from 'postgres';
 import { eq } from "drizzle-orm";
 
 import * as schema from './schema/index';
-import { Order, orders, tradingPairs } from './schema/index';
+import { Order, orders, tradingPairs, markets } from './schema/index';
 
 // --- PostgreSQL (Supabase) Client ---
 
@@ -67,7 +68,20 @@ export const getOrders = async (address: string) => {
 };
 
 export const getOrdersByPair = async (pairSymbol: string) => {
-    return db.select().from(orders).leftJoin(tradingPairs, eq(orders.tradingPairId, tradingPairs.id)).where(eq(tradingPairs.symbol, pairSymbol));
+    return db.select({ order: orders }).from(orders).leftJoin(tradingPairs, eq(orders.tradingPairId, tradingPairs.id)).where(eq(tradingPairs.symbol, pairSymbol));
+};
+
+export const getMarketBySymbol = async (pairSymbol: string) => {
+    const result = await db.select()
+        .from(markets)
+        .leftJoin(tradingPairs, eq(markets.tradingPairId, tradingPairs.id))
+        .where(eq(tradingPairs.symbol, pairSymbol))
+        .limit(1);
+
+    if (result.length === 0) {
+        return null;
+    }
+    return result[0].markets;
 };
 
 export const saveOrder = async (order: Order) => {

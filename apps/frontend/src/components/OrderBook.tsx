@@ -1,8 +1,8 @@
 import { Skeleton } from '@/components/ui/skeleton';
-import { OrderBookData } from '@/types/orderbook';
+import { Market } from '@/types';
 
 interface OrderBookProps {
-  data: OrderBookData | null;
+  data: Market | null;
   isLoading: boolean;
   isError: boolean;
 }
@@ -11,7 +11,7 @@ export function OrderBook({ data, isLoading, isError }: OrderBookProps) {
   if (isLoading) {
     return (
       <div className="h-full p-2">
-        {Array.from({ length: 15 }).map((_, i) => (
+        {Array.from({ length: 15 }).map((_, i: number) => (
           <Skeleton key={i} className="h-6 w-full mb-1" />
         ))}
       </div>
@@ -38,7 +38,7 @@ export function OrderBook({ data, isLoading, isError }: OrderBookProps) {
       <div className="flex-1 overflow-auto">
         {/* Asks (Sell Orders) */}
         <div>
-          {asks.slice(0, 7).reverse().map(([price, amount], i) => (
+          {asks.slice(0, 7).reverse().map(([price, amount]: [string, string], i: number) => (
             <div
               key={i}
               className="grid grid-cols-2 gap-2 py-1 relative"
@@ -63,7 +63,7 @@ export function OrderBook({ data, isLoading, isError }: OrderBookProps) {
 
         {/* Bids (Buy Orders) */}
         <div>
-          {bids.slice(0, 7).map(([price, amount], i) => (
+          {bids.slice(0, 7).map(([price, amount]: [string, string], i: number) => (
             <div
               key={i}
               className="grid grid-cols-2 gap-2 py-1 relative"

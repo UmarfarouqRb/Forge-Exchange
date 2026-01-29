@@ -1,12 +1,12 @@
 import { OrderBook } from '@/components/OrderBook';
 import { TradePanel } from '@/components/TradePanel';
-import { OrderBookData } from '@/types/orderbook';
+import { Market } from '@/types';
 
 interface TradeProps {
   symbol: string;
   currentPrice: string;
   isMobile?: boolean;
-  orderBookData: OrderBookData | null;
+  orderBookData: Market | null;
   isOrderBookLoading: boolean;
   isOrderBookError: boolean;
 }

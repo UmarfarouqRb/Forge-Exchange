@@ -5,11 +5,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PriceChange } from '@/components/PriceChange';
 import { useNavigate } from 'react-router-dom';
-import { TradingPair } from '@/types/trading-pair';
+import { Market } from '@/types';
 
-export default function Market() {
+export default function MarketPage() {
   const navigate = useNavigate();
-  const { data: trendingPairs, isLoading, isError } = useQuery<TradingPair[]>({
+  const { data: trendingMarkets, isLoading, isError } = useQuery<Market[]>({
     queryKey: ['trending-pairs'],
     queryFn: getTrendingPairs,
     refetchInterval: 10000, // Refetch every 10 seconds
@@ -17,6 +17,13 @@ export default function Market() {
 
   const handleRowClick = (pair: string) => {
     navigate(`/spot?pair=${pair}`);
+  };
+
+  const renderValue = (value: string | number | null | undefined, prefix = '', suffix = '') => {
+    if (value === null || value === undefined) return <span className="text-muted-foreground">-</span>;
+    const numValue = parseFloat(value.toString());
+    if (isNaN(numValue)) return <span className="text-muted-foreground">-</span>;
+    return `${prefix}${numValue.toFixed(2)}${suffix}`;
   };
 
   const renderContent = () => {
@@ -47,16 +54,16 @@ export default function Market() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {trendingPairs?.map((pair) => (
-            <TableRow key={pair.symbol} onClick={() => handleRowClick(pair.symbol)} className="cursor-pointer hover:bg-muted/50">
-              <TableCell className="font-medium">{pair.symbol}</TableCell>
-              <TableCell className="text-right font-mono">${parseFloat(pair.lastPrice).toFixed(2)}</TableCell>
+          {trendingMarkets?.map((market) => (
+            <TableRow key={market.symbol} onClick={() => handleRowClick(market.symbol)} className="cursor-pointer hover:bg-muted/50">
+              <TableCell className="font-medium">{market.symbol}</TableCell>
+              <TableCell className="text-right font-mono">{renderValue(market.lastPrice, '$')}</TableCell>
               <TableCell className="text-right">
-                <PriceChange value={pair.priceChangePercent} />
+                <PriceChange value={0} />
               </TableCell>
-              <TableCell className="text-right font-mono">${parseFloat(pair.high24h).toFixed(2)}</TableCell>
-              <TableCell className="text-right font-mono">${parseFloat(pair.low24h).toFixed(2)}</TableCell>
-              <TableCell className="text-right font-mono">{(parseFloat(pair.volume24h) / 1e6).toFixed(2)}M</TableCell>
+              <TableCell className="text-right font-mono">{renderValue(market.high24h, '$')}</TableCell>
+              <TableCell className="text-right font-mono">{renderValue(market.low24h, '$')}</TableCell>
+              <TableCell className="text-right font-mono">{renderValue(market.volume24h, '', 'M')}</TableCell>
             </TableRow>
           ))}
         </TableBody>

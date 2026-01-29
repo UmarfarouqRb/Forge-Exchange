@@ -7,15 +7,13 @@ import { TradingChart } from '@/components/TradingChart';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
 import { getOrders, getMarket } from '@/lib/api';
-import type { Order } from '../types';
+import type { Order, Market } from '@/types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { useMarket as useMarketDataHook } from '@/hooks/use-market';
 import { NewAssetSelector } from "@/components/NewAssetSelector";
 import { TradeHistory } from '@/components/TradeHistory';
 import { OrderHistory } from '@/components/OrderHistory';
 import Trade from './Trade';
-import { OrderBookData } from '@/types/orderbook';
-import { MarketData } from '@/types/market-data';
 
 export default function Spot() {
   const { search } = useLocation();
@@ -36,7 +34,7 @@ export default function Spot() {
   }, [search, selectedPair]);
 
   useEffect(() => {
-    if (tradingPairs instanceof Map && tradingPairs.size > 0 && !tradingPairs.has(selectedPair)) {
+    if (tradingPairs.size > 0 && !tradingPairs.has(selectedPair)) {
       const firstPair = tradingPairs.keys().next().value;
       if (firstPair) {
         setSelectedPair(firstPair);
@@ -44,7 +42,7 @@ export default function Spot() {
     }
   }, [tradingPairs, selectedPair]);
 
-  const { data: marketData, isLoading: isMarketDataLoading, isError: isMarketDataError } = useQuery<MarketData>({
+  const { data: marketData, isLoading: isMarketDataLoading, isError: isMarketDataError } = useQuery<Market | null>({
     queryKey: ['market-data', selectedPair],
     queryFn: () => getMarket(selectedPair),
     enabled: !!selectedPair,
@@ -61,14 +59,14 @@ export default function Spot() {
     refetchInterval: 10000,
   });
 
-  const tradingPair = tradingPairs instanceof Map ? tradingPairs.get(selectedPair) : undefined;
+  const tradingPair = tradingPairs.get(selectedPair);
 
-  const orderBookData: OrderBookData | null = marketData ? { bids: marketData.bids, asks: marketData.asks } : null;
-  const currentPrice = marketData?.price?.toFixed(2) || tradingPair?.currentPrice || '0';
-  const priceChangePercent = tradingPair?.priceChangePercent || 0;
-  const high = tradingPair?.high24h || '0';
-  const low = tradingPair?.low24h || '0';
-  const volume = tradingPair?.volume24h || '0';
+  const orderBookData: Market | null = marketData ? { ...marketData } : null;
+  const currentPrice = marketData?.lastPrice || tradingPair?.lastPrice || '0';
+  const priceChange24h = 0;
+  const high = marketData?.high24h || tradingPair?.high24h || '0';
+  const low = marketData?.low24h || tradingPair?.low24h || '0';
+  const volume = marketData?.volume24h || tradingPair?.volume24h || '0';
 
   const renderOpenOrders = () => {
     const openOrders = userOrders?.filter((order) => order.status === 'open');
@@ -171,12 +169,12 @@ export default function Spot() {
             </div>
             <div>
               <div 
-                className={`text-base md:text-lg font-bold font-mono ${priceChangePercent >= 0 ? 'text-chart-2' : 'text-chart-1'}`}
+                className={`text-base md:text-lg font-bold font-mono ${priceChange24h >= 0 ? 'text-chart-2' : 'text-chart-1'}`}
                 data-testid="text-spot-price"
               >
                 ${currentPrice}
               </div>
-              <PriceChange value={priceChangePercent} />
+              <PriceChange value={priceChange24h} />
             </div>
             <div className="hidden lg:grid grid-cols-3 gap-6 text-sm ml-auto">
               <div>

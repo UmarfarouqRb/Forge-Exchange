@@ -16,6 +16,7 @@ import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
 import { NewAssetSelector } from '@/components/NewAssetSelector';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useRefetchContext } from '@/contexts/RefetchContext';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -23,6 +24,7 @@ export default function Withdraw() {
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
   const [selectedAsset, setSelectedAsset] = useState<Token | ''>('');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const { triggerRefetch } = useRefetchContext();
 
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -42,6 +44,7 @@ export default function Withdraw() {
   useTrackedTx({
     hash: withdrawTxHash,
     onSuccess: () => {
+      triggerRefetch();
       setMessage({ type: 'success', text: 'Withdrawal successful! Your balance will update shortly.' });
       toast.success("Withdrawal successful!");
     }
@@ -100,7 +103,7 @@ export default function Withdraw() {
           address: VAULT_SPOT_ADDRESS,
           abi: VaultSpotAbi,
           functionName: 'withdraw',
-          args: [token.address, parsedAmount]
+          args: [token.address as `0x${string}`, parsedAmount]
         });
         toast.loading(`Waiting for withdrawal transaction... (tx: ${withdrawHash.substring(0, 10)}...)`, { id: toastId });
         setWithdrawTxHash(withdrawHash);
