@@ -1,6 +1,6 @@
 
 import { getOrdersByPair, Order, getMarketBySymbol, Market } from '@forge/db';
-import { http, createPublicClient, parseUnits, formatUnits } from 'viem';
+import { http, createPublicClient, parseUnits, formatUnits, getAddress, isAddress } from 'viem';
 import { base } from 'viem/chains';
 import { TOKENS } from '../../frontend/src/config';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '../../frontend/src/config/contracts';
@@ -36,17 +36,34 @@ const CACHE_DURATION = 5000; // 5 seconds
 const transport = http('https://mainnet.base.org');
 const client = createPublicClient({ chain: base, transport });
 
+function normalizeAddress(addr?: string | null): `0x${string}` | null {
+  if (!addr) return null;
+  if (!isAddress(addr)) {
+    console.warn(`Invalid address: ${addr}`);
+    return null;
+  }
+  return getAddress(addr); // checksum-correct
+}
+
 async function getAMMPrice(tokenIn: { address: `0x${string}`; decimals: number }, tokenOut: { address: `0x${string}`; decimals: number }): Promise<number | null> {
     try {
+        const normalizedTokenIn = normalizeAddress(tokenIn.address);
+        const normalizedTokenOut = normalizeAddress(tokenOut.address);
+
+        if (!normalizedTokenIn || !normalizedTokenOut) {
+          return null;
+        }
+
         const amountOut = await client.readContract({
             address: INTENT_SPOT_ROUTER_ADDRESS[base.id],
             abi: intentSpotRouterABI,
             functionName: 'getAmountOut',
-            args: [tokenIn.address, tokenOut.address, parseUnits('1', tokenIn.decimals)],
+            args: [normalizedTokenIn, normalizedTokenOut, parseUnits('1', tokenIn.decimals)],
         });
         return amountOut ? parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals)) : null;
     } catch (error) {
         console.error(`Error fetching from IntentSpotRouter:`, error);
+        // Fallback to a cached or last known price could be implemented here
         return null;
     }
 }
@@ -80,15 +97,19 @@ async function getOrderBook(pair: string): Promise<OrderBook & { lastTradePrice:
     const tokenOut = TOKENS[quoteCurrency as keyof typeof TOKENS];
     if (!tokenIn || !tokenOut) throw new Error(`Invalid market or tokens for pair ${pair}`);
 
+    const dbSymbol = `${baseCurrency}/${quoteCurrency}`;
+
     const [realOrdersResult, midPrice] = await Promise.all([
-        getOrdersByPair(pair),
+        getOrdersByPair(dbSymbol),
         getAMMPrice(tokenIn, tokenOut),
     ]);
     
     const realOrders: Order[] = realOrdersResult.map((result) => result.order);
 
     if (realOrders.length === 0 && midPrice === null) {
-        throw new Error('Could not fetch real orders or AMM price.');
+        console.warn(`Could not fetch real orders or AMM price for ${pair}.`);
+        // Return empty book with no last trade price
+        return {bids: [], asks: [], lastTradePrice: null };
     }
 
     const realBids: [string, string][] = realOrders.filter(o => o.side === 'buy').map(o => [o.price, o.quantity]);
@@ -125,9 +146,12 @@ export async function getMarketState(pair: string): Promise<MarketState | null> 
     if (cache[pair] && (now - cache[pair].lastFetch < CACHE_DURATION)) return cache[pair].data;
 
     try {
+        const [baseAsset, quoteAsset] = pair.split('/');
+        const dbSymbol = `${baseAsset}/${quoteAsset}`;
+
         const [book, marketData] = await Promise.all([
             getOrderBook(pair),
-            getMarketBySymbol(pair)
+            getMarketBySymbol(dbSymbol)
         ]);
         
         const markPrice = getMarkPrice(book);
@@ -135,8 +159,8 @@ export async function getMarketState(pair: string): Promise<MarketState | null> 
         const marketState: MarketState = {
             id: pair,
             symbol: pair,
-            baseAsset: pair.slice(0, 3),
-            quoteAsset: pair.slice(3),
+            baseAsset: baseAsset,
+            quoteAsset: quoteAsset,
             price: markPrice,
             lastPrice: marketData?.lastPrice ?? book.lastTradePrice?.toString() ?? null,
             priceChangePercent: 0, // This calculation is not yet implemented

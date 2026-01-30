@@ -71,8 +71,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(400).json({ error: 'chainId query parameter is required' });
         }
 
+        const numericChainId = parseInt(chainId);
+        if (isNaN(numericChainId)) {
+            return res.status(400).json({ error: `Invalid chainId: ${chainId}` });
+        }
+
         try {
-            const tokens = await getTokens(parseInt(chainId));
+            const tokens = await getTokens(numericChainId);
             res.json(tokens);
         } catch (error: any) {
             res.status(500).json({ error: error.message });

@@ -19,7 +19,7 @@ export const TOKENS = {
     decimals: 6
   },
   USDT: {
-    address: "0xfdeA615043833213F3423b4934414065654C54Fe",
+    address: "0xfdeA615043833213F3423b4934414065654c54Fe",
     decimals: 6
   },
   DAI: {
