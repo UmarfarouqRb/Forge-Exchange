@@ -11,6 +11,9 @@ import {
   primaryKey,
 } from 'drizzle-orm/pg-core';
 import type { InferModel } from 'drizzle-orm';
+// Re-export the 'eq' operator to be used throughout the monorepo
+export { eq } from 'drizzle-orm';
+
 
 // --- SCHEMA DEFINITIONS ---
 

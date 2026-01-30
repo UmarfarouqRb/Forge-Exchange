@@ -3,10 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { Redis } from '@upstash/redis';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { eq } from "drizzle-orm";
 
 import * as schema from './schema/index';
-import { Order, orders, tradingPairs, markets } from './schema/index';
+import { Order, orders, tradingPairs, markets, eq } from './schema/index';
 
 // --- PostgreSQL (Supabase) Client ---
 
