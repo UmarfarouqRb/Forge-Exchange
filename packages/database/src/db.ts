@@ -63,7 +63,23 @@ export const saveSession = async (sessionKey: string, expiration: number) => {
 };
 
 export const getOrders = async (address: string) => {
-    return db.select().from(orders).where(eq(orders.userAddress, address));
+    const results = await db
+        .select({
+            id: orders.id,
+            userAddress: orders.userAddress,
+            tradingPairId: orders.tradingPairId,
+            side: orders.side,
+            price: orders.price,
+            quantity: orders.quantity,
+            filledQuantity: orders.filledQuantity,
+            status: orders.status,
+            createdAt: orders.createdAt,
+            pair: tradingPairs.symbol
+        })
+        .from(orders)
+        .leftJoin(tradingPairs, eq(orders.tradingPairId, tradingPairs.id))
+        .where(eq(orders.userAddress, address));
+    return results;
 };
 
 export const getOrdersByPair = async (pairSymbol: string) => {

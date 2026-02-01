@@ -28,7 +28,7 @@ export function useSubmitIntent() {
   const connectedWallet = embeddedWallet || wallets[0];
   const isWalletReady = ready && authenticated && !!connectedWallet;
 
-  const { data: tokens } = useQuery<{ [symbol: string]: { address: `0x${string}`; decimals: number } }>({
+  const { data: tokens } = useQuery<{ [symbol: string]: { address: `0x${string}`; decimals: number } }>({ 
     queryKey: ['/api/tokens', connectedWallet?.chainId],
     queryFn: () => getTokens(connectedWallet?.chainId?.toString() || '8453'),
     enabled: !!connectedWallet?.chainId,
@@ -115,16 +115,12 @@ export function useSubmitIntent() {
         deadline: BigInt(intent.deadline),
       };
 
-      const signature = await signer.signTypedData(domain, types, signingIntent);
+      const signature = await signer.signTypedData(domain, types, signingIntent) as `0x${string}`;
 
       const payload: PlaceOrderPayload = {
         intent: intent,
-        signature,
-        side: side,
+        signature: signature,
         orderType: orderType,
-        price: price,
-        amount: amount,
-        total: total.toString(),
       };
 
       return placeOrder(payload);

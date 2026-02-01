@@ -2,7 +2,7 @@
 import { createPublicClient, http, parseUnits, formatUnits } from 'viem';
 import { base } from 'viem/chains';
 import { relayerConfig } from '@forge/common';
-import { getOrders, getChainId, Order } from '@forge/db';
+import { getOrders, getChainId } from '@forge/db';
 import IntentSpotRouter from '../../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
 
 const MIN_PROFIT_BPS = 10; // 0.1%
@@ -53,19 +53,22 @@ export class MatchingEngine {
 
     private async matchOrders(address: string) {
         console.log('Checking for matching orders...');
-        const orders: Order[] = await getOrders(address);
+        const orders = await getOrders(address);
         const chainId = await getChainId();
 
         const bids = orders.filter(o => o.side === 'buy');
         const asks = orders.filter(o => o.side === 'sell');
 
         for (const bid of bids) {
+            if (!bid.pair) {
+                continue;
+            }
             const [tokenIn, tokenOut] = bid.pair.split('/');
             const marketPrice = await getMarketPrice(tokenIn, tokenOut, chainId);
             if (marketPrice === 0) continue;
 
             const orderPrice = Number(bid.price);
-            const amountIn = Number(bid.amount);
+            const amountIn = Number(bid.quantity);
             const minAmountOut = orderPrice * amountIn;
 
             if (marketPrice <= orderPrice) {
@@ -80,12 +83,15 @@ export class MatchingEngine {
         }
 
         for (const ask of asks) {
+            if (!ask.pair) {
+                continue;
+            }
             const [tokenIn, tokenOut] = ask.pair.split('/');
             const marketPrice = await getMarketPrice(tokenIn, tokenOut, chainId);
             if (marketPrice === 0) continue;
 
             const orderPrice = Number(ask.price);
-            const amountIn = Number(ask.amount);
+            const amountIn = Number(ask.quantity);
             const minAmountOut = orderPrice * amountIn;
 
             if (marketPrice >= orderPrice) {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -6,10 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TradingChart } from '@/components/TradingChart';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
-import { getOrders, getMarket } from '@/lib/api';
+import { getOrders } from '@/lib/api';
 import type { Order, Market } from '@/types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
-import { useMarket as useMarketDataHook } from '@/hooks/use-market';
+import { useMarketData } from '@/hooks/use-market-data';
 import { NewAssetSelector } from "@/components/NewAssetSelector";
 import { TradeHistory } from '@/components/TradeHistory';
 import { OrderHistory } from '@/components/OrderHistory';
@@ -20,11 +21,10 @@ export default function Spot() {
   const params = new URLSearchParams(search);
   const pairFromUrl = params.get('pair');
 
-  const [selectedPair, setSelectedPair] = useState(pairFromUrl || 'BTCUSDT');
+  const [selectedPair, setSelectedPair] = useState(pairFromUrl || 'BTC/USDT');
   const { user, authenticated } = usePrivy();
   const wallet = user?.wallet;
   const isDesktop = useBreakpoint('md');
-  const { tradingPairs } = useMarketDataHook();
 
   useEffect(() => {
     const newPair = new URLSearchParams(search).get('pair');
@@ -33,43 +33,31 @@ export default function Spot() {
     }
   }, [search, selectedPair]);
 
-  useEffect(() => {
-    if (tradingPairs.size > 0 && !tradingPairs.has(selectedPair)) {
-      const firstPair = tradingPairs.keys().next().value;
-      if (firstPair) {
-        setSelectedPair(firstPair);
-      }
-    }
-  }, [tradingPairs, selectedPair]);
-
-  const { data: marketData, isLoading: isMarketDataLoading, isError: isMarketDataError } = useQuery<Market | null>({
-    queryKey: ['market-data', selectedPair],
-    queryFn: () => getMarket(selectedPair),
-    enabled: !!selectedPair,
-    refetchInterval: 5000,
-  });
+  const { marketData, isLoading: isMarketDataLoading, isError: isMarketDataError } = useMarketData(selectedPair);
 
   const { data: userOrders, isLoading: areUserOrdersLoading, isError: areUserOrdersError } = useQuery<Order[]>({
     queryKey: ['user-orders', wallet?.address, 'spot'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Order[]> => {
       if (!wallet?.address) return [];
       return getOrders(wallet.address);
     },
     enabled: authenticated && !!wallet?.address,
     refetchInterval: 10000,
+    initialData: [],
   });
 
-  const tradingPair = tradingPairs.get(selectedPair);
-
   const orderBookData: Market | null = marketData ? { ...marketData } : null;
-  const currentPrice = marketData?.lastPrice || tradingPair?.lastPrice || '0';
+  const currentPrice = marketData?.lastPrice || '0';
   const priceChange24h = 0;
-  const high = marketData?.high24h || tradingPair?.high24h || '0';
-  const low = marketData?.low24h || tradingPair?.low24h || '0';
-  const volume = marketData?.volume24h || tradingPair?.volume24h || '0';
+  const high = marketData?.high24h || '0';
+  const low = marketData?.low24h || '0';
+  const volume = marketData?.volume24h || '0';
+
+  const baseAsset = marketData?.baseAsset || selectedPair.split('/')[0];
+  const quoteAsset = marketData?.quoteAsset || selectedPair.split('/')[1];
 
   const renderOpenOrders = () => {
-    const openOrders = userOrders?.filter((order) => order.status === 'open');
+    const openOrders = userOrders?.filter((order: Order) => order.status === 'open');
 
     return (
         <TabsContent value={!isDesktop ? "orders" : "open"} className="flex-1 overflow-auto p-2 md:p-4 mt-0">
@@ -91,7 +79,7 @@ export default function Spot() {
                     ) : areUserOrdersError ? (
                         <div className="text-center py-8 text-destructive">Failed to load open orders.</div>
                     ) : openOrders && openOrders.length > 0 ? (
-                        openOrders.map((order) => (
+                        openOrders.map((order: Order) => (
                           <div
                             key={order.id}
                             className={`grid ${!isDesktop ? 'grid-cols-2' : 'grid-cols-7'} gap-1 md:gap-2 text-xs py-2 border-b border-border hover-elevate`}
@@ -187,7 +175,7 @@ export default function Spot() {
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">24h Volume</div>
-                <div className="font-mono font-medium">{(parseFloat(volume) / 1e9).toFixed(2)}B USDT</div>
+                <div className="font-mono font-medium">{(parseFloat(volume) / 1e9).toFixed(2)}B {quoteAsset}</div>
               </div>
             </div>
           </div>
@@ -213,6 +201,8 @@ export default function Spot() {
               orderBookData={orderBookData} 
               isOrderBookLoading={isMarketDataLoading} 
               isOrderBookError={isMarketDataError} 
+              baseAsset={baseAsset}
+              quoteAsset={quoteAsset}
             />
           </TabsContent>
           {renderOpenOrders()}
@@ -262,6 +252,8 @@ export default function Spot() {
                 orderBookData={orderBookData} 
                 isOrderBookLoading={isMarketDataLoading} 
                 isOrderBookError={isMarketDataError} 
+                baseAsset={baseAsset}
+                quoteAsset={quoteAsset}
               />
             </div>
           </div>

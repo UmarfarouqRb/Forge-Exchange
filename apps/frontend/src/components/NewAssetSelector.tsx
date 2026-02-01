@@ -14,12 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useMarket } from "@/hooks/use-market";
-import { TOKENS, Token } from "@/config/contracts";
+import { TOKENS } from "@/config/contracts";
 
 type NewAssetSelectorProps = {
     isPairSelector?: false;
-    asset: Token | '';
-    setAsset: (value: Token | '') => void;
+    asset: string | '';
+    setAsset: (value: string | '') => void;
 } | {
     isPairSelector: true;
     asset: string;
@@ -30,17 +30,24 @@ export function NewAssetSelector(props: NewAssetSelectorProps) {
   const { tradingPairs, isLoading, isError } = useMarket();
   const [open, setOpen] = React.useState(false);
 
-  const items = props.isPairSelector
-    ? tradingPairs instanceof Map
-      ? Array.from(tradingPairs.keys())
-      : []
-    : (Object.keys(TOKENS) as Token[]);
+  // When isPairSelector is true, use the tradingPairs from the useMarket hook.
+  // When isPairSelector is false, use the keys from the TOKENS object.
+  const items: string[] = props.isPairSelector
+    ? tradingPairs ?? []
+    : Object.keys(TOKENS);
+
+  const getDisplayValue = () => {
+    if (props.isPairSelector) {
+      return props.asset || "Select Pair";
+    }
+    return props.asset || "Select Asset";
+  }
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button className="text-lg md:text-2xl font-bold font-mono h-auto border-0 focus:ring-0 focus:ring-offset-0">
-          {props.asset || (props.isPairSelector ? "Select Pair" : "Select Asset")}
+          {getDisplayValue()}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-full">
@@ -49,7 +56,7 @@ export function NewAssetSelector(props: NewAssetSelectorProps) {
           <CommandList>
             {isLoading && <CommandEmpty>Loading...</CommandEmpty>}
             {isError && <CommandEmpty>Error loading assets.</CommandEmpty>}
-            {!isLoading && !isError && (
+            {!isLoading && !isError && items.length === 0 && (
               <CommandEmpty>No results found.</CommandEmpty>
             )}
             <CommandGroup>
@@ -57,18 +64,13 @@ export function NewAssetSelector(props: NewAssetSelectorProps) {
                 <CommandItem
                   key={item}
                   value={item}
-                  onSelect={(currentValue) => {
-                    if (props.isPairSelector) {
-                      props.setAsset(currentValue);
-                    } else {
-                      props.setAsset(currentValue.toUpperCase() as Token);
-                    }
+                  onSelect={() => {
+                    props.setAsset(item);
                     setOpen(false);
                   }}
                 >
                   {item}
-                </CommandItem>
-              ))}
+                </CommandItem>              ))}
             </CommandGroup>
           </CommandList>
         </Command>

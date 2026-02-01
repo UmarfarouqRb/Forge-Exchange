@@ -1,10 +1,11 @@
-import { useContext } from 'react';
-import { MarketDataContext } from '@/contexts/MarketDataContext';
+import { useQuery } from "@tanstack/react-query";
+import { getAllTradingPairs } from "@/lib/api";
 
 export function useMarket() {
-  const context = useContext(MarketDataContext);
-  if (context === undefined) {
-    throw new Error('useMarket must be used within a MarketDataProvider');
-  }
-  return context;
+    const { data: tradingPairs, isLoading, isError } = useQuery<string[]>({
+        queryKey: ['trading-pairs'],
+        queryFn: getAllTradingPairs,
+    });
+
+    return { tradingPairs, isLoading, isError };
 }

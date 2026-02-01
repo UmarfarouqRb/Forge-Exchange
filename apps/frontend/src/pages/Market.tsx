@@ -1,30 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import { getTrendingPairs } from '@/lib/api';
+import { getAllTradingPairs } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PriceChange } from '@/components/PriceChange';
-import { useNavigate } from 'react-router-dom';
-import { Market } from '@/types';
+import { MarketRow } from '@/components/MarketRow';
 
 export default function MarketPage() {
-  const navigate = useNavigate();
-  const { data: trendingMarkets, isLoading, isError } = useQuery<Market[]>({
-    queryKey: ['trending-pairs'],
-    queryFn: getTrendingPairs,
-    refetchInterval: 10000, // Refetch every 10 seconds
+  const { data: tradingPairs, isLoading, isError } = useQuery<string[]>({
+    queryKey: ['trading-pairs'],
+    queryFn: getAllTradingPairs,
+    refetchInterval: 60000, // Refetch every 60 seconds
   });
-
-  const handleRowClick = (pair: string) => {
-    navigate(`/spot?pair=${pair}`);
-  };
-
-  const renderValue = (value: string | number | null | undefined, prefix = '', suffix = '') => {
-    if (value === null || value === undefined) return <span className="text-muted-foreground">-</span>;
-    const numValue = parseFloat(value.toString());
-    if (isNaN(numValue)) return <span className="text-muted-foreground">-</span>;
-    return `${prefix}${numValue.toFixed(2)}${suffix}`;
-  };
 
   const renderContent = () => {
     if (isLoading) {
@@ -38,7 +24,7 @@ export default function MarketPage() {
     }
 
     if (isError) {
-      return <div className="text-center py-8 text-destructive">Failed to load market data. Please try again later.</div>;
+      return <div className="text-center py-8 text-destructive">Failed to load trading pairs. Please try again later.</div>;
     }
 
     return (
@@ -54,17 +40,8 @@ export default function MarketPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {trendingMarkets?.map((market) => (
-            <TableRow key={market.symbol} onClick={() => handleRowClick(market.symbol)} className="cursor-pointer hover:bg-muted/50">
-              <TableCell className="font-medium">{market.symbol}</TableCell>
-              <TableCell className="text-right font-mono">{renderValue(market.lastPrice, '$')}</TableCell>
-              <TableCell className="text-right">
-                <PriceChange value={0} />
-              </TableCell>
-              <TableCell className="text-right font-mono">{renderValue(market.high24h, '$')}</TableCell>
-              <TableCell className="text-right font-mono">{renderValue(market.low24h, '$')}</TableCell>
-              <TableCell className="text-right font-mono">{renderValue(market.volume24h, '', 'M')}</TableCell>
-            </TableRow>
+          {tradingPairs?.map((pair) => (
+            <MarketRow key={pair} pair={pair} />
           ))}
         </TableBody>
       </Table>

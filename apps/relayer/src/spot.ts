@@ -99,7 +99,7 @@ export const executeSpotTrade = async (intent: any, signature: `0x${string}`, or
 
     } catch (error: any) {
         console.error('Failed to execute spot trade:', error);
-        await updateOrderStatus(orderId, 'canceled');
+        await updateOrderStatus(orderId, 'cancelled');
         throw new Error(`Failed to execute spot trade: ${error.message}`);
     }
 };

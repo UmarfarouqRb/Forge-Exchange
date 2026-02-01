@@ -9,6 +9,8 @@ interface TradeProps {
   orderBookData: Market | null;
   isOrderBookLoading: boolean;
   isOrderBookError: boolean;
+  baseAsset: string;
+  quoteAsset: string;
 }
 
 export default function Trade({ 
@@ -17,7 +19,9 @@ export default function Trade({
   isMobile, 
   orderBookData,
   isOrderBookLoading,
-  isOrderBookError 
+  isOrderBookError,
+  baseAsset,
+  quoteAsset
 }: TradeProps) {
   return (
     <div className="grid grid-cols-2 gap-2 p-2 h-full bg-background">
@@ -25,7 +29,7 @@ export default function Trade({
         <TradePanel symbol={symbol} currentPrice={currentPrice} isMobile={isMobile} />
       </div>
       <div className="col-span-1">
-        <OrderBook data={orderBookData} isLoading={isOrderBookLoading} isError={isOrderBookError} />
+        <OrderBook data={orderBookData} isLoading={isOrderBookLoading} isError={isOrderBookError} baseAsset={baseAsset} quoteAsset={quoteAsset} />
       </div>
     </div>
   );

@@ -1,55 +1,50 @@
-export interface Token {
+export type Token = {
   id: string;
   chainId: number;
   address: string;
   symbol: string;
-  name: string | null;
+  name: string;
   decimals: number;
-  createdAt: string;
-}
+};
 
-export interface TradingPair {
-  id:string;
-  baseTokenId: string;
-  quoteTokenId: string;
-  symbol: string;
-  isActive: boolean;
-  createdAt: string;
-}
-
-export interface Order {
+export type TradingPair = {
   id: string;
-  userAddress: string;
-  tradingPairId: string;
-  side: "buy" | "sell";
+  symbol: string;
+  baseToken: Token;
+  quoteToken: Token;
+  status: string;
+};
+
+export type Order = {
+  id: string;
+  walletAddress: string;
+  symbol: string;
+  side: 'buy' | 'sell';
+  type: 'limit' | 'market';
   price: string;
-  quantity: string;
-  filledQuantity: string;
-  status: "open" | "filled" | "cancelled";
+  amount: string;
+  total: string;
+  status: 'open' | 'filled' | 'cancelled';
   createdAt: string;
-  symbol?: string;
-  amount?: string;
-  total?: string;
-}
+  updatedAt: string;
+};
 
-// This type represents the detailed market information provided by the API
-export interface Market {
-    id: string;
-    symbol: string;
-    lastPrice: string | null;
-    volume24h: string;
-    high24h: string | null;
-    low24h: string | null;
-    priceChangePercent: number;
-    baseAsset?: string;
-    quoteAsset?: string;
-    price?: number | null;
-    currentPrice?: string | null;
-    bids: [string, string][];
-    asks: [string, string][];
-}
+export type OrderBook = {
+  bids: [string, string][];
+  asks: [string, string][];
+};
 
-export interface OrderBook {
-    bids: [string, string][];
-    asks: [string, string][];
-}
+export type Market = {
+  id: string;
+  symbol: string;
+  baseAsset: string;
+  quoteAsset: string;
+  lastPrice: string | null;
+  priceChangePercent: number;
+  high24h: string | null;
+  low24h: string | null;
+  volume24h: string | null;
+  bids: [string, string][];
+  asks: [string, string][];
+  source: 'live' | 'cached' | 'unavailable';
+};

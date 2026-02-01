@@ -1,7 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { getMarketState } from "./src/market";
-import { addOrder, getOrders } from "./src/orders";
 import { health } from "./src/health";
 import { getAllPairs, getTokens } from "./src/pairs";
 import { getTrendingPairs } from "./src/trending";
@@ -24,8 +23,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/health", health);
 
   // --- Order Routes ---
-  app.get("/api/orders/:address", getOrders);
-  app.post("/api/orders", addOrder);
+ 
 
   // --- Market Routes ---
   app.get("/api/markets/:pair", async (req: Request, res: Response) => {

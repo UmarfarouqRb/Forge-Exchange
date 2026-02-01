@@ -5,9 +5,11 @@ interface OrderBookProps {
   data: Market | null;
   isLoading: boolean;
   isError: boolean;
+  baseAsset: string;
+  quoteAsset: string;
 }
 
-export function OrderBook({ data, isLoading, isError }: OrderBookProps) {
+export function OrderBook({ data, isLoading, isError, baseAsset, quoteAsset }: OrderBookProps) {
   if (isLoading) {
     return (
       <div className="h-full p-2">
@@ -31,8 +33,8 @@ export function OrderBook({ data, isLoading, isError }: OrderBookProps) {
   return (
     <div className="h-full flex flex-col bg-background p-2 text-xs">
       <div className="grid grid-cols-2 gap-2 text-muted-foreground mb-2">
-        <div className="text-left">Price (USDT)</div>
-        <div className="text-right">Quantity (BTC)</div>
+        <div className="text-left">Price ({quoteAsset})</div>
+        <div className="text-right">Quantity ({baseAsset})</div>
       </div>
 
       <div className="flex-1 overflow-auto">

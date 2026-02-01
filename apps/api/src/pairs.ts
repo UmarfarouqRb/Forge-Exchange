@@ -1,40 +1,91 @@
 
-import { db, tradingPairs, tokens, eq } from '@forge/db';
-import { getMarketState } from './market';
+import { db, tradingPairs, tokens, eq, alias } from '@forge/db';
 
-// This function fetches all trading pairs from the database and enriches them with live market data.
-// It is designed to be resilient, ensuring that a failure to fetch data for one pair does not prevent others from being returned.
+// This function fetches all trading pairs from the database along with their base and quote token details.
 export async function getAllPairs() {
+    const baseToken = alias(tokens, 'base_token');
+    const quoteToken = alias(tokens, 'quote_token');
+
     const allPairs = await db.select({
         id: tradingPairs.id,
         symbol: tradingPairs.symbol,
-        baseTokenId: tradingPairs.baseTokenId,
-        quoteTokenId: tradingPairs.quoteTokenId,
         isActive: tradingPairs.isActive,
-    }).from(tradingPairs);
+        baseToken: {
+            id: baseToken.id,
+            chainId: baseToken.chainId,
+            address: baseToken.address,
+            symbol: baseToken.symbol,
+            name: baseToken.name,
+            decimals: baseToken.decimals,
+        },
+        quoteToken: {
+            id: quoteToken.id,
+            chainId: quoteToken.chainId,
+            address: quoteToken.address,
+            symbol: quoteToken.symbol,
+            name: quoteToken.name,
+            decimals: quoteToken.decimals,
+        }
+    })
+    .from(tradingPairs)
+    .innerJoin(baseToken, eq(tradingPairs.baseTokenId, baseToken.id))
+    .innerJoin(quoteToken, eq(tradingPairs.quoteTokenId, quoteToken.id));
 
-    const enrichedPairs = await Promise.all(allPairs.map(async (pair) => {
-        // The getMarketState function is now resilient and will return partial data even if some sources fail.
-        const marketState = await getMarketState(pair.symbol);
-
-        // We construct the pair object with the available data, defaulting to null if market data is unavailable.
-        return {
-            id: pair.id,
-            symbol: pair.symbol,
-            baseToken: pair.baseTokenId,
-            quoteToken: pair.quoteTokenId,
-            status: pair.isActive ? 'active' : 'inactive',
-            price: marketState?.price ?? null,
-            priceChangePercent: marketState?.priceChangePercent ?? 0,
-            volume24h: marketState?.volume24h ?? null,
-            lastPrice: marketState?.lastPrice ?? null,
-            source: marketState?.source ?? 'unavailable',
-        };
+    return allPairs.map(pair => ({
+        id: pair.id,
+        symbol: pair.symbol,
+        baseToken: pair.baseToken,
+        quoteToken: pair.quoteToken,
+        status: pair.isActive ? 'active' : 'inactive',
     }));
-
-    // The function will now always return a list of all pairs, with market data filled in where available.
-    return enrichedPairs;
 }
+
+export async function getPairBySymbol(symbol: string) {
+    const baseToken = alias(tokens, 'base_token');
+    const quoteToken = alias(tokens, 'quote_token');
+
+    const result = await db.select({
+        id: tradingPairs.id,
+        symbol: tradingPairs.symbol,
+        isActive: tradingPairs.isActive,
+        baseToken: {
+            id: baseToken.id,
+            chainId: baseToken.chainId,
+            address: baseToken.address,
+            symbol: baseToken.symbol,
+            name: baseToken.name,
+            decimals: baseToken.decimals,
+        },
+        quoteToken: {
+            id: quoteToken.id,
+            chainId: quoteToken.chainId,
+            address: quoteToken.address,
+            symbol: quoteToken.symbol,
+            name: quoteToken.name,
+            decimals: quoteToken.decimals,
+        }
+    })
+    .from(tradingPairs)
+    .where(eq(tradingPairs.symbol, symbol))
+    .innerJoin(baseToken, eq(tradingPairs.baseTokenId, baseToken.id))
+    .innerJoin(quoteToken, eq(tradingPairs.quoteTokenId, quoteToken.id))
+    .limit(1);
+
+    if (result.length === 0) {
+        return null;
+    }
+
+    const pair = result[0];
+
+    return {
+        id: pair.id,
+        symbol: pair.symbol,
+        baseToken: pair.baseToken,
+        quoteToken: pair.quoteToken,
+        status: pair.isActive ? 'active' : 'inactive',
+    };
+}
+
 
 // This function remains unchanged, as the chainId normalization is handled at the route level.
 export async function getTokens(chainId: number) {
