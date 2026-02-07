@@ -1,14 +1,16 @@
+
 import { useQuery } from '@tanstack/react-query';
-import { getAllTradingPairs } from '@/lib/api';
+import { getAllPairs } from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MarketRow } from '@/components/MarketRow';
+import { TradingPair } from '@/types';
 
 export default function MarketPage() {
-  const { data: tradingPairs, isLoading, isError } = useQuery<string[]>({
+  const { data: tradingPairs, isLoading, isError } = useQuery<TradingPair[]>({
     queryKey: ['trading-pairs'],
-    queryFn: getAllTradingPairs,
+    queryFn: getAllPairs,
     refetchInterval: 60000, // Refetch every 60 seconds
   });
 
@@ -41,7 +43,7 @@ export default function MarketPage() {
         </TableHeader>
         <TableBody>
           {tradingPairs?.map((pair) => (
-            <MarketRow key={pair} pair={pair} />
+            <MarketRow key={pair.id} pair={pair} />
           ))}
         </TableBody>
       </Table>

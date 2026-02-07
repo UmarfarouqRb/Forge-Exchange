@@ -1,39 +1,63 @@
 
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TradingChart } from '@/components/TradingChart';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
-import { getOrders } from '@/lib/api';
-import type { Order, Market } from '@/types';
+import { getOrders, getAllPairs, getMarket } from '@/lib/api';
+import { subscribe, unsubscribe } from '@/lib/ws/market';
+import { getMarketState, setMarketState } from '@/lib/state/marketState';
+import type { Order, Market, TradingPair, Token } from '@/types/market-data';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
-import { useMarketData } from '@/hooks/use-market-data';
 import { NewAssetSelector } from "@/components/NewAssetSelector";
 import { TradeHistory } from '@/components/TradeHistory';
 import { OrderHistory } from '@/components/OrderHistory';
 import Trade from './Trade';
 
 export default function Spot() {
-  const { search } = useLocation();
-  const params = new URLSearchParams(search);
-  const pairFromUrl = params.get('pair');
+  const { tradingPairId } = useParams<{ tradingPairId: string }>();
+  const navigate = useNavigate();
 
-  const [selectedPair, setSelectedPair] = useState(pairFromUrl || 'BTC/USDT');
+  const { data: tradingPairs, isLoading: areTradingPairsLoading } = useQuery<TradingPair[]>({
+    queryKey: ['trading-pairs'],
+    queryFn: getAllPairs,
+    initialData: [],
+  });
+
+  const tradingPair: TradingPair | undefined = tradingPairs?.find((p: TradingPair) => p.id === tradingPairId);
+  const tradingPairsMap: Map<string, TradingPair> = new Map(tradingPairs?.map((p: TradingPair) => [p.id, p]));
+
   const { user, authenticated } = usePrivy();
   const wallet = user?.wallet;
   const isDesktop = useBreakpoint('md');
 
-  useEffect(() => {
-    const newPair = new URLSearchParams(search).get('pair');
-    if (newPair && newPair !== selectedPair) {
-      setSelectedPair(newPair);
-    }
-  }, [search, selectedPair]);
+  const [market, setMarket] = useState<Market | null>(tradingPairId ? getMarketState(tradingPairId) : null);
 
-  const { marketData, isLoading: isMarketDataLoading, isError: isMarketDataError } = useMarketData(selectedPair);
+  useEffect(() => {
+    if (!tradingPairId) return;
+
+    const updateMarketData = (data: Market | null) => {
+      if (data) {
+        setMarketState(data);
+        setMarket(data);
+      }
+    }
+
+    getMarket(tradingPairId).then(updateMarketData);
+
+    const cb = (data: Market) => {
+      updateMarketData(data);
+    };
+
+    subscribe(tradingPairId, cb);
+
+    return () => {
+      unsubscribe(tradingPairId);
+    };
+  }, [tradingPairId]);
 
   const { data: userOrders, isLoading: areUserOrdersLoading, isError: areUserOrdersError } = useQuery<Order[]>({
     queryKey: ['user-orders', wallet?.address, 'spot'],
@@ -46,15 +70,15 @@ export default function Spot() {
     initialData: [],
   });
 
-  const orderBookData: Market | null = marketData ? { ...marketData } : null;
-  const currentPrice = marketData?.lastPrice || '0';
+  const orderBookData: Market | null = market ? { ...market } : null;
+  const currentPrice = market?.lastPrice || '0';
   const priceChange24h = 0;
-  const high = marketData?.high24h || '0';
-  const low = marketData?.low24h || '0';
-  const volume = marketData?.volume24h || '0';
+  const high = market?.high24h || '0';
+  const low = market?.low24h || '0';
+  const volume = market?.volume24h || '0';
 
-  const baseAsset = marketData?.baseAsset || selectedPair.split('/')[0];
-  const quoteAsset = marketData?.quoteAsset || selectedPair.split('/')[1];
+  const baseAsset: Token | undefined = tradingPair?.baseToken;
+  const quoteAsset: Token | undefined = tradingPair?.quoteToken;
 
   const renderOpenOrders = () => {
     const openOrders = userOrders?.filter((order: Order) => order.status === 'open');
@@ -88,7 +112,7 @@ export default function Spot() {
                             {!isDesktop ? (
                               <>
                                 <div>
-                                  <div className="font-medium">{order.symbol}</div>
+                                  <div className="font-medium">{tradingPairsMap.get(order.tradingPairId)?.symbol}</div>
                                   <div className="text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}</div>
                                 </div>
                                 <div className="text-right">
@@ -96,10 +120,10 @@ export default function Spot() {
                                   <div className="font-mono">${order.price}</div>
                                 </div>
                                 <div>
-                                  <span className="text-muted-foreground">Amount:</span> {order.amount}
+                                  <span className="text-muted-foreground">Amount:</span> {order.quantity}
                                 </div>
                                 <div className="text-right">
-                                  <span className="text-muted-foreground">Total:</span> ${order.total}
+                                  <span className="text-muted-foreground">Total:</span> ${(parseFloat(order.price) * parseFloat(order.quantity)).toFixed(2)}
                                 </div>
                                 <div className="col-span-2 text-right">
                                   <button className="text-destructive hover:underline text-xs">
@@ -112,15 +136,15 @@ export default function Spot() {
                                 <div className="text-muted-foreground md:table-cell">
                                   {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}
                                 </div>
-                                <div>{order.symbol}</div>
+                                <div>{tradingPairsMap.get(order.tradingPairId)?.symbol}</div>
                                 <div
                                   className={order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}
                                 >
                                   {order.side.toUpperCase()}
                                 </div>
                                 <div className="md:text-right font-mono">${order.price}</div>
-                                <div className="md:text-right font-mono">{order.amount}</div>
-                                <div className="md:text-right font-mono">${order.total}</div>
+                                <div className="md:text-right font-mono">{order.quantity}</div>
+                                <div className="md:text-right font-mono">${(parseFloat(order.price) * parseFloat(order.quantity)).toFixed(2)}</div>
                                 <div className="md:text-right">
                                   <button className="text-destructive hover:underline text-xs">
                                     Cancel
@@ -145,6 +169,14 @@ export default function Spot() {
     );
   }
 
+  if (areTradingPairsLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (!tradingPair) {
+    return <div>Trading pair not found</div>
+  }
+
   return (
     <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
       {/* Price Header */}
@@ -152,11 +184,11 @@ export default function Spot() {
         <div className="flex items-center justify-between gap-2 md:gap-6">
           <div className="flex items-center gap-2 md:gap-6 flex-1 overflow-hidden">
             <div>
-              <NewAssetSelector asset={selectedPair} setAsset={setSelectedPair} isPairSelector />
+              <NewAssetSelector asset={tradingPair.id} setAsset={(id) => navigate(`/spot/${id}`)} isPairSelector />
               <div className="text-xs text-muted-foreground">Spot Trading</div>
             </div>
             <div>
-              <div 
+              <div
                 className={`text-base md:text-lg font-bold font-mono ${priceChange24h >= 0 ? 'text-chart-2' : 'text-chart-1'}`}
                 data-testid="text-spot-price"
               >
@@ -175,7 +207,7 @@ export default function Spot() {
               </div>
               <div>
                 <div className="text-muted-foreground text-xs">24h Volume</div>
-                <div className="font-mono font-medium">{(parseFloat(volume) / 1e9).toFixed(2)}B {quoteAsset}</div>
+                <div className="font-mono font-medium">{(parseFloat(volume) / 1e9).toFixed(2)}B {quoteAsset?.symbol}</div>
               </div>
             </div>
           </div>
@@ -191,18 +223,18 @@ export default function Spot() {
             <TabsTrigger value="orders">Orders</TabsTrigger>
           </TabsList>
           <TabsContent value="chart" className="flex-1 overflow-hidden">
-            <TradingChart symbol={selectedPair} />
+            <TradingChart symbol={tradingPair.symbol} />
           </TabsContent>
           <TabsContent value="trade" className="overflow-auto">
-            <Trade 
-              symbol={selectedPair} 
-              currentPrice={currentPrice} 
-              isMobile={!isDesktop} 
-              orderBookData={orderBookData} 
-              isOrderBookLoading={isMarketDataLoading} 
-              isOrderBookError={isMarketDataError} 
-              baseAsset={baseAsset}
-              quoteAsset={quoteAsset}
+            <Trade
+              tradingPair={tradingPair}
+              currentPrice={currentPrice}
+              isMobile={!isDesktop}
+              orderBookData={orderBookData}
+              isOrderBookLoading={!market}
+              isOrderBookError={false}
+              baseAsset={baseAsset?.symbol || ''}
+              quoteAsset={quoteAsset?.symbol || ''}
             />
           </TabsContent>
           {renderOpenOrders()}
@@ -216,7 +248,7 @@ export default function Spot() {
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <div className="grid grid-cols-1 flex-1 gap-2 overflow-hidden">
                         <div className="col-span-1 overflow-hidden">
-                          <TradingChart symbol={selectedPair} />
+                          <TradingChart symbol={tradingPair.symbol} />
                         </div>
                     </div>
                     {/* Bottom Section: Order History */}
@@ -245,15 +277,15 @@ export default function Spot() {
 
             {/* Order Book and Trade Panel - Right */}
             <div className="col-span-4 overflow-hidden">
-              <Trade 
-                symbol={selectedPair} 
-                currentPrice={currentPrice} 
-                isMobile={!isDesktop} 
-                orderBookData={orderBookData} 
-                isOrderBookLoading={isMarketDataLoading} 
-                isOrderBookError={isMarketDataError} 
-                baseAsset={baseAsset}
-                quoteAsset={quoteAsset}
+              <Trade
+                tradingPair={tradingPair}
+                currentPrice={currentPrice}
+                isMobile={!isDesktop}
+                orderBookData={orderBookData}
+                isOrderBookLoading={!market}
+                isOrderBookError={false}
+                baseAsset={baseAsset?.symbol || ''}
+                quoteAsset={quoteAsset?.symbol || ''}
               />
             </div>
           </div>

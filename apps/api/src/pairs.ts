@@ -17,6 +17,7 @@ export async function getAllPairs() {
             symbol: baseToken.symbol,
             name: baseToken.name,
             decimals: baseToken.decimals,
+            createdAt: baseToken.createdAt,
         },
         quoteToken: {
             id: quoteToken.id,
@@ -25,6 +26,7 @@ export async function getAllPairs() {
             symbol: quoteToken.symbol,
             name: quoteToken.name,
             decimals: quoteToken.decimals,
+            createdAt: quoteToken.createdAt,
         }
     })
     .from(tradingPairs)
@@ -36,7 +38,7 @@ export async function getAllPairs() {
         symbol: pair.symbol,
         baseToken: pair.baseToken,
         quoteToken: pair.quoteToken,
-        status: pair.isActive ? 'active' : 'inactive',
+        isActive: pair.isActive,
     }));
 }
 
@@ -55,6 +57,7 @@ export async function getPairBySymbol(symbol: string) {
             symbol: baseToken.symbol,
             name: baseToken.name,
             decimals: baseToken.decimals,
+            createdAt: baseToken.createdAt,
         },
         quoteToken: {
             id: quoteToken.id,
@@ -63,6 +66,7 @@ export async function getPairBySymbol(symbol: string) {
             symbol: quoteToken.symbol,
             name: quoteToken.name,
             decimals: quoteToken.decimals,
+            createdAt: quoteToken.createdAt,
         }
     })
     .from(tradingPairs)
@@ -82,10 +86,57 @@ export async function getPairBySymbol(symbol: string) {
         symbol: pair.symbol,
         baseToken: pair.baseToken,
         quoteToken: pair.quoteToken,
-        status: pair.isActive ? 'active' : 'inactive',
+        isActive: pair.isActive,
     };
 }
 
+export async function getPairById(id: string) {
+    const baseToken = alias(tokens, 'base_token');
+    const quoteToken = alias(tokens, 'quote_token');
+
+    const result = await db.select({
+        id: tradingPairs.id,
+        symbol: tradingPairs.symbol,
+        isActive: tradingPairs.isActive,
+        baseToken: {
+            id: baseToken.id,
+            chainId: baseToken.chainId,
+            address: baseToken.address,
+            symbol: baseToken.symbol,
+            name: baseToken.name,
+            decimals: baseToken.decimals,
+            createdAt: baseToken.createdAt,
+        },
+        quoteToken: {
+            id: quoteToken.id,
+            chainId: quoteToken.chainId,
+            address: quoteToken.address,
+            symbol: quoteToken.symbol,
+            name: quoteToken.name,
+            decimals: quoteToken.decimals,
+            createdAt: quoteToken.createdAt,
+        }
+    })
+    .from(tradingPairs)
+    .where(eq(tradingPairs.id, id))
+    .innerJoin(baseToken, eq(tradingPairs.baseTokenId, baseToken.id))
+    .innerJoin(quoteToken, eq(tradingPairs.quoteTokenId, quoteToken.id))
+    .limit(1);
+
+    if (result.length === 0) {
+        return null;
+    }
+
+    const pair = result[0];
+
+    return {
+        id: pair.id,
+        symbol: pair.symbol,
+        baseToken: pair.baseToken,
+        quoteToken: pair.quoteToken,
+        isActive: pair.isActive,
+    };
+}
 
 // This function remains unchanged, as the chainId normalization is handled at the route level.
 export async function getTokens(chainId: number) {

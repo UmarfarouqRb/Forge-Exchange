@@ -1,10 +1,18 @@
 
-import { getOrdersByPair, Order, getMarketBySymbol, Market } from '@forge/db';
-import { http, createPublicClient, parseUnits, formatUnits, getAddress, isAddress } from 'viem';
+import { getOrdersByPairId, Order, getMarketById, Market } from '@forge/db';
+import {
+    http,
+    createPublicClient,
+    parseUnits,
+    formatUnits,
+    getAddress,
+    isAddress
+} from 'viem';
 import { base } from 'viem/chains';
-import { TOKENS } from '../../frontend/src/config';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '../../frontend/src/config/contracts';
 import { intentSpotRouterABI } from '../../frontend/src/abis/IntentSpotRouter';
+import { getPairById, getPairBySymbol } from './pairs';
+import type { Token } from '@forge/db';
 
 // --- TYPE DEFINITIONS ---
 
@@ -14,48 +22,33 @@ export type OrderBook = {
 };
 
 // This is the composite type that the API returns, combining DB data with live data.
-export type MarketState = Omit<Market, 'tradingPairId' | 'updatedAt'> & {
+export type MarketState = {
     id: string;
     symbol: string;
     baseAsset: string;
     quoteAsset: string;
     price: number | null; // Mark Price
+    lastPrice: string | null;
     priceChangePercent: number;
+    high24h: string | null;
+    low24h: string | null;
+    volume24h: string | null;
     currentPrice: string | null;
     bids: [string, string][];
     asks: [string, string][];
     source: 'live' | 'cached' | 'unavailable';
+    isActive: boolean;
 };
 
 // --- UTILITY FUNCTIONS ---
 
 function safeAddress(addr?: string | null): `0x${string}` | null {
-  if (!addr) return null;
-  // This is a temp fix for the invalid address in the config
-  if (addr === '0xfdeA615043833213F3423b4934414065654C54Fe') {
-      console.warn('Skipping known invalid address: 0xfdeA615043833213F3423b4934414065654C54Fe');
-      return null;
-  }
-  if (!isAddress(addr)) {
-    console.warn(`Invalid address provided: ${addr}`);
-    return null;
-  }
-  return getAddress(addr); // Return checksum-corrected address
-}
-
-function normalizeChainId(chainId: string | number): number {
-  if (typeof chainId === 'number') return chainId;
-  if (chainId.startsWith('eip155:')) {
-    const numericId = Number(chainId.split(':')[1]);
-    if (!isNaN(numericId)) {
-        return numericId;
+    if (!addr) return null;
+    if (!isAddress(addr)) {
+        console.warn(`Invalid address provided: ${addr}`);
+        return null;
     }
-  }
-  const numericId = Number(chainId);
-  if (!isNaN(numericId)) {
-      return numericId;
-  }
-  throw new Error(`Invalid or unparseable chainId: ${chainId}`);
+    return getAddress(addr); // Return checksum-corrected address
 }
 
 // --- CACHING ---
@@ -67,7 +60,7 @@ const CACHE_DURATION = 5000; // 5 seconds
 const transport = http('https://mainnet.base.org');
 const client = createPublicClient({ chain: base, transport });
 
-async function getAMMPrice(tokenIn: { address: `0x${string}`; decimals: number }, tokenOut: { address: `0x${string}`; decimals: number }): Promise<number | null> {
+async function getAMMPrice(tokenIn: { address: string; decimals: number }, tokenOut: { address: string; decimals: number }): Promise < number | null > {
     const safeTokenInAddress = safeAddress(tokenIn.address);
     const safeTokenOutAddress = safeAddress(tokenOut.address);
 
@@ -100,46 +93,14 @@ function generateSyntheticDepth(midPrice: number): OrderBook {
     return { bids, asks };
 }
 
-async function getOrderBook(pair: string): Promise<OrderBook & { lastTradePrice: number | null }> {
-    const commonQuotes = ['USDT', 'USDC', 'DAI', 'BTC', 'ETH', 'WETH'];
-    let baseCurrency = '', quoteCurrency = '';
-    
-    // Handle pair parsing robustly
-    const parts = pair.split('/');
-    if (parts.length === 2) {
-        baseCurrency = parts[0];
-        quoteCurrency = parts[1];
-    } else {
-        for (const quote of commonQuotes) {
-            if (pair.endsWith(quote)) {
-                baseCurrency = pair.slice(0, -quote.length);
-                quoteCurrency = quote;
-                break;
-            }
-        }
-        if (!baseCurrency) {
-            baseCurrency = pair.slice(0, 3);
-            quoteCurrency = pair.slice(3);
-        }
-    }
+async function getOrderBook(baseToken: Token, quoteToken: Token, pairId: string): Promise < OrderBook & { lastTradePrice: number | null } > {
+    let midPrice: number | null = await getAMMPrice(baseToken, quoteToken);
 
-    const tokenIn = TOKENS[baseCurrency as keyof typeof TOKENS];
-    const tokenOut = TOKENS[quoteCurrency as keyof typeof TOKENS];
-    
-    let midPrice: number | null = null;
-    if (tokenIn && tokenOut) {
-        midPrice = await getAMMPrice(tokenIn, tokenOut);
-    } else {
-        console.warn(`Tokens not found in config for pair ${pair}. Cannot fetch AMM price.`);
-    }
-
-    const dbSymbol = `${baseCurrency}/${quoteCurrency}`;
     let realOrders: Order[] = [];
     try {
-        const realOrdersResult = await getOrdersByPair(dbSymbol);
-        realOrders = realOrdersResult.map((result) => result.order);
+        realOrders = await getOrdersByPairId(pairId);
     } catch (dbError) {
-        console.error(`Database error fetching orders for ${dbSymbol}:`, dbError);
+        console.error(`Database error fetching orders for ${pairId}:`, dbError);
         // Continue without real orders
     }
 
@@ -172,44 +133,61 @@ export function getMarkPrice(book: OrderBook & { lastTradePrice: number | null }
     return book.lastTradePrice;
 }
 
-export async function getMarketState(pair: string): Promise<MarketState | null> {
+export async function getMarketState(pairId: string): Promise < MarketState | null > {
     const now = Date.now();
-    if (cache[pair] && (now - cache[pair].lastFetch < CACHE_DURATION)) {
-        const cachedData = cache[pair].data;
+    if (cache[pairId] && (now - cache[pairId].lastFetch < CACHE_DURATION)) {
+        const cachedData = cache[pairId].data;
         cachedData.source = 'cached';
         return cachedData;
     }
 
     try {
-        const [baseAsset, quoteAsset] = pair.split('/');
-        const dbSymbol = `${baseAsset}/${quoteAsset}`;
+        const pairInfo = await getPairById(pairId);
+        if (!pairInfo) {
+            return null; // Or handle as a 404 earlier
+        }
+
+        const { symbol: pair, baseToken, quoteToken, isActive } = pairInfo;
 
         // Fetch data concurrently, but safely
         const [bookResult, marketDataResult] = await Promise.allSettled([
-            getOrderBook(pair),
-            getMarketBySymbol(dbSymbol)
+            getOrderBook(baseToken, quoteToken, pairId),
+            getMarketById(pairId)
         ]);
 
         const book = bookResult.status === 'fulfilled' ? bookResult.value : { bids: [], asks: [], lastTradePrice: null };
         const marketData = marketDataResult.status === 'fulfilled' ? marketDataResult.value : null;
-        
+
         if (bookResult.status === 'rejected') {
             console.error(`Failed to get order book for ${pair}:`, bookResult.reason);
         }
         if (marketDataResult.status === 'rejected') {
-            console.error(`Failed to get market data for ${dbSymbol}:`, marketDataResult.reason);
+            console.error(`Failed to get market data for ${pair}:`, marketDataResult.reason);
         }
-        
+
         const markPrice = getMarkPrice(book);
+        const lastPrice = marketData?.lastPrice ?? book.lastTradePrice?.toString() ?? null;
+
+        let priceChangePercent = 0;
+        // @ts-ignore - open24h is not defined in the shared type, but is expected from the DB
+        const openPrice24h = marketData?.open24h;
+
+        if (lastPrice && openPrice24h) {
+            const last = parseFloat(lastPrice);
+            const open = parseFloat(openPrice24h);
+            if (open !== 0) {
+                priceChangePercent = ((last - open) / open) * 100;
+            }
+        }
 
         const marketState: MarketState = {
-            id: pair,
+            id: pairId,
             symbol: pair,
-            baseAsset,
-            quoteAsset,
+            baseAsset: baseToken.symbol,
+            quoteAsset: quoteToken.symbol,
             price: markPrice,
-            lastPrice: marketData?.lastPrice ?? book.lastTradePrice?.toString() ?? null,
-            priceChangePercent: 0, // This calculation is not yet implemented
+            lastPrice: lastPrice,
+            priceChangePercent: priceChangePercent,
             high24h: marketData?.high24h ?? null,
             low24h: marketData?.low24h ?? null,
             volume24h: marketData?.volume24h ?? null,
@@ -217,12 +195,21 @@ export async function getMarketState(pair: string): Promise<MarketState | null> 
             bids: book.bids,
             asks: book.asks,
             source: 'live',
+            isActive: isActive ?? false,
         };
 
-        cache[pair] = { data: marketState, lastFetch: now };
+        cache[pairId] = { data: marketState, lastFetch: now };
         return marketState;
     } catch (error) {
-        console.error(`Critical failure in getMarketState for ${pair}:`, error);
+        console.error(`Critical failure in getMarketState for ${pairId}:`, error);
         return null; // Last resort, should not happen with the inner catches.
     }
+}
+
+export async function getMarketStateBySymbol(symbol: string): Promise<MarketState | null> {
+    const pair = await getPairBySymbol(symbol);
+    if (!pair) {
+        return null;
+    }
+    return getMarketState(pair.id);
 }

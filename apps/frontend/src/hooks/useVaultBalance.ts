@@ -5,7 +5,7 @@ import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { useRefetchContext } from '@/contexts/RefetchContext';
 import { useEffect } from 'react';
 
-export function useVaultBalance(tokenAddress: `0x${string}` | undefined) {
+export function useVaultBalance(tokenAddress: string | undefined) {
   const { address } = useAccount();
   const { refetchCounter } = useRefetchContext();
 
@@ -13,7 +13,7 @@ export function useVaultBalance(tokenAddress: `0x${string}` | undefined) {
     address: VAULT_SPOT_ADDRESS,
     abi: VaultSpotAbi,
     functionName: 'availableBalance',
-    args: address && tokenAddress ? [address, tokenAddress] : undefined,
+    args: address && tokenAddress ? [address, tokenAddress as `0x${string}`] : undefined,
     query: {
       enabled: !!address && !!tokenAddress && tokenAddress !== '0x0000000000000000000000000000000000000000',
     },

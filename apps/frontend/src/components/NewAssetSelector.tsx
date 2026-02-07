@@ -13,7 +13,8 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useMarket } from "@/hooks/use-market";
+import { useQuery } from "@tanstack/react-query";
+import { getAllPairs } from "@/lib/api";
 import { TOKENS } from "@/config/contracts";
 
 type NewAssetSelectorProps = {
@@ -27,18 +28,17 @@ type NewAssetSelectorProps = {
 };
 
 export function NewAssetSelector(props: NewAssetSelectorProps) {
-  const { tradingPairs, isLoading, isError } = useMarket();
+  const { data: allPairs, isLoading, isError } = useQuery({
+    queryKey: ['all-pairs'],
+    queryFn: getAllPairs,
+  });
   const [open, setOpen] = React.useState(false);
-
-  // When isPairSelector is true, use the tradingPairs from the useMarket hook.
-  // When isPairSelector is false, use the keys from the TOKENS object.
-  const items: string[] = props.isPairSelector
-    ? tradingPairs ?? []
-    : Object.keys(TOKENS);
 
   const getDisplayValue = () => {
     if (props.isPairSelector) {
-      return props.asset || "Select Pair";
+      if (!props.asset || !allPairs) return "Select Pair";
+      const selectedPair = allPairs.find(p => p.id === props.asset);
+      return selectedPair?.symbol || "Select Pair";
     }
     return props.asset || "Select Asset";
   }
@@ -56,21 +56,42 @@ export function NewAssetSelector(props: NewAssetSelectorProps) {
           <CommandList>
             {isLoading && <CommandEmpty>Loading...</CommandEmpty>}
             {isError && <CommandEmpty>Error loading assets.</CommandEmpty>}
-            {!isLoading && !isError && items.length === 0 && (
+            {!isLoading && !isError && (
+                (props.isPairSelector && !allPairs?.length) ||
+                (!props.isPairSelector && Object.keys(TOKENS).length === 0)
+            ) && (
               <CommandEmpty>No results found.</CommandEmpty>
             )}
             <CommandGroup>
-              {items.map((item) => (
-                <CommandItem
-                  key={item}
-                  value={item}
-                  onSelect={() => {
-                    props.setAsset(item);
-                    setOpen(false);
-                  }}
-                >
-                  {item}
-                </CommandItem>              ))}
+              {props.isPairSelector ? (
+                allPairs?.map((pair) => (
+                  <CommandItem
+                    key={pair.id}
+                    value={pair.symbol}
+                    onSelect={() => {
+                      props.setAsset(pair.id);
+                      setOpen(false);
+                    }}
+                  >
+                    {pair.symbol}
+                  </CommandItem>
+                ))
+              ) : (
+                Object.keys(TOKENS).map((token) => (
+                  <CommandItem
+                    key={token}
+                    value={token}
+                    onSelect={() => {
+                      if (!props.isPairSelector) {
+                        props.setAsset(token);
+                      }
+                      setOpen(false);
+                    }}
+                  >
+                    {token}
+                  </CommandItem>
+                ))
+              )}
             </CommandGroup>
           </CommandList>
         </Command>

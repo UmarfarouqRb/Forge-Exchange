@@ -82,21 +82,30 @@ export const getOrders = async (address: string) => {
     return results;
 };
 
-export const getOrdersByPair = async (pairSymbol: string) => {
-    return db.select({ order: orders }).from(orders).leftJoin(tradingPairs, eq(orders.tradingPairId, tradingPairs.id)).where(eq(tradingPairs.symbol, pairSymbol));
+export const getOrdersByPairId = async (pairId: string) => {
+    return db.select({
+        id: orders.id,
+        userAddress: orders.userAddress,
+        tradingPairId: orders.tradingPairId,
+        side: orders.side,
+        price: orders.price,
+        quantity: orders.quantity,
+        filledQuantity: orders.filledQuantity,
+        status: orders.status,
+        createdAt: orders.createdAt,
+    }).from(orders).where(eq(orders.tradingPairId, pairId));
 };
 
-export const getMarketBySymbol = async (pairSymbol: string) => {
+export const getMarketById = async (pairId: string) => {
     const result = await db.select()
         .from(markets)
-        .leftJoin(tradingPairs, eq(markets.tradingPairId, tradingPairs.id))
-        .where(eq(tradingPairs.symbol, pairSymbol))
+        .where(eq(markets.tradingPairId, pairId))
         .limit(1);
 
     if (result.length === 0) {
         return null;
     }
-    return result[0].markets;
+    return result[0];
 };
 
 export const saveOrder = async (order: Order) => {

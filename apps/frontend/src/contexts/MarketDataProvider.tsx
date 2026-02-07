@@ -1,11 +1,57 @@
-import { ReactNode } from 'react';
+
+import { ReactNode, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MarketDataContext } from './MarketDataContext';
-import { useMarketData } from '@/hooks/use-market-data';
+import { getAllPairs, getMarket } from '@/lib/api';
+import { subscribe, unsubscribe } from '@/lib/ws/market';
+import type { Market, TradingPair } from '@/types';
 
 export function MarketDataProvider({ children }: { children: ReactNode }) {
-  const marketData = useMarketData();
+  const [markets, setMarkets] = useState(new Map<string, Market>());
+
+  const { data: tradingPairs, isLoading, isError } = useQuery<TradingPair[]>({
+    queryKey: ['trading-pairs'],
+    queryFn: getAllPairs,
+  });
+
+  useEffect(() => {
+    if (!tradingPairs) return;
+
+    const subscribedPairs = new Set<string>();
+
+    const updateMarketState = (marketData: Market) => {
+      setMarkets(prevMarkets => {
+        const newMarkets = new Map(prevMarkets);
+        const existingMarket = newMarkets.get(marketData.id) || {};
+        newMarkets.set(marketData.id, { ...existingMarket, ...marketData });
+        return newMarkets;
+      });
+    };
+
+    tradingPairs.forEach(pair => {
+      if (!pair.id) return;
+      getMarket(pair.id).then(updateMarketState);
+      if (!subscribedPairs.has(pair.id)) {
+        subscribe(pair.id, updateMarketState);
+        subscribedPairs.add(pair.id);
+      }
+    });
+
+    return () => {
+      subscribedPairs.forEach(pairId => {
+        unsubscribe(pairId);
+      });
+    };
+  }, [tradingPairs]);
+
+  const contextValue = {
+    tradingPairs: markets, // This matches the context's type: Map<string, Market>
+    isLoading,
+    isError,
+  };
+
   return (
-    <MarketDataContext.Provider value={marketData}>
+    <MarketDataContext.Provider value={contextValue}>
       {children}
     </MarketDataContext.Provider>
   );

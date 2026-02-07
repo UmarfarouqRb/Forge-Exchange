@@ -1,5 +1,6 @@
+
 export type Token = {
-  id: string;
+  id: number;
   chainId: number;
   address: string;
   symbol: string;
@@ -8,26 +9,34 @@ export type Token = {
 };
 
 export type TradingPair = {
-  id: string;
-  symbol: string;
-  baseToken: Token;
-  quoteToken: Token;
-  status: string;
-};
+    id: string;
+    symbol: string;
+    baseToken: Token;
+    quoteToken: Token;
+    isActive?: boolean;
+    status: 'active' | 'inactive';
+}
 
 export type Order = {
   id: string;
-  walletAddress: string;
-  symbol: string;
+  userAddress: string;
+  tradingPairId: string;
   side: 'buy' | 'sell';
-  type: 'limit' | 'market';
   price: string;
-  amount: string;
-  total: string;
+  quantity: string;
+  filledQuantity: string;
   status: 'open' | 'filled' | 'cancelled';
   createdAt: string;
-  updatedAt: string;
 };
+
+export type InsertOrder = {
+  userAddress: string;
+  tradingPairId: string;
+  side: 'buy' | 'sell';
+  price?: string;
+  quantity: string;
+  type?: 'limit' | 'market';
+}
 
 export type OrderBook = {
   bids: [string, string][];
@@ -46,5 +55,5 @@ export type Market = {
   volume24h: string | null;
   bids: [string, string][];
   asks: [string, string][];
-  source: 'live' | 'cached' | 'unavailable';
+  source?: 'live' | 'cached' | 'unavailable';
 };

@@ -47,10 +47,12 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.88.0",
     "@types/pg": "^8.16.0",
+    "@types/ws": "^8.18.1",
     "cors": "^2.8.5",
     "drizzle-orm": "^0.45.1",
     "pg": "^8.16.3",
     "sonner": "^1.4.3",
-    "wagmi": "^2.5.7"
+    "wagmi": "^2.5.7",
+    "ws": "^8.18.3"
   }
 }

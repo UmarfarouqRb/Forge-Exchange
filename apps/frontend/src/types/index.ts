@@ -1,1 +1,2 @@
-export type { Token, TradingPair, Order, Market, OrderBook } from './market-data';
+
+export type { Token, TradingPair, Market, OrderBook, Order, InsertOrder } from './market-data';

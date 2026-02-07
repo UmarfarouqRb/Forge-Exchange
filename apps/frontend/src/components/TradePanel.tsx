@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { useSubmitIntent } from '@/hooks/useSubmitIntent';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
-import { TOKENS, Token } from '@/config/contracts';
+import { TradingPair } from '@/types';
 import { parseUnits, formatUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { Orders } from './Orders';
@@ -16,40 +15,37 @@ import { TradeHistory } from './TradeHistory';
 import { OrderTypeSelector } from './OrderTypeSelector';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createOrder } from '@/lib/api';
 
 interface TradePanelProps {
-  symbol: string;
+  tradingPair: TradingPair;
   currentPrice: string;
   disabled?: boolean;
   isMobile?: boolean;
 }
 
-export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = false }: TradePanelProps) {
+export function TradePanel({ tradingPair, currentPrice, disabled = false, isMobile = false }: TradePanelProps) {
   const [orderType, setOrderType] = useState<'limit' | 'market'>('market');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(currentPrice);
   const [amount, setAmount] = useState('');
-  const [slippage, setSlippage] = useState('0.05');
   const [isConfirming, setIsConfirming] = useState(false);
   const { ready, authenticated, user, login } = usePrivy();
   const { wallets } = useWallets();
-  const submitIntent = useSubmitIntent();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const connectedWallet = wallets[0];
 
-  // Update price when currentPrice prop changes
   useEffect(() => {
     if (orderType === 'limit') {
       setPrice(currentPrice);
     }
   }, [currentPrice, orderType]);
 
-  const baseCurrency = symbol.replace('USDT', '') as Token;
-  const quoteCurrency = 'USDT' as Token;
-
-  const baseToken = TOKENS[baseCurrency];
-  const quoteToken = TOKENS[quoteCurrency];
+  const baseToken = tradingPair.baseToken;
+  const quoteToken = tradingPair.quoteToken;
 
   const { data: baseBalance } = useVaultBalance(baseToken?.address);
   const { data: quoteBalance } = useVaultBalance(quoteToken?.address);
@@ -70,6 +66,19 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
     }
   }, [amount, side, baseBalance, quoteBalance, baseToken, quoteToken, total]);
 
+  const { mutate: submitOrder, isPending: isSubmitting } = useMutation({
+    mutationFn: createOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-orders'] });
+      setIsConfirming(false);
+      setAmount('');
+    },
+    onError: (error) => {
+      console.error('Failed to create order:', error);
+      setIsConfirming(false);
+    }
+  });
+
   const handlePlaceOrder = () => {
     if (!authenticated) {
       login();
@@ -82,25 +91,26 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
   };
 
   const handleConfirmOrder = () => {
-    submitIntent.mutate({ 
-      symbol, 
-      orderType, 
-      side, 
-      price, 
-      currentPrice, 
-      amount, 
-      slippage 
+    if (!user?.wallet?.address) return;
+
+    submitOrder({
+      tradingPairId: tradingPair.id,
+      side,
+      type: orderType,
+      quantity: amount,
+      price: orderType === 'limit' ? price : undefined,
+      userAddress: user.wallet.address,
     });
   };
 
   const getButtonText = () => {
     if (disabled) return 'Disabled';
-    if (submitIntent.isPending) return 'Processing...';
+    if (isSubmitting) return 'Processing...';
     if (!ready) return 'Initializing...';
     if (!authenticated) return 'Connect Wallet';
     if (authenticated && !connectedWallet) return 'Creating Wallet...';
     if (!hasSufficientBalance) return 'Insufficient Funds';
-    return side === 'buy' ? `Buy ${baseCurrency}` : `Sell ${baseCurrency}`;
+    return side === 'buy' ? `Buy ${baseToken.symbol}` : `Sell ${baseToken.symbol}`;
   }
 
   if (isMobile) {
@@ -125,7 +135,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               className="w-2/3 bg-transparent border-0"
-              placeholder="Price (USDT)"
+              placeholder={`Price (${quoteToken.symbol})`}
             />
             <span className="text-sm text-muted-foreground p-2">BBO</span>
           </div>
@@ -138,14 +148,14 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className="w-2/3 bg-transparent border-0"
-            placeholder={`Quantity (${baseCurrency})`}
+            placeholder={`Quantity (${baseToken.symbol})`}
           />
-          <span className="text-sm text-muted-foreground p-2">{baseCurrency}</span>
+          <span className="text-sm text-muted-foreground p-2">{baseToken.symbol}</span>
         </div>
         
         <div className="mb-2 p-2 bg-input rounded-md">
           <span className="text-sm text-muted-foreground">Total</span>
-          <span className="text-lg font-mono float-right">{total.toFixed(2)} USDT</span>
+          <span className="text-lg font-mono float-right">{total.toFixed(2)} {quoteToken.symbol}</span>
         </div>
         
         <div className="mb-2 flex items-center">
@@ -154,7 +164,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
         </div>
         
         <div className="text-sm text-muted-foreground mb-2">
-          Available: {quoteBalance ? formatUnits(quoteBalance, quoteToken.decimals) : '0'} USDT
+          Available: {quoteBalance ? formatUnits(quoteBalance, quoteToken.decimals) : '0'} {quoteToken.symbol}
         </div>
 
         <div className="flex-grow"></div>
@@ -169,9 +179,9 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
         </div>
         
         <Button
-          className={`w-full text-lg p-6 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${submitIntent.isPending ? 'animate-pulse' : ''}`}
+          className={`w-full text-lg p-6 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
           onClick={handlePlaceOrder}
-          disabled={disabled || submitIntent.isPending || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance}
+          disabled={disabled || isSubmitting || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance}
         >
           {getButtonText()}
         </Button>
@@ -214,26 +224,19 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
             </div>
           )}
 
-          {orderType === 'market' && (
-            <div className="mb-4">
-              <Label htmlFor="slippage">Slippage (%)</Label>
-              <Input id="slippage" type="number" value={slippage} onChange={(e) => setSlippage(e.target.value)} />
-            </div>
-          )}
-
           <div className="mb-4">
-            <Label htmlFor="amount">Amount ({baseCurrency})</Label>
+            <Label htmlFor="amount">Amount ({baseToken.symbol})</Label>
             <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
 
           <div className="mb-4">
-              <span>Total: {total.toFixed(2)} USDT</span>
+              <span>Total: {total.toFixed(2)} {quoteToken.symbol}</span>
           </div>
 
           <Button
-            className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${submitIntent.isPending ? 'animate-pulse' : ''}`}
+            className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
             onClick={handlePlaceOrder}
-            disabled={disabled || submitIntent.isPending || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance}
+            disabled={disabled || isSubmitting || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance}
           >
             {getButtonText()}
           </Button>
@@ -242,7 +245,7 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
         <div className="mt-8">
           <h3 className="text-lg font-semibold">Vault</h3>
           <div className="mt-4">
-            <Label>USDT Balance: {quoteBalance ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
+            <Label>{quoteToken.symbol} Balance: {quoteBalance ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
           </div>
           <div className="mt-2">
             <Button onClick={() => navigate('/assets/deposit')} className="w-full">Deposit</Button>
@@ -253,18 +256,18 @@ export function TradePanel({ symbol, currentPrice, disabled = false, isMobile = 
         </div>
 
         <OrderConfirmationDialog
-        open={isConfirming}
-        onOpenChange={setIsConfirming}
-        onConfirm={handleConfirmOrder}
-        order={{
-          side,
-          amount,
-          symbol,
-          price,
-          orderType,
-          total
-        }}
-      />
+          open={isConfirming}
+          onOpenChange={setIsConfirming}
+          onConfirm={handleConfirmOrder}
+          order={{
+            side,
+            amount,
+            symbol: tradingPair.symbol,
+            price,
+            orderType,
+            total
+          }}
+        />
       </CardContent>
     </Card>
   );

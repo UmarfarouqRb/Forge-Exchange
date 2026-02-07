@@ -1,41 +1,96 @@
+
 import { WebSocketServer, WebSocket } from 'ws';
-import { getAllPairs } from './src/pairs';
-import { TradingPair } from '@forge/db';
-import { EventEmitter } from 'events';
+import { Server } from 'http';
 
-// Create an EventEmitter instance
-const eventEmitter = new EventEmitter();
+let wss: WebSocketServer;
 
-export function createWebSocketServer(server: any) {
-  const wss = new WebSocketServer({ server });
+// A map to store clients subscribed to specific topics (e.g., trading pairs, orders)
+const subscriptions = new Map<string, Set<WebSocket>>();
+
+export function createWebSocketServer(server: Server) {
+  wss = new WebSocketServer({ server });
 
   wss.on('connection', (ws: WebSocket) => {
     console.log('Client connected');
 
-    // Send all trading pairs on connection
-    getAllPairs().then((pairs) => {
-      ws.send(JSON.stringify({ type: 'allPairs', data: pairs }));
+    ws.on('message', (message: string) => {
+      try {
+        const data = JSON.parse(message);
+        // The client can send a message to subscribe to a topic
+        if (data.type === 'subscribe' && data.topic) {
+          subscribeClient(ws, data.topic);
+        }
+        // The client can also unsubscribe
+        if (data.type === 'unsubscribe' && data.topic) {
+          unsubscribeClient(ws, data.topic);
+        }
+      } catch (e) {
+        console.error('Failed to parse message or handle subscription:', e);
+      }
     });
 
     ws.on('close', () => {
       console.log('Client disconnected');
+      // On close, remove the client from all subscriptions
+      unsubscribeClientFromAll(ws);
     });
-  });
 
-  // Listen for the 'tradingPairUpdated' event
-  eventEmitter.on('tradingPairUpdated', (pair: TradingPair) => {
-    const message = JSON.stringify({ type: 'priceUpdate', data: pair });
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
+    ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        unsubscribeClientFromAll(ws);
     });
   });
 
   console.log('WebSocket server created');
 }
 
-// Function to emit the 'tradingPairUpdated' event
-export function emitTradingPairUpdate(pair: TradingPair) {
-  eventEmitter.emit('tradingPairUpdated', pair);
+function subscribeClient(ws: WebSocket, topic: string) {
+  if (!subscriptions.has(topic)) {
+    subscriptions.set(topic, new Set());
+  }
+  subscriptions.get(topic)!.add(ws);
+  console.log(`Client subscribed to ${topic}`);
+}
+
+function unsubscribeClient(ws: WebSocket, topic: string) {
+  if (subscriptions.has(topic)) {
+    subscriptions.get(topic)!.delete(ws);
+    console.log(`Client unsubscribed from ${topic}`);
+  }
+}
+
+function unsubscribeClientFromAll(ws: WebSocket) {
+    subscriptions.forEach((clients, topic) => {
+        if (clients.has(ws)) {
+            clients.delete(ws);
+            console.log(`Client unsubscribed from ${topic} due to disconnection`);
+        }
+    });
+}
+
+// Function to broadcast a message to all clients subscribed to a specific topic
+export function broadcastToTopic(topic: string, message: any) {
+  const subscribers = subscriptions.get(topic);
+  if (subscribers) {
+    const serializedMessage = JSON.stringify(message);
+    subscribers.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(serializedMessage);
+      }
+    });
+  }
+}
+
+// Function to broadcast a message to all connected clients
+export function broadcast(message: any) {
+    if (!wss) {
+        console.error("WebSocket server not initialized");
+        return;
+    }
+    const serializedMessage = JSON.stringify(message);
+    wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(serializedMessage);
+        }
+    });
 }
