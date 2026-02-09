@@ -53,12 +53,20 @@ function safeAddress(addr?: string | null): `0x${string}` | null {
 
 // --- CACHING ---
 const cache: { [key: string]: { data: MarketState, lastFetch: number } } = {};
-const CACHE_DURATION = 5000; // 5 seconds
+const CACHE_DURATION = 600000; // 10 minutes
 
 // --- LIVE DATA FETCHING ---
 
-const transport = http('https://mainnet.base.org');
-const client = createPublicClient({ chain: base, transport });
+const alchemyRpcUrl = process.env.ALCHEMY_RPC_URL;
+const publicRpcUrl = 'https://mainnet.base.org';
+
+// Prioritize Alchemy RPC if available
+const primaryTransport = alchemyRpcUrl ? http(alchemyRpcUrl) : http(publicRpcUrl);
+const primaryClient = createPublicClient({ chain: base, transport: primaryTransport });
+
+// Define a fallback client if Alchemy is used
+const fallbackClient = alchemyRpcUrl ? createPublicClient({ chain: base, transport: http(publicRpcUrl) }) : null;
+
 
 async function getAMMPrice(tokenIn: { address: string; decimals: number }, tokenOut: { address: string; decimals: number }): Promise < number | null > {
     const safeTokenInAddress = safeAddress(tokenIn.address);
@@ -69,19 +77,31 @@ async function getAMMPrice(tokenIn: { address: string; decimals: number }, token
         return null;
     }
 
+    const contractCall = {
+        address: INTENT_SPOT_ROUTER_ADDRESS[base.id],
+        abi: intentSpotRouterABI,
+        functionName: 'getAmountOut',
+        args: [safeTokenInAddress, safeTokenOutAddress, parseUnits('1', tokenIn.decimals)],
+    } as const;
+
     try {
-        const amountOut = await client.readContract({
-            address: INTENT_SPOT_ROUTER_ADDRESS[base.id],
-            abi: intentSpotRouterABI,
-            functionName: 'getAmountOut',
-            args: [safeTokenInAddress, safeTokenOutAddress, parseUnits('1', tokenIn.decimals)],
-        });
+        const amountOut = await primaryClient.readContract(contractCall);
         return amountOut ? parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals)) : null;
     } catch (error) {
-        console.error(`Error fetching AMM price from IntentSpotRouter:`, error);
+        console.error(`Error fetching AMM price from primary RPC:`, error);
+        if (fallbackClient) {
+            console.log('Falling back to public RPC...');
+            try {
+                const amountOut = await fallbackClient.readContract(contractCall);
+                return amountOut ? parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals)) : null;
+            } catch (fallbackError) {
+                console.error(`Error fetching AMM price from fallback RPC:`, fallbackError);
+            }
+        }
         return null; // Never throw, always return a value
     }
 }
+
 
 function generateSyntheticDepth(midPrice: number): OrderBook {
     const bids: [string, string][] = [];

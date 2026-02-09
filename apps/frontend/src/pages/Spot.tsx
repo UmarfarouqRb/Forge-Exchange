@@ -46,7 +46,7 @@ export default function Spot() {
 
   const orderBookData: Market | null = market ? { ...market } : null;
   const currentPrice = market?.lastPrice || '0';
-  const priceChange24h = 0;
+  const priceChange24h = market?.priceChangePercent || 0;
   const high = market?.high24h || '0';
   const low = market?.low24h || '0';
   const volume = market?.volume24h || '0';

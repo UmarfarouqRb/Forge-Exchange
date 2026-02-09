@@ -52,10 +52,7 @@ export function MarketRow({ pair, market }: MarketRowProps) {
     );
   }
 
-  // The 24h change is not available in the market data directly.
-  // It would require the price 24h ago.
-  // For now, like the old implementation, it will be 0.
-  const priceChange24h = 0;
+  const priceChange24h = market.priceChangePercent || 0;
 
   return (
     <TableRow onClick={() => handleRowClick(pair.id)} className="cursor-pointer hover:bg-muted/50">
