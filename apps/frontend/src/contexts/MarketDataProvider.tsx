@@ -1,5 +1,5 @@
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MarketDataContext } from './MarketDataContext';
 import { getAllPairs, getMarket } from '@/lib/api';
@@ -9,14 +9,24 @@ import type { Market, TradingPair } from '@/types';
 export function MarketDataProvider({ children }: { children: ReactNode }) {
   const [markets, setMarkets] = useState(new Map<string, Market>());
 
-  const { data: pairs, isLoading, isError } = useQuery<TradingPair[]>({
+  const { data: pairsList } = useQuery<TradingPair[]>({
     queryKey: ['trading-pairs'],
     queryFn: getAllPairs,
     initialData: [],
   });
 
+  const pairs = useMemo(() => {
+    const pairsMap = new Map<string, TradingPair>();
+    if (pairsList) {
+      for (const pair of pairsList) {
+        pairsMap.set(pair.id, pair);
+      }
+    }
+    return pairsMap;
+  }, [pairsList]);
+
   useEffect(() => {
-    if (!pairs) return;
+    if (!pairsList) return;
 
     const subscribedPairs = new Set<string>();
 
@@ -29,7 +39,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       });
     };
 
-    pairs.forEach(pair => {
+    pairsList.forEach(pair => {
       if (!pair.id) return;
       getMarket(pair.id).then(updateMarketState);
       if (!subscribedPairs.has(pair.id)) {
@@ -43,13 +53,11 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         unsubscribe(pairId);
       });
     };
-  }, [pairs]);
+  }, [pairsList]);
 
   const contextValue = {
-    pairs: pairs || [],
+    pairs,
     markets,
-    isLoading,
-    isError,
   };
 
   return (

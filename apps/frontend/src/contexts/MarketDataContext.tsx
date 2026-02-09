@@ -2,10 +2,8 @@ import { createContext } from 'react';
 import type { Market, TradingPair } from '@/types/market-data';
 
 interface MarketDataContextValue {
-  pairs: TradingPair[];
+  pairs: Map<string, TradingPair>;
   markets: Map<string, Market>;
-  isLoading: boolean;
-  isError: boolean;
 }
 
-export const MarketDataContext = createContext<MarketDataContextValue | undefined>(undefined);
+export const MarketDataContext = createContext<MarketDataContextValue>({ pairs: new Map(), markets: new Map() });

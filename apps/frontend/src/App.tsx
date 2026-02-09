@@ -33,6 +33,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/market" element={<Market />} />
           <Route path="/spot" element={<Spot />} />
+          <Route path="/spot/:pairId" element={<Spot />} />
           <Route path="/futures" element={<Futures />} />
           <Route path="/assets/*" element={<Assets />}>
             <Route path="deposit" element={<Deposit />} />

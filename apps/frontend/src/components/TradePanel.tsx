@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useContext } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
-import { TradingPair } from '@/types';
+import { Market, TradingPair } from '@/types';
 import { parseUnits, formatUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { Orders } from './Orders';
@@ -17,18 +17,34 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createOrder } from '@/lib/api';
+import { MarketDataContext } from '@/contexts/MarketDataContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TradePanelProps {
-  tradingPair: TradingPair;
-  currentPrice: string;
+  pair: TradingPair;
+  market?: Market;
   disabled?: boolean;
   isMobile?: boolean;
 }
 
-export function TradePanel({ tradingPair, currentPrice, disabled = false, isMobile = false }: TradePanelProps) {
+export function SkeletonTradePanel() {
+  return (
+    <Card className="h-full">
+      <CardContent className="p-4">
+        <Skeleton className="h-10 w-full mb-4" />
+        <Skeleton className="h-8 w-full mb-4" />
+        <Skeleton className="h-10 w-full mb-4" />
+        <Skeleton className="h-10 w-full mb-4" />
+        <Skeleton className="h-10 w-full" />
+      </CardContent>
+    </Card>
+  );
+}
+
+export function TradePanel({ pair, market, disabled = false, isMobile = false }: TradePanelProps) {
   const [orderType, setOrderType] = useState<'limit' | 'market'>('market');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
-  const [price, setPrice] = useState(currentPrice);
+  const [price, setPrice] = useState(market?.lastPrice || '');
   const [amount, setAmount] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
   const { ready, authenticated, user, login } = usePrivy();
@@ -37,6 +53,7 @@ export function TradePanel({ tradingPair, currentPrice, disabled = false, isMobi
   const queryClient = useQueryClient();
 
   const connectedWallet = wallets[0];
+  const currentPrice = market?.lastPrice || '0';
 
   useEffect(() => {
     if (orderType === 'limit') {
@@ -44,8 +61,8 @@ export function TradePanel({ tradingPair, currentPrice, disabled = false, isMobi
     }
   }, [currentPrice, orderType]);
 
-  const baseToken = tradingPair.baseToken;
-  const quoteToken = tradingPair.quoteToken;
+  const baseToken = pair.baseToken;
+  const quoteToken = pair.quoteToken;
 
   const { data: baseBalance } = useVaultBalance(baseToken?.address);
   const { data: quoteBalance } = useVaultBalance(quoteToken?.address);
@@ -94,7 +111,7 @@ export function TradePanel({ tradingPair, currentPrice, disabled = false, isMobi
     if (!user?.wallet?.address) return;
 
     submitOrder({
-      tradingPairId: tradingPair.id,
+      tradingPairId: pair.id,
       side,
       type: orderType,
       quantity: amount,
@@ -262,7 +279,7 @@ export function TradePanel({ tradingPair, currentPrice, disabled = false, isMobi
           order={{
             side,
             amount,
-            symbol: tradingPair.symbol,
+            symbol: pair.symbol,
             price,
             orderType,
             total

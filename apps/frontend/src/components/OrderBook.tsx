@@ -1,34 +1,29 @@
 import { Skeleton } from '@/components/ui/skeleton';
-import { Market } from '@/types';
+import { Market, TradingPair } from '@/types';
 
 interface OrderBookProps {
-  data: Market | null;
-  isLoading: boolean;
-  isError: boolean;
-  baseAsset: string;
-  quoteAsset: string;
+  pair: TradingPair;
+  book?: Market;
 }
 
-export function OrderBook({ data, isLoading, isError, baseAsset, quoteAsset }: OrderBookProps) {
-  if (isLoading) {
-    return (
-      <div className="h-full p-2">
-        {Array.from({ length: 15 }).map((_, i: number) => (
-          <Skeleton key={i} className="h-6 w-full mb-1" />
-        ))}
-      </div>
-    );
+export function OrderBookSkeleton() {
+  return (
+    <div className="h-full p-2">
+      {Array.from({ length: 15 }).map((_, i: number) => (
+        <Skeleton key={i} className="h-6 w-full mb-1" />
+      ))}
+    </div>
+  );
+}
+
+export function OrderBook({ pair, book }: OrderBookProps) {
+  if (!book) {
+    return <OrderBookSkeleton />;
   }
 
-  if (isError || !data) {
-    return (
-      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-        Could not load order book.
-      </div>
-    );
-  }
-
-  const { bids, asks } = data;
+  const { bids, asks } = book;
+  const baseAsset = pair.baseToken.symbol;
+  const quoteAsset = pair.quoteToken.symbol;
 
   return (
     <div className="h-full flex flex-col bg-background p-2 text-xs">

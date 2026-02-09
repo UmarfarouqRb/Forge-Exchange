@@ -1,36 +1,40 @@
 
+import { useContext } from 'react';
 import { OrderBook } from '@/components/OrderBook';
-import { TradePanel } from '@/components/TradePanel';
-import type { Market, TradingPair } from '@/types/market-data';
+import { TradePanel, SkeletonTradePanel } from '@/components/TradePanel';
+import { MarketDataContext } from '@/contexts/MarketDataContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TradeProps {
-  tradingPair: TradingPair;
-  currentPrice: string;
-  isMobile?: boolean;
-  orderBookData: Market | null;
-  isOrderBookLoading: boolean;
-  isOrderBookError: boolean;
-  baseAsset: string;
-  quoteAsset: string;
+  pairId: string;
 }
 
-export default function Trade({ 
-  tradingPair, 
-  currentPrice, 
-  isMobile, 
-  orderBookData,
-  isOrderBookLoading,
-  isOrderBookError,
-  baseAsset,
-  quoteAsset
-}: TradeProps) {
+export default function Trade({ pairId }: TradeProps) {
+  const { pairs, markets } = useContext(MarketDataContext)!;
+
+  const pair = pairs.get(pairId);
+  const market = markets.get(pairId);
+
+  if (!pair) {
+    return (
+      <div className="grid grid-cols-2 gap-2 p-2 h-full bg-background">
+        <div className="col-span-1">
+          <SkeletonTradePanel />
+        </div>
+        <div className="col-span-1">
+          <Skeleton className="h-full w-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-2 gap-2 p-2 h-full bg-background">
       <div className="col-span-1">
-        <TradePanel tradingPair={tradingPair} currentPrice={currentPrice} isMobile={isMobile} />
+        <TradePanel pair={pair} market={market} />
       </div>
       <div className="col-span-1">
-        <OrderBook data={orderBookData} isLoading={isOrderBookLoading} isError={isOrderBookError} baseAsset={baseAsset} quoteAsset={quoteAsset} />
+        <OrderBook pair={pair} book={market} />
       </div>
     </div>
   );
