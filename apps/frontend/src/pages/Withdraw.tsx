@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { TOKENS, VAULT_SPOT_ADDRESS, Token, WETH_ADDRESS } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { WethAbi } from '@/abis/Weth';
 import { parseUnits } from 'viem';
-import { useWriteContract, useAccount } from 'wagmi';
+import { useWriteContract } from 'wagmi';
 import { useWallets } from '@privy-io/react-auth';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
@@ -17,54 +17,66 @@ import { FiLoader } from 'react-icons/fi';
 import { NewAssetSelector } from '@/components/NewAssetSelector';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRefetchContext } from '@/contexts/RefetchContext';
+import { MarketDataContext } from '@/contexts/MarketDataContext';
+import { Token } from '@/types';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
-  const [selectedAsset, setSelectedAsset] = useState<Token | ''>('');
+  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>('');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const { triggerRefetch } = useRefetchContext();
 
   const { search } = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(search);
-  const asset = params.get('asset') as Token;
+  const assetSymbolFromUrl = params.get('asset');
+
+  const { pairs, isLoading: isLoadingPairs, isError } = useContext(MarketDataContext)!;
+
+  const allTokens = useMemo(() => {
+    const tokens = new Map<string, Token>();
+    pairs.forEach(pair => {
+      if (pair.baseToken) tokens.set(pair.baseToken.symbol, pair.baseToken);
+      if (pair.quoteToken) tokens.set(pair.quoteToken.symbol, pair.quoteToken);
+    });
+    return Array.from(tokens.values());
+  }, [pairs]);
 
   useEffect(() => {
-    setSelectedAsset(asset || '');
-  }, [asset]);
+    if (assetSymbolFromUrl) {
+      setSelectedAssetSymbol(assetSymbolFromUrl);
+    }
+  }, [assetSymbolFromUrl]);
 
   const { wallets } = useWallets();
   const connectedWallet = wallets[0];
-  const { address } = connectedWallet || {};
   const { writeContractAsync } = useWriteContract();
-  const token = selectedAsset ? TOKENS[selectedAsset] : undefined;
+
+  const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
 
   useTrackedTx({
     hash: withdrawTxHash,
     onSuccess: () => {
       triggerRefetch();
-      setMessage({ type: 'success', text: 'Withdrawal successful! Your balance will update shortly.' });
-      toast.success("Withdrawal successful!");
+      toast.success('Withdrawal successful!');
+      setIsWithdrawing(false);
     }
   });
 
   const handleWithdraw = async () => {
     setMessage(null);
     if (!connectedWallet) {
-      const errorMessage = 'Please connect your wallet first.';
-      setMessage({ type: 'error', text: errorMessage });
+      toast.error('Please connect your wallet first.');
       return;
     }
     if (!amount || parseFloat(amount) <= 0) {
-        const errorMessage = 'Please enter a valid amount.';
-        setMessage({ type: 'error', text: errorMessage });
+        toast.error('Please enter a valid amount.');
         return;
     }
-    if (!token || !selectedAsset) {
-        const errorMessage = 'Please select a valid asset to withdraw.';
-        setMessage({ type: 'error', text: errorMessage });
+    if (!selectedToken) {
+        toast.error('Please select a valid asset to withdraw.');
         return;
     }
 
@@ -72,55 +84,31 @@ export default function Withdraw() {
     const toastId = toast.loading("Initiating withdrawal...");
 
     try {
-      const parsedAmount = parseUnits(amount, token.decimals);
+      const parsedAmount = parseUnits(amount, selectedToken.decimals);
 
-      if (selectedAsset === 'ETH') {
-        toast.loading("Step 1/2: Withdrawing WETH from vault...", { id: toastId });
-        const withdrawWethHash = await writeContractAsync({
-            address: VAULT_SPOT_ADDRESS,
-            abi: VaultSpotAbi,
-            functionName: 'withdraw',
-            args: [WETH_ADDRESS, parsedAmount]
-        });
-
-        toast.loading(`Step 1/2: Waiting for vault withdrawal... (tx: ${withdrawWethHash.substring(0, 10)}...)`, { id: toastId });
-        await waitForTransactionReceipt(wagmiConfig, { hash: withdrawWethHash });
-        toast.success("Vault withdrawal successful!", { id: toastId });
-
-        toast.loading("Step 2/2: Unwrapping WETH to ETH...", { id: toastId });
-        const unwrapHash = await writeContractAsync({
-            address: WETH_ADDRESS,
-            abi: WethAbi,
-            functionName: 'withdraw',
-            args: [parsedAmount]
-        });
-
-        toast.loading(`Step 2/2: Waiting for unwrap transaction... (tx: ${unwrapHash.substring(0, 10)}...)`, { id: toastId });
-        setWithdrawTxHash(unwrapHash);
+      if (selectedAssetSymbol === 'ETH') {
+        // ETH withdrawal logic will require a separate handling since it is not in the pairs
+        toast.info('ETH withdrawal is not supported yet.');
+        setIsWithdrawing(false);
       } else {
-        toast.loading("Withdrawing asset from vault...", { id: toastId });
+        toast.loading(`Withdrawing ${selectedAssetSymbol}...`, { id: toastId });
         const withdrawHash = await writeContractAsync({
           address: VAULT_SPOT_ADDRESS,
           abi: VaultSpotAbi,
           functionName: 'withdraw',
-          args: [token.address as `0x${string}`, parsedAmount]
+          args: [selectedToken.address as `0x${string}`, parsedAmount]
         });
-        toast.loading(`Waiting for withdrawal transaction... (tx: ${withdrawHash.substring(0, 10)}...)`, { id: toastId });
         setWithdrawTxHash(withdrawHash);
       }
-      
       setAmount('');
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error(err);
-      let errorMessage = "An error occurred during the withdrawal.";
-      if (err && typeof err === 'object' && 'shortMessage' in err) {
-        errorMessage = String(err.shortMessage) || errorMessage;
-      }
-      setMessage({ type: 'error', text: errorMessage });
-      toast.error(errorMessage, { id: toastId });
+      toast.error(err.shortMessage || "An error occurred during the withdrawal.");
       setIsWithdrawing(false);
     }
   };
+
+  const assetSelectorAssets = allTokens.map(token => ({ id: token.symbol, symbol: token.symbol }));
 
   return (
     <div className="min-h-screen bg-background p-6 flex items-center justify-center">
@@ -137,7 +125,13 @@ export default function Withdraw() {
                 <div className="space-y-4 py-4">
                     <div className="grid w-full items-center gap-1.5">
                         <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
-                        <NewAssetSelector asset={selectedAsset} setAsset={setSelectedAsset} />
+                        <NewAssetSelector 
+                            asset={selectedAssetSymbol}
+                            setAsset={setSelectedAssetSymbol} 
+                            assets={assetSelectorAssets}
+                            isLoading={isLoadingPairs}
+                            isError={isError}
+                        />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="withdraw-amount">Amount</Label>
@@ -147,13 +141,13 @@ export default function Withdraw() {
                         placeholder={`0.00`}
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
-                        disabled={isWithdrawing || !selectedAsset}
+                        disabled={isWithdrawing || !selectedAssetSymbol}
                         />
                     </div>
 
                     <Button
                         onClick={handleWithdraw}
-                        disabled={!amount || isWithdrawing || !selectedAsset}
+                        disabled={!amount || isWithdrawing || !selectedAssetSymbol}
                         className="w-full"
                         variant="destructive"
                         data-testid="button-confirm-withdraw"

@@ -16,6 +16,7 @@ export function createWebSocketServer(server: Server) {
     ws.on('message', (message: string) => {
       try {
         const data = JSON.parse(message);
+        console.log('Received message:', data);
         // The client can send a message to subscribe to a topic
         if (data.type === 'subscribe' && data.topic) {
           subscribeClient(ws, data.topic);
@@ -71,6 +72,7 @@ function unsubscribeClientFromAll(ws: WebSocket) {
 // Function to broadcast a message to all clients subscribed to a specific topic
 export function broadcastToTopic(topic: string, message: any) {
   const subscribers = subscriptions.get(topic);
+  console.log(`Broadcasting to topic '${topic}':`, JSON.stringify(message));
   if (subscribers) {
     const serializedMessage = JSON.stringify(message);
     subscribers.forEach((client) => {
@@ -78,6 +80,9 @@ export function broadcastToTopic(topic: string, message: any) {
         client.send(serializedMessage);
       }
     });
+    console.log(`Message sent to ${subscribers.size} subscriber(s).`);
+  } else {
+    console.log(`No subscribers for topic '${topic}'.`);
   }
 }
 

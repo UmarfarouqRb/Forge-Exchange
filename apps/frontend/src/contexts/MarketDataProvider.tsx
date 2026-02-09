@@ -9,13 +9,14 @@ import type { Market, TradingPair } from '@/types';
 export function MarketDataProvider({ children }: { children: ReactNode }) {
   const [markets, setMarkets] = useState(new Map<string, Market>());
 
-  const { data: tradingPairs, isLoading, isError } = useQuery<TradingPair[]>({
+  const { data: pairs, isLoading, isError } = useQuery<TradingPair[]>({
     queryKey: ['trading-pairs'],
     queryFn: getAllPairs,
+    initialData: [],
   });
 
   useEffect(() => {
-    if (!tradingPairs) return;
+    if (!pairs) return;
 
     const subscribedPairs = new Set<string>();
 
@@ -28,7 +29,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
       });
     };
 
-    tradingPairs.forEach(pair => {
+    pairs.forEach(pair => {
       if (!pair.id) return;
       getMarket(pair.id).then(updateMarketState);
       if (!subscribedPairs.has(pair.id)) {
@@ -42,10 +43,11 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         unsubscribe(pairId);
       });
     };
-  }, [tradingPairs]);
+  }, [pairs]);
 
   const contextValue = {
-    tradingPairs: markets, // This matches the context's type: Map<string, Market>
+    pairs: pairs || [],
+    markets,
     isLoading,
     isError,
   };

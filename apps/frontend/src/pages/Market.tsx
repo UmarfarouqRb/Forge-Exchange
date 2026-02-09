@@ -1,18 +1,13 @@
 
-import { useQuery } from '@tanstack/react-query';
-import { getAllPairs } from '@/lib/api';
+import { useContext } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MarketRow } from '@/components/MarketRow';
-import { TradingPair } from '@/types';
+import { MarketDataContext } from '@/contexts/MarketDataContext';
 
 export default function MarketPage() {
-  const { data: tradingPairs, isLoading, isError } = useQuery<TradingPair[]>({
-    queryKey: ['trading-pairs'],
-    queryFn: getAllPairs,
-    refetchInterval: 60000, // Refetch every 60 seconds
-  });
+  const { pairs, markets, isLoading, isError } = useContext(MarketDataContext)!;
 
   const renderContent = () => {
     if (isLoading) {
@@ -42,8 +37,8 @@ export default function MarketPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {tradingPairs?.map((pair) => (
-            <MarketRow key={pair.id} pair={pair} />
+          {pairs.map((pair) => (
+            <MarketRow key={pair.id} pair={pair} market={markets.get(pair.id)} />
           ))}
         </TableBody>
       </Table>

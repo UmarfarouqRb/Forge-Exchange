@@ -22,6 +22,7 @@ function connect() {
     socket.onmessage = (event) => {
         try {
             const message = JSON.parse(event.data);
+            console.log('WebSocket message received:', message);
             if (message.topic && cbs.has(message.topic)) {
                 cbs.get(message.topic)!(message.data);
             }
@@ -51,6 +52,7 @@ function sendMessage(message: any) {
 }
 
 export function subscribe(topic: string, cb: (data: any) => void) {
+  console.log(`Subscribing to WebSocket topic: ${topic}`);
   cbs.set(topic, cb);
   if (socket && socket.readyState === WebSocket.OPEN) {
       sendMessage({ type: 'subscribe', topic });
@@ -60,6 +62,7 @@ export function subscribe(topic: string, cb: (data: any) => void) {
 }
 
 export function unsubscribe(topic: string) {
+  console.log(`Unsubscribing from WebSocket topic: ${topic}`);
   cbs.delete(topic);
   if (socket && socket.readyState === WebSocket.OPEN) {
       sendMessage({ type: 'unsubscribe', topic });

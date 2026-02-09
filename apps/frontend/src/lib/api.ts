@@ -6,6 +6,7 @@ const API_URL = 'https://forge-exchange-api.onrender.com';
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const errorText = await response.text();
+    console.error('API Error:', response.status, errorText);
     throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
   }
   return response.json() as Promise<T>;
@@ -41,7 +42,8 @@ export async function getTrendingPairs(): Promise<TradingPair[]> {
 }
 
 export async function getMarket(tradingPairId: string) {
-  return fetch(`/api/markets/${tradingPairId}`).then(r => r.json())
+  const response = await fetch(`${API_URL}/api/markets/${tradingPairId}`);
+  return handleResponse<Market>(response);
 }
 
 export async function getOrders(walletAddress: string): Promise<Order[]> {
