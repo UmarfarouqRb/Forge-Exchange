@@ -138,6 +138,10 @@ export async function getPairById(id: string) {
     };
 }
 
+export async function getTokensByChainId(chainId: number) {
+    return db.select().from(tokens).where(eq(tokens.chainId, chainId));
+}
+
 // This function remains unchanged, as the chainId normalization is handled at the route level.
 export async function getTokens(chainId: number) {
     return db.select().from(tokens).where(eq(tokens.chainId, chainId));

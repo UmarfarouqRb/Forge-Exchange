@@ -4,17 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { usePrivy } from '@privy-io/react-auth';
-import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
 import { useAccount, useReadContracts } from 'wagmi';
+import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { formatUnits } from 'viem';
 import { FiDownload, FiUpload } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import { useVault } from '@/contexts/VaultContext';
 
-// Define a type for our asset object
 interface Asset {
   symbol: string;
   balance: number;
+  deposit_enabled: boolean;
+  withdraw_enabled: boolean;
 }
 
 export default function Portfolio() {
@@ -22,35 +24,38 @@ export default function Portfolio() {
   const { address } = useAccount();
   const navigate = useNavigate();
 
+  const { tokens: allTokens, isLoading: tokensLoading } = useVault();
+
   const tokenContracts = useMemo(() => {
-    return (Object.keys(TOKENS) as Token[]).map(tokenSymbol => ({
+    return allTokens.map(token => ({
       address: VAULT_SPOT_ADDRESS as `0x${string}`,
       abi: VaultSpotAbi,
       functionName: 'availableBalance',
-      args: address ? [address, TOKENS[tokenSymbol].address] : undefined,
+      args: address ? [address, token.address] : undefined,
     }));
-  }, [address]);
+  }, [address, allTokens]);
 
-  const { data: balances, isLoading, isError } = useReadContracts({
+  const { data: balances, isLoading: assetsLoading, isError } = useReadContracts({
     contracts: tokenContracts,
     query: {
-      enabled: authenticated && !!address,
+      enabled: authenticated && !!address && !tokensLoading,
     }
   });
 
   const assets: Asset[] = useMemo(() => {
     if (!balances) return [];
-    return (Object.keys(TOKENS) as Token[]).map((tokenSymbol, index) => {
+    return allTokens.map((token, index) => {
       const balance = balances[index];
-      const token = TOKENS[tokenSymbol];
       const available = balance.status === 'success' ? formatUnits(balance.result as bigint, token.decimals) : '0';
 
       return {
-        symbol: tokenSymbol,
+        symbol: token.symbol,
         balance: parseFloat(available),
+        deposit_enabled: token.deposit_enabled,
+        withdraw_enabled: token.withdraw_enabled,
       };
     }).filter(asset => asset.balance > 0);
-  }, [balances]);
+  }, [balances, allTokens]);
 
   if (!authenticated) {
     return (
@@ -59,6 +64,8 @@ export default function Portfolio() {
       </div>
     );
   }
+
+  const isLoading = tokensLoading || assetsLoading;
 
   if (isLoading) {
     return <div className="text-center p-4">Loading assets...</div>;
@@ -99,8 +106,8 @@ export default function Portfolio() {
                 <CardContent>
                   <div className="text-lg font-bold">{asset.balance}</div>
                   <div className="flex gap-2 mt-2">
-                    <Button size="sm" variant="outline" onClick={() => navigate(`/assets/deposit?asset=${asset.symbol}`)}>Deposit</Button>
-                    <Button size="sm" variant="destructive" onClick={() => navigate(`/assets/withdraw?asset=${asset.symbol}`)}>Withdraw</Button>
+                    <Button size="sm" variant="outline" onClick={() => navigate(`/assets/deposit?asset=${asset.symbol}`)} disabled={!asset.deposit_enabled}>Deposit</Button>
+                    <Button size="sm" variant="destructive" onClick={() => navigate(`/assets/withdraw?asset=${asset.symbol}`)} disabled={!asset.withdraw_enabled}>Withdraw</Button>
                   </div>
                 </CardContent>
               </Card>

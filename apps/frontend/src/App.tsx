@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,7 @@ import Portfolio from "@/pages/Portfolio";
 import Docs from "@/pages/Docs";
 import Deposit from "@/pages/Deposit";
 import Withdraw from "@/pages/Withdraw";
+import { VaultProvider } from "./contexts/VaultContext";
 
 function AppLayout() {
   return (
@@ -27,26 +29,28 @@ function AppLayout() {
 
 function App() {
   return (
-    <TooltipProvider>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/market" element={<Market />} />
-          <Route path="/spot" element={<Spot />} />
-          <Route path="/spot/:pairId" element={<Spot />} />
-          <Route path="/futures" element={<Futures />} />
-          <Route path="/assets/*" element={<Assets />}>
-            <Route path="deposit" element={<Deposit />} />
-            <Route path="withdraw" element={<Withdraw />} />
+    <VaultProvider>
+      <TooltipProvider>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/market" element={<Market />} />
+            <Route path="/spot" element={<Spot />} />
+            <Route path="/spot/:pairId" element={<Spot />} />
+            <Route path="/futures" element={<Futures />} />
+            <Route path="/assets/*" element={<Assets />}>
+              <Route path="deposit" element={<Deposit />} />
+              <Route path="withdraw" element={<Withdraw />} />
+            </Route>
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/docs" element={<Docs />} />
           </Route>
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/portfolio" element={<Portfolio />} />
-          <Route path="/docs" element={<Docs />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-      <Toaster />
-    </TooltipProvider>
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+        <Toaster />
+      </TooltipProvider>
+    </VaultProvider>
   );
 }
 

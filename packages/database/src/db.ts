@@ -5,7 +5,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import * as schema from './schema/index';
-import { Order, orders, tradingPairs, markets, eq } from './schema/index';
+import { type InsertOrder, orders, tradingPairs, markets, eq } from './schema/index';
 
 // --- PostgreSQL (Supabase) Client ---
 
@@ -108,7 +108,7 @@ export const getMarketById = async (pairId: string) => {
     return result[0];
 };
 
-export const saveOrder = async (order: Order) => {
+export const saveOrder = async (order: InsertOrder) => {
     return db.insert(orders).values(order);
 };
 

@@ -8,9 +8,10 @@ import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { FiSearch, FiDownload, FiUpload } from 'react-icons/fi';
 import { useState, useMemo } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { TOKENS, VAULT_SPOT_ADDRESS, Token } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { formatUnits } from 'viem';
+import { useVault } from '@/contexts/VaultContext';
 
 export default function Assets() {
   const { authenticated } = usePrivy();
@@ -21,40 +22,39 @@ export default function Assets() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const { tokens: allTokens, isLoading: tokensLoading } = useVault();
+
   const tokenContracts = useMemo(() => {
-    return (Object.keys(TOKENS) as Token[]).map(tokenSymbol => ({
+    return allTokens.map(token => ({
       address: VAULT_SPOT_ADDRESS as `0x${string}`,
       abi: VaultSpotAbi,
       functionName: 'availableBalance',
-      args: address ? [address, TOKENS[tokenSymbol].address] : undefined,
+      args: address ? [address, token.address] : undefined,
     }));
-  }, [address]);
+  }, [address, allTokens]);
 
   const { data: balances, isLoading: assetsLoading, error: assetsError } = useReadContracts({
     contracts: tokenContracts,
     query: {
-      enabled: authenticated && !!address,
+      enabled: authenticated && !!address && !tokensLoading,
     }
   });
 
   const displayAssets = useMemo(() => {
-    const allTokens = Object.keys(TOKENS) as Token[];
-    
-    const assets = allTokens.map((tokenSymbol, index) => {
+    const assets = allTokens.map((token, index) => {
         const balance = balances ? balances[index] : undefined;
-        const token = TOKENS[tokenSymbol];
         const available = balance && balance.status === 'success' ? formatUnits(balance.result as bigint, token.decimals) : '0';
 
         return {
-            asset: tokenSymbol,
+            ...token,
             available,
         };
     });
 
     return assets.filter(asset => 
-        asset.asset.toLowerCase().includes(searchQuery.toLowerCase())
+        asset.symbol.toLowerCase().includes(searchQuery.toLowerCase())
     );
-}, [balances, searchQuery]);
+}, [balances, searchQuery, allTokens]);
 
 
   if (!authenticated) {
@@ -76,6 +76,7 @@ export default function Assets() {
   }
 
   const isBaseAssetsPage = location.pathname === '/assets' || location.pathname === '/assets/';
+  const isLoading = tokensLoading || assetsLoading;
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -137,7 +138,7 @@ export default function Assets() {
                             </Button>
                         </div>
                         </div>
-                    ) : assetsLoading ? (
+                    ) : isLoading ? (
                         Array.from({ length: 5 }).map((_, i) => (
                         <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 items-center">
                             <div className="flex justify-between items-center md:hidden">
@@ -173,12 +174,12 @@ export default function Assets() {
                     ) : displayAssets && displayAssets.length > 0 ? (
                         displayAssets.map((asset) => (
                         <div
-                            key={asset.asset}
+                            key={asset.symbol}
                             className="grid grid-cols-1 md:grid-cols-3 gap-y-2 md:gap-4 p-4 items-center hover-elevate"
-                            data-testid={`row-asset-${asset.asset}`}>
+                            data-testid={`row-asset-${asset.symbol}`}>
                             <div className="flex justify-between items-center md:block">
                             <span className="text-sm text-muted-foreground md:hidden">Asset</span>
-                            <div className="font-medium text-foreground">{asset.asset}</div>
+                            <div className="font-medium text-foreground">{asset.symbol}</div>
                             </div>
 
                             <div className="flex justify-between items-center md:block md:text-right">
@@ -192,16 +193,18 @@ export default function Assets() {
                                 <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(`/assets/deposit?asset=${asset.asset}`)}
-                                data-testid={`button-deposit-${asset.asset}`}>
+                                onClick={() => navigate(`/assets/deposit?asset=${asset.symbol}`)}
+                                data-testid={`button-deposit-${asset.symbol}`}
+                                disabled={!asset.deposit_enabled}>
                                 <FiDownload className="w-3 h-3 mr-1" />
                                 Deposit
                                 </Button>
                                 <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => navigate(`/assets/withdraw?asset=${asset.asset}`)}
-                                data-testid={`button-withdraw-${asset.asset}`}>
+                                onClick={() => navigate(`/assets/withdraw?asset=${asset.symbol}`)}
+                                data-testid={`button-withdraw-${asset.symbol}`}
+                                disabled={!asset.withdraw_enabled}>
                                 <FiUpload className="w-3 h-3 mr-1" />
                                 Withdraw
                                 </Button>

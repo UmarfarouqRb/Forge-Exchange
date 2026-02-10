@@ -1,4 +1,4 @@
-import { createContext } from "react";
+import { createContext, useContext } from "react";
 
 export type Chain = {
   id: string;
@@ -72,3 +72,11 @@ type ChainContextType = {
 
 
 export const ChainContext = createContext<ChainContextType | undefined>(undefined);
+
+export const useChainContext = () => {
+  const context = useContext(ChainContext);
+  if (context === undefined) {
+    throw new Error("useChainContext must be used within a ChainProvider");
+  }
+  return context;
+}

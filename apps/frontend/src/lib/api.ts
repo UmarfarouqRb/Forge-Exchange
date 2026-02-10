@@ -72,6 +72,11 @@ export async function getTokens(chainId: string): Promise<{ [symbol: string]: { 
     return handleResponse<{ [symbol: string]: { address: `0x${string}`; decimals: number } }>(response);
 }
 
+export async function getVaultTokens(): Promise<any> {
+    const response = await fetch(`${API_URL}/api/vault/tokens`);
+    return handleResponse<any>(response);
+}
+
 // --- Relayer Proxied Routes ---
 
 export interface PlaceOrderPayload {

@@ -1,24 +1,21 @@
-import { useState, useEffect, useContext, useMemo } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
-import { WethAbi } from '@/abis/Weth';
 import { parseUnits } from 'viem';
 import { useWriteContract } from 'wagmi';
 import { useWallets } from '@privy-io/react-auth';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
-import { wagmiConfig } from '@/wagmi';
-import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
-import { NewAssetSelector } from '@/components/NewAssetSelector';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRefetchContext } from '@/contexts/RefetchContext';
-import { MarketDataContext } from '@/contexts/MarketDataContext';
-import { Token } from '@/types';
+import { useVault } from '@/contexts/VaultContext';
+import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -33,22 +30,13 @@ export default function Withdraw() {
   const params = new URLSearchParams(search);
   const assetSymbolFromUrl = params.get('asset');
 
-  const { pairs } = useContext(MarketDataContext)!;
-
-  const allTokens = useMemo(() => {
-    const tokens = new Map<string, Token>();
-    pairs.forEach(pair => {
-      if (pair.baseToken) tokens.set(pair.baseToken.symbol, pair.baseToken);
-      if (pair.quoteToken) tokens.set(pair.quoteToken.symbol, pair.quoteToken);
-    });
-    return Array.from(tokens.values());
-  }, [pairs]);
+  const { tokens: allTokens } = useVault();
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
       setSelectedAssetSymbol(assetSymbolFromUrl);
     }
-  }, [assetSymbolFromUrl]);
+}, [assetSymbolFromUrl]);
 
   const { wallets } = useWallets();
   const connectedWallet = wallets[0];
@@ -108,8 +96,6 @@ export default function Withdraw() {
     }
   };
 
-  const assetSelectorAssets = allTokens.map(token => ({ id: token.symbol, symbol: token.symbol }));
-
   return (
     <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -125,10 +111,10 @@ export default function Withdraw() {
                 <div className="space-y-4 py-4">
                     <div className="grid w-full items-center gap-1.5">
                         <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
-                        <NewAssetSelector 
+                        <VaultAssetSelector 
                             asset={selectedAssetSymbol}
                             setAsset={setSelectedAssetSymbol} 
-                            assets={assetSelectorAssets}
+                            type="withdraw"
                         />
                     </div>
                     <div className="space-y-2">

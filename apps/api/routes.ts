@@ -3,11 +3,12 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { getMarketState, getMarketStateBySymbol } from "./src/market";
 import { health } from "./src/health";
-import { getAllPairs, getTokens } from "./src/pairs";
+import { getAllPairs, getTokensByChainId } from "./src/pairs";
 import { getTrendingPairs } from "./src/trending";
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { createOrder } from "./src/orders";
+import { createOrder, getOrdersByAccount } from "./src/orders";
 import { broadcastToTopic } from "./websocket";
+import { getVaultTokens } from "./src/vault";
 
 // Define the proxy middleware for the relayer service
 const relayerProxy = createProxyMiddleware({
@@ -42,6 +43,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(order);
     } catch (error: any) { 
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/orders/:account", async (req: Request, res: Response) => {
+    try {
+      const { account } = req.params;
+      const orders = await getOrdersByAccount(account);
+      res.json(orders);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -125,7 +136,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         try {
-            const tokens = await getTokens(numericChainId);
+            const tokens = await getTokensByChainId(numericChainId);
+            res.json(tokens);
+        } catch (error: any) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.get("/api/vault/tokens", async (req: Request, res: Response) => {
+        try {
+            const tokens = await getVaultTokens();
             res.json(tokens);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
