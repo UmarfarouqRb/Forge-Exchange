@@ -6,14 +6,14 @@ import { MarketDataContext } from '@/contexts/MarketDataContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface TradeProps {
-  pairId: string;
+  symbol: string;
 }
 
-export default function Trade({ pairId }: TradeProps) {
+export default function Trade({ symbol }: TradeProps) {
   const { pairs, markets } = useContext(MarketDataContext)!;
 
-  const pair = pairs.get(pairId);
-  const market = markets.get(pairId);
+  const pair = pairs.get(symbol);
+  const market = markets.get(symbol);
 
   if (!pair) {
     return (

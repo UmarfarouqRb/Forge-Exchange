@@ -22,20 +22,18 @@ type Asset = {
 };
 
 type NewAssetSelectorProps = {
-  asset: string; // Now represents the ID of the selected asset
+  asset: string; // Now represents the symbol of the selected asset
   setAsset: (value: string) => void;
   assets: Asset[];
-  isLoading: boolean;
-  isError: boolean;
 };
 
 export function NewAssetSelector(props: NewAssetSelectorProps) {
-  const { asset, setAsset, assets, isLoading, isError } = props;
+  const { asset, setAsset, assets } = props;
   const [open, setOpen] = React.useState(false);
 
   const getDisplayValue = () => {
     if (!asset || assets.length === 0) return "Select Asset";
-    const selectedAsset = assets.find(a => a.id === asset);
+    const selectedAsset = assets.find(a => a.symbol === asset);
     return selectedAsset?.symbol || "Select Asset";
   };
 
@@ -50,9 +48,7 @@ export function NewAssetSelector(props: NewAssetSelectorProps) {
         <Command>
           <CommandInput placeholder="Search for an asset..." />
           <CommandList>
-            {isLoading && <CommandEmpty>Loading...</CommandEmpty>}
-            {isError && <CommandEmpty>Error loading assets.</CommandEmpty>}
-            {!isLoading && !isError && assets.length === 0 && (
+            {assets.length === 0 && (
               <CommandEmpty>No results found.</CommandEmpty>
             )}
             <CommandGroup>
@@ -61,7 +57,7 @@ export function NewAssetSelector(props: NewAssetSelectorProps) {
                   key={item.id}
                   value={item.symbol}
                   onSelect={() => {
-                    setAsset(item.id);
+                    setAsset(item.symbol);
                     setOpen(false);
                   }}
                 >

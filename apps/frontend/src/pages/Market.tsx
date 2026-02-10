@@ -7,10 +7,10 @@ import { MarketRow } from '@/components/MarketRow';
 import { MarketDataContext } from '@/contexts/MarketDataContext';
 
 export default function MarketPage() {
-  const { pairs, markets, isLoading, isError } = useContext(MarketDataContext)!;
+  const { pairs, markets } = useContext(MarketDataContext)!;
 
   const renderContent = () => {
-    if (isLoading) {
+    if (pairs.size === 0) {
       return (
         <div className="space-y-2 p-4">
           {[...Array(10)].map((_, i) => (
@@ -18,10 +18,6 @@ export default function MarketPage() {
           ))}
         </div>
       );
-    }
-
-    if (isError) {
-      return <div className="text-center py-8 text-destructive">Failed to load trading pairs. Please try again later.</div>;
     }
 
     return (
@@ -37,8 +33,8 @@ export default function MarketPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {pairs.map((pair) => (
-            <MarketRow key={pair.id} pair={pair} market={markets.get(pair.id)} />
+          {Array.from(pairs.values()).map((pair) => (
+            <MarketRow key={pair.symbol} pair={pair} market={markets.get(pair.symbol)} />
           ))}
         </TableBody>
       </Table>

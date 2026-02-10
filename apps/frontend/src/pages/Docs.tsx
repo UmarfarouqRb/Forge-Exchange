@@ -117,17 +117,17 @@ const Docs: React.FC = () => {
         content: <p className="text-muted-foreground">The relayer is a trust-minimized executor that submits signed intents to the <code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">IntentSpotRouter</code> for on-chain execution. It is responsible for receiving and matching user intents, executing them against various decentralized exchanges (DEXs), and ensuring that users get the best possible price for their trades.</p>,
     },
     'api-endpoints': {
-        title: 'API Endpoints',
-        content: (
-            <ul className="list-disc list-inside space-y-2">
-                <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/session/authorize</code>: Authorizes a user's session.</li>
-                <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/orders/:address</code>: Retrieves orders for a specific user.</li>
-                <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/orders</code>: Submits a new order.</li>
-                <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/spot</code>: Executes a spot trade.</li>
-                <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/tokens/:chainId</code>: Retrieves supported tokens for a chain.</li>
-            </ul>
-        ),
-    },
+      title: 'API Endpoints',
+      content: (
+          <ul className="list-disc list-inside space-y-2">
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/session/authorize</code>: Authorizes a user session to perform authenticated actions.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/orders/:address</code>: Retrieves a list of orders for a specific user address.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/orders</code>: Submits a new trade order.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/pairs</code>: Retrieves a list of all available trading pairs.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/market</code>: Retrieves real-time market data, including price, volume, and order book.</li>
+          </ul>
+      ),
+  },
   };
 
   return (

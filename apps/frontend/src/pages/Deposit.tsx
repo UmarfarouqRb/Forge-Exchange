@@ -33,7 +33,7 @@ export default function Deposit() {
   const params = new URLSearchParams(search);
   const assetSymbolFromUrl = params.get('asset');
 
-  const { pairs, isLoading: isLoadingPairs, isError } = useContext(MarketDataContext)!;
+  const { pairs } = useContext(MarketDataContext)!;
 
   const allTokens = useMemo(() => {
     const tokens = new Map<string, Token>();
@@ -170,8 +170,6 @@ export default function Deposit() {
                 asset={selectedAssetSymbol}
                 setAsset={setSelectedAssetSymbol} 
                 assets={assetSelectorAssets}
-                isLoading={isLoadingPairs}
-                isError={isError}
               />
             </div>
 

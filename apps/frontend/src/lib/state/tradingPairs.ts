@@ -1,7 +1,7 @@
 
 import { TradingPair } from '../../types';
 
-let pairsById: Record<string, TradingPair> = {}
+let pairsBySymbol: Record<string, TradingPair> = {}
 let loaded = false
 
 export async function initTradingPairs() {
@@ -12,19 +12,20 @@ export async function initTradingPairs() {
 
   const pairs: TradingPair[] = await res.json()
 
+  pairsBySymbol = {}
   for (const p of pairs) {
-    pairsById[p.id] = p
+    pairsBySymbol[p.symbol] = p
   }
 
   loaded = true
 }
 
-export function getTradingPair(id: string): TradingPair {
-  const pair = pairsById[id]
-  if (!pair) throw new Error(`Unknown trading pair: ${id}`)
+export function getTradingPair(symbol: string): TradingPair {
+  const pair = pairsBySymbol[symbol]
+  if (!pair) throw new Error(`Unknown trading pair: ${symbol}`)
   return pair
 }
 
 export function getAllTradingPairs() {
-  return Object.values(pairsById)
+  return Object.values(pairsBySymbol)
 }

@@ -8,7 +8,7 @@ import { TradingChart } from '@/components/TradingChart';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
 import { getOrders } from '@/lib/api';
-import type { Order, Market, TradingPair, Token } from '@/types/market-data';
+import type { Order, Market, TradingPair } from '@/types/market-data';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { NewAssetSelector } from "@/components/NewAssetSelector";
 import { TradeHistory } from '@/components/TradeHistory';
@@ -20,8 +20,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 function TradeHeader({ pair, market }: { pair?: TradingPair; market?: Market }) {
   const navigate = useNavigate();
   const { pairs } = useContext(MarketDataContext)!;
-  
   const pairsArray = Array.from(pairs.values());
+
+  const handleAssetChange = (symbol: string) => {
+    navigate(`/spot/${symbol}`);
+  };
 
   if (!pair || !market) {
     return (
@@ -30,11 +33,9 @@ function TradeHeader({ pair, market }: { pair?: TradingPair; market?: Market }) 
           <div className="flex items-center gap-2 md:gap-6 flex-1 overflow-hidden">
             <div>
               <NewAssetSelector 
-                asset={pair?.id || ''}
-                setAsset={(id) => navigate(`/spot/${id}`)} 
+                asset={pair?.symbol || ''}
+                setAsset={handleAssetChange} 
                 assets={pairsArray} 
-                isLoading={pairsArray.length === 0}
-                isError={false} 
               />
               <div className="text-xs text-muted-foreground">Spot Trading</div>
             </div>
@@ -66,11 +67,9 @@ function TradeHeader({ pair, market }: { pair?: TradingPair; market?: Market }) 
         <div className="flex items-center gap-2 md:gap-6 flex-1 overflow-hidden">
           <div>
             <NewAssetSelector 
-              asset={pair.id}
-              setAsset={(id) => navigate(`/spot/${id}`)} 
+              asset={pair.symbol}
+              setAsset={handleAssetChange} 
               assets={pairsArray} 
-              isLoading={false} 
-              isError={false} 
             />
             <div className="text-xs text-muted-foreground">Spot Trading</div>
           </div>
@@ -94,7 +93,7 @@ function TradeHeader({ pair, market }: { pair?: TradingPair; market?: Market }) 
             </div>
             <div>
               <div className="text-muted-foreground text-xs">24h Volume</div>
-              <div className="font-mono font-medium">{(parseFloat(volume) / 1e9).toFixed(2)}B {quoteAsset?.symbol}</div>
+              <div className="font-mono font-medium">{!isNaN(parseFloat(volume)) ? `${(parseFloat(volume) / 1e9).toFixed(2)}B` : '0.00B'} {quoteAsset?.symbol}</div>
             </div>
           </div>
         </div>
@@ -103,27 +102,26 @@ function TradeHeader({ pair, market }: { pair?: TradingPair; market?: Market }) 
   );
 }
 
-
 export default function Spot() {
-  const { pairId } = useParams<{ pairId: string }>();
+  const { symbol } = useParams<{ symbol: string }>();
   const navigate = useNavigate();
   const { pairs, markets } = useContext(MarketDataContext)!;
 
   useEffect(() => {
-    if (!pairId && pairs.size > 0) {
-      const firstPairId = pairs.keys().next().value;
-      if (firstPairId) {
-        navigate(`/spot/${firstPairId}`, { replace: true });
+    if (!symbol && pairs.size > 0) {
+      const firstPairSymbol = Array.from(pairs.keys())[0];
+      if (firstPairSymbol) {
+        navigate(`/spot/${firstPairSymbol}`, { replace: true });
       }
     }
-  }, [pairId, pairs, navigate]);
+  }, [symbol, pairs, navigate]);
 
-  const pair = pairId ? pairs.get(pairId) : undefined;
-  const market = pairId ? markets.get(pairId) : undefined;
+  const pair = symbol ? pairs.get(symbol) : undefined;
+  const market = symbol ? markets.get(symbol) : undefined;
 
   const { user, authenticated } = usePrivy();
   const wallet = user?.wallet;
-  const isDesktop = useBreakpoint('md');
+  const isDesktop = useBreakpoint('lg');
 
   const { data: userOrders, isLoading: areUserOrdersLoading, isError: areUserOrdersError } = useQuery<Order[]>({
     queryKey: ['user-orders', wallet?.address, 'spot'],
@@ -140,132 +138,105 @@ export default function Spot() {
     const openOrders = userOrders?.filter((order: Order) => order.status === 'open');
     const tradingPairsMap: Map<string, TradingPair> = new Map(Array.from(pairs.values()).map((p: TradingPair) => [p.id, p]));
 
-
     return (
-        <TabsContent value={!isDesktop ? "orders" : "open"} className="flex-1 overflow-auto p-2 md:p-4 mt-0">
+        <TabsContent value="open-orders" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
             {authenticated ? (
                 <div className="overflow-auto">
-                    {isDesktop && (
-                        <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
-                            <div>Date</div>
-                            <div>Pair</div>
-                            <div>Type</div>
-                            <div className="text-right">Price</div>
-                            <div className="text-right">Amount</div>
-                            <div className="text-right">Total</div>
-                            <div className="text-right">Action</div>
-                        </div>
-                    )}
+                    <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
+                        <div>Date</div>
+                        <div>Pair</div>
+                        <div>Type</div>
+                        <div className="text-right">Price</div>
+                        <div className="text-right">Amount</div>
+                        <div className="text-right">Total</div>
+                        <div className="text-right">Action</div>
+                    </div>
                     {areUserOrdersLoading ? (
                         <div className="text-center py-8 text-muted-foreground">Loading open orders...</div>
                     ) : areUserOrdersError ? (
                         <div className="text-center py-8 text-destructive">Failed to load open orders.</div>
                     ) : openOrders && openOrders.length > 0 ? (
                         openOrders.map((order: Order) => (
-                          <div
-                            key={order.id}
-                            className={`grid ${!isDesktop ? 'grid-cols-2' : 'grid-cols-7'} gap-1 md:gap-2 text-xs py-2 border-b border-border hover-elevate`}
-                            data-testid={`row-open-order-${order.id}`}
-                          >
-                            {!isDesktop ? (
-                              <>
-                                <div>
-                                  <div className="font-medium">{tradingPairsMap.get(order.tradingPairId)?.symbol}</div>
-                                  <div className="text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}</div>
-                                </div>
-                                <div className="text-right">
-                                  <div className={`font-mono ${order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}`}>{order.side.toUpperCase()}</div>
-                                  <div className="font-mono">${order.price}</div>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">Amount:</span> {order.quantity}
-                                </div>
-                                <div className="text-right">
-                                  <span className="text-muted-foreground">Total:</span> ${(parseFloat(order.price) * parseFloat(order.quantity)).toFixed(2)}
-                                </div>
-                                <div className="col-span-2 text-right">
-                                  <button className="text-destructive hover:underline text-xs">
-                                    Cancel
-                                  </button>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="text-muted-foreground md:table-cell">
-                                  {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}
-                                </div>
-                                <div>{tradingPairsMap.get(order.tradingPairId)?.symbol}</div>
-                                <div
-                                  className={order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}
-                                >
-                                  {order.side.toUpperCase()}
-                                </div>
-                                <div className="md:text-right font-mono">${order.price}</div>
-                                <div className="md:text-right font-mono">{order.quantity}</div>
-                                <div className="md:text-right font-mono">${(parseFloat(order.price) * parseFloat(order.quantity)).toFixed(2)}</div>
-                                <div className="md:text-right">
-                                  <button className="text-destructive hover:underline text-xs">
-                                    Cancel
-                                  </button>
-                                </div>
-                              </>
-                            )}
+                          <div key={order.id} className="grid grid-cols-7 gap-2 text-xs py-2 border-b border-border hover-elevate">
+                            <div className="text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}</div>
+                            <div>{tradingPairsMap.get(order.tradingPairId)?.symbol}</div>
+                            <div className={order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}>{order.side.toUpperCase()}</div>
+                            <div className="text-right font-mono">${order.price}</div>
+                            <div className="text-right font-mono">{order.quantity}</div>
+                            <div className="text-right font-mono">${(parseFloat(order.price) * parseFloat(order.quantity)).toFixed(2)}</div>
+                            <div className="text-right"><button className="text-destructive hover:underline text-xs">Cancel</button></div>
                           </div>
                         ))
                     ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                            No open orders
-                        </div>
+                        <div className="text-center py-8 text-muted-foreground">No open orders</div>
                     )}
                 </div>
             ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                    Connect wallet to view orders
-                </div>
+                <div className="flex items-center justify-center h-full text-muted-foreground">Connect wallet to view orders</div>
             )}
         </TabsContent>
+    );
+  };
+
+  const renderOrderTabs = () => (
+    <Card className="h-full flex flex-col">
+      <CardContent className="p-0 flex-1 overflow-hidden">
+        <Tabs defaultValue="open-orders" className="h-full flex flex-col">
+          <TabsList className="w-full justify-start rounded-none border-b border-border px-4">
+            <TabsTrigger value="open-orders">Open Orders</TabsTrigger>
+            <TabsTrigger value="history">Order History</TabsTrigger>
+            <TabsTrigger value="trades">Trade History</TabsTrigger>
+          </TabsList>
+          {renderOpenOrders()}
+          <TabsContent value="history" className="flex-1 overflow-auto p-4 mt-0">
+            <OrderHistory />
+          </TabsContent>
+          <TabsContent value="trades" className="flex-1 overflow-auto p-4 mt-0">
+            <TradeHistory />
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+
+  if (!isDesktop) {
+    return (
+      <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
+        <TradeHeader pair={pair} market={market} />
+        <Tabs defaultValue="chart" className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid w-full grid-cols-3 rounded-none border-b border-border">
+            <TabsTrigger value="chart">Chart</TabsTrigger>
+            <TabsTrigger value="trade">Trade</TabsTrigger>
+            <TabsTrigger value="orders">Orders</TabsTrigger>
+          </TabsList>
+          <TabsContent value="chart" className="flex-1 overflow-hidden">
+            {!pair ? <Skeleton className='h-full w-full' /> : <TradingChart symbol={pair.symbol} />}
+          </TabsContent>
+          <TabsContent value="trade" className="flex-1 overflow-auto p-2">
+            {!symbol ? <Skeleton className="h-full w-full" /> : <Trade symbol={symbol} />}
+          </TabsContent>
+          <TabsContent value="orders" className="flex-1 overflow-auto p-2">
+            {renderOrderTabs()}
+          </TabsContent>
+        </Tabs>
+      </div>
     );
   }
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
       <TradeHeader pair={pair} market={market} />
-      
-      <div className="flex-1 flex flex-col gap-2 p-2 overflow-hidden">
-        <div className="flex-1 grid grid-cols-12 gap-2 overflow-hidden">
-          <div className="col-span-8 flex flex-col gap-2 overflow-hidden">
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="grid grid-cols-1 flex-1 gap-2 overflow-hidden">
-                <div className="col-span-1 overflow-hidden">
-                  {!pair ? <Skeleton className='h-full w-full' /> : <TradingChart symbol={pair.symbol} />}
-                </div>
-              </div>
-              <div className="h-80 flex-shrink-0 overflow-hidden mt-2">
-                <Card className="h-full flex flex-col">
-                  <CardContent className="p-0 flex-1 overflow-hidden">
-                    <Tabs defaultValue="open" className="h-full flex flex-col">
-                      <TabsList className="w-full justify-start rounded-none border-b border-border px-2 md:px-4">
-                        <TabsTrigger value="open" className="text-xs md:text-sm">Open Orders</TabsTrigger>
-                        <TabsTrigger value="history" className="text-xs md:text-sm">Order History</TabsTrigger>
-                        <TabsTrigger value="trades" className="text-xs md:text-sm">Trade History</TabsTrigger>
-                      </TabsList>
-                      {renderOpenOrders()}
-                      <TabsContent value="history" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-                        <OrderHistory />
-                      </TabsContent>
-                      <TabsContent value="trades" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-                        <TradeHistory />
-                      </TabsContent>
-                    </Tabs>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+      <div className="flex-1 grid grid-cols-12 gap-2 p-2 overflow-hidden">
+        <div className="col-span-8 flex flex-col gap-2 overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            {!pair ? <Skeleton className='h-full w-full' /> : <TradingChart symbol={pair.symbol} />}
           </div>
-
-          <div className="col-span-4 overflow-hidden">
-            {!pairId ? <Skeleton className="h-full w-full" /> : <Trade pairId={pairId} />}
+          <div className="h-60 flex-shrink-0 overflow-hidden mt-2">
+            {renderOrderTabs()}
           </div>
+        </div>
+        <div className="col-span-4 overflow-hidden">
+          {!symbol ? <Skeleton className="h-full w-full" /> : <Trade symbol={symbol} />}
         </div>
       </div>
     </div>

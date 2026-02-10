@@ -13,8 +13,8 @@ type MarketRowProps = {
 export function MarketRow({ pair, market }: MarketRowProps) {
   const navigate = useNavigate();
 
-  const handleRowClick = (pairId: string) => {
-    navigate(`/spot/${pairId}`);
+  const handleRowClick = (symbol: string) => {
+    navigate(`/spot/${symbol}`);
   };
 
   const formatVolume = (volume: string | number | null | undefined) => {
@@ -43,7 +43,7 @@ export function MarketRow({ pair, market }: MarketRowProps) {
 
   if (!market) {
     return (
-      <TableRow onClick={() => handleRowClick(pair.id)} className="cursor-pointer hover:bg-muted/50">
+      <TableRow onClick={() => handleRowClick(pair.symbol)} className="cursor-pointer hover:bg-muted/50">
         <TableCell className="font-medium">{pair.symbol}</TableCell>
         <TableCell colSpan={5}>
           <Skeleton className="h-12 w-full" />
@@ -55,7 +55,7 @@ export function MarketRow({ pair, market }: MarketRowProps) {
   const priceChange24h = market.priceChangePercent || 0;
 
   return (
-    <TableRow onClick={() => handleRowClick(pair.id)} className="cursor-pointer hover:bg-muted/50">
+    <TableRow onClick={() => handleRowClick(pair.symbol)} className="cursor-pointer hover:bg-muted/50">
       <TableCell className="font-medium">{pair.symbol}</TableCell>
       <TableCell className="text-right font-mono">{renderValue(market.lastPrice, '$')}</TableCell>
       <TableCell className="text-right">

@@ -2,7 +2,7 @@
 import { ReactNode, useEffect, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MarketDataContext } from './MarketDataContext';
-import { getAllPairs, getMarket } from '@/lib/api';
+import { getAllPairs, getMarketBySymbol } from '@/lib/api';
 import { subscribe, unsubscribe } from '@/lib/ws/market';
 import type { Market, TradingPair } from '@/types';
 
@@ -19,7 +19,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     const pairsMap = new Map<string, TradingPair>();
     if (pairsList) {
       for (const pair of pairsList) {
-        pairsMap.set(pair.id, pair);
+        pairsMap.set(pair.symbol, pair);
       }
     }
     return pairsMap;
@@ -28,29 +28,33 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!pairsList) return;
 
-    const subscribedPairs = new Set<string>();
+    const subscribedSymbols = new Set<string>();
 
     const updateMarketState = (marketData: Market) => {
       setMarkets(prevMarkets => {
         const newMarkets = new Map(prevMarkets);
-        const existingMarket = newMarkets.get(marketData.id) || {};
-        newMarkets.set(marketData.id, { ...existingMarket, ...marketData });
+        const existingMarket = newMarkets.get(marketData.symbol) || {};
+        newMarkets.set(marketData.symbol, { ...existingMarket, ...marketData });
         return newMarkets;
       });
     };
 
     pairsList.forEach(pair => {
-      if (!pair.id) return;
-      getMarket(pair.id).then(updateMarketState);
-      if (!subscribedPairs.has(pair.id)) {
-        subscribe(pair.id, updateMarketState);
-        subscribedPairs.add(pair.id);
+      if (!pair.symbol) return;
+      getMarketBySymbol(pair.symbol)
+        .then(updateMarketState)
+        .catch(error => {
+          console.error(`Failed to fetch market data for ${pair.symbol}:`, error);
+        });
+      if (!subscribedSymbols.has(pair.symbol)) {
+        subscribe(pair.symbol, updateMarketState);
+        subscribedSymbols.add(pair.symbol);
       }
     });
 
     return () => {
-      subscribedPairs.forEach(pairId => {
-        unsubscribe(pairId);
+      subscribedSymbols.forEach(symbol => {
+        unsubscribe(symbol);
       });
     };
   }, [pairsList]);

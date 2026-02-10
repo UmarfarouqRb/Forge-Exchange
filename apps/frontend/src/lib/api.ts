@@ -41,8 +41,13 @@ export async function getTrendingPairs(): Promise<TradingPair[]> {
     return handleResponse<TradingPair[]>(response);
 }
 
-export async function getMarket(tradingPairId: string) {
+export async function getMarketById(tradingPairId: string): Promise<Market> {
   const response = await fetch(`${API_URL}/api/markets/${tradingPairId}`);
+  return handleResponse<Market>(response);
+}
+
+export async function getMarketBySymbol(symbol: string): Promise<Market> {
+  const response = await fetch(`${API_URL}/api/markets/by-symbol/${symbol}`);
   return handleResponse<Market>(response);
 }
 
