@@ -199,6 +199,22 @@ export default function Spot() {
     </Card>
   );
 
+  if (pairs.size === 0) {
+    return (
+      <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
+        <TradeHeader />
+        <div className="flex-1 grid grid-cols-12 gap-2 p-2 overflow-hidden">
+            <div className="col-span-8 flex flex-col gap-2 overflow-hidden">
+                <Skeleton className='h-full w-full' />
+            </div>
+            <div className="col-span-4 overflow-hidden">
+                <Skeleton className="h-full w-full" />
+            </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!isDesktop) {
     return (
       <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">

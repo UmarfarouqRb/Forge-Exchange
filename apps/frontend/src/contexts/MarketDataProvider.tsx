@@ -25,6 +25,10 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
     return pairsMap;
   }, [pairsList]);
 
+  const marketSymbols = useMemo(() => {
+    return pairsList ? pairsList.map(pair => pair.symbol) : [];
+  }, [pairsList]);
+
   useEffect(() => {
     if (!pairsList) return;
 
@@ -62,6 +66,7 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   const contextValue = {
     pairs,
     markets,
+    marketSymbols,
   };
 
   return (
