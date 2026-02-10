@@ -1,5 +1,8 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
+import { TRADING_PAIRS } from './src/trading-pairs';
+import { TOKENS } from './src/token';
+import { getAMMPrice } from './src/market';
 
 let wss: WebSocketServer;
 
@@ -40,6 +43,8 @@ export function createWebSocketServer(server: Server) {
         unsubscribeClientFromAll(ws);
     });
   });
+
+  startPriceBroadcasting();
 
   console.log('WebSocket server created');
 }
@@ -97,4 +102,19 @@ export function broadcast(message: any) {
             client.send(serializedMessage);
         }
     });
+}
+
+async function broadcastPrices() {
+  for (const pair of TRADING_PAIRS) {
+    const baseToken = TOKENS[pair.base];
+    const quoteToken = TOKENS[pair.quote];
+    const price = await getAMMPrice(baseToken, quoteToken);
+    if (price !== null) {
+      broadcastToTopic(`prices:${pair.id}`, { price });
+    }
+  }
+}
+
+function startPriceBroadcasting() {
+  setInterval(broadcastPrices, 5000); // Broadcast every 5 seconds
 }

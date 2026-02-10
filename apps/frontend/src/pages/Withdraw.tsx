@@ -5,12 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
+import { WethAbi } from '@/abis/Weth';
 import { parseUnits } from 'viem';
 import { useWriteContract } from 'wagmi';
 import { useWallets } from '@privy-io/react-auth';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
+import { wagmiConfig } from '@/wagmi';
+import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useRefetchContext } from '@/contexts/RefetchContext';
@@ -40,6 +43,7 @@ export default function Withdraw() {
 
   const { wallets } = useWallets();
   const connectedWallet = wallets[0];
+  const { address } = connectedWallet || {};
   const { writeContractAsync } = useWriteContract();
 
   const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
@@ -55,31 +59,65 @@ export default function Withdraw() {
 
   const handleWithdraw = async () => {
     setMessage(null);
+    console.log("Initiating withdrawal...");
     if (!connectedWallet) {
       toast.error('Please connect your wallet first.');
+      console.error("Wallet not connected.");
       return;
     }
     if (!amount || parseFloat(amount) <= 0) {
         toast.error('Please enter a valid amount.');
+        console.error("Invalid amount entered.");
         return;
     }
     if (!selectedToken) {
         toast.error('Please select a valid asset to withdraw.');
+        console.error("No asset selected.");
         return;
     }
 
     setIsWithdrawing(true);
     const toastId = toast.loading("Initiating withdrawal...");
+    console.log(`Withdrawal details:`, {
+        token: selectedToken.symbol,
+        amount: amount,
+        userAddress: address,
+    });
 
     try {
       const parsedAmount = parseUnits(amount, selectedToken.decimals);
 
       if (selectedAssetSymbol === 'ETH') {
-        // ETH withdrawal logic will require a separate handling since it is not in the pairs
-        toast.info('ETH withdrawal is not supported yet.');
-        setIsWithdrawing(false);
+        console.log("Processing ETH withdrawal...");
+        
+        // Step 1: Withdraw WETH from the Vault
+        toast.loading('Step 1/2: Withdrawing WETH from vault...', { id: toastId });
+        console.log("Withdrawing WETH from vault...");
+        const withdrawHash = await writeContractAsync({
+            address: VAULT_SPOT_ADDRESS,
+            abi: VaultSpotAbi,
+            functionName: 'withdraw',
+            args: [WETH_ADDRESS as `0x${string}`, parsedAmount],
+          });
+        await waitForTransactionReceipt(wagmiConfig, { hash: withdrawHash });
+        toast.success('Step 1/2: WETH withdrawn successfully!');
+        console.log("WETH withdrawal tx successful:", withdrawHash);
+
+        // Step 2: Unwrap WETH to ETH
+        toast.loading('Step 2/2: Unwrapping WETH to ETH...', { id: toastId });
+        console.log("Unwrapping WETH to ETH...");
+        const unwrapHash = await writeContractAsync({
+            address: WETH_ADDRESS as `0x${string}`,
+            abi: WethAbi,
+            functionName: 'withdraw',
+            args: [parsedAmount],
+        });
+        setWithdrawTxHash(unwrapHash);
+        console.log("WETH unwrapping tx sent:", unwrapHash);
+
       } else {
-        toast.loading(`Withdrawing ${selectedAssetSymbol}...`, { id: toastId });
+        console.log(`Withdrawing ${selectedToken.symbol}...`);
+        toast.loading(`Withdrawing ${selectedToken.symbol}...`, { id: toastId });
         const withdrawHash = await writeContractAsync({
           address: VAULT_SPOT_ADDRESS,
           abi: VaultSpotAbi,
@@ -87,10 +125,11 @@ export default function Withdraw() {
           args: [selectedToken.address as `0x${string}`, parsedAmount]
         });
         setWithdrawTxHash(withdrawHash);
+        console.log(`${selectedToken.symbol} withdraw transaction sent:`, withdrawHash);
       }
       setAmount('');
     } catch (err: any) {
-      console.error(err);
+      console.error("Withdrawal failed:", err);
       toast.error(err.shortMessage || "An error occurred during the withdrawal.");
       setIsWithdrawing(false);
     }

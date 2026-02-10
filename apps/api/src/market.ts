@@ -11,8 +11,9 @@ import {
 import { base } from 'viem/chains';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '../../frontend/src/config/contracts';
 import { intentSpotRouterABI } from '../../frontend/src/abis/IntentSpotRouter';
-import { getPairById, getPairBySymbol } from './pairs';
-import type { Token } from '@forge/db';
+import type { Token } from './token';
+import { TOKENS } from './token';
+import { TRADING_PAIRS } from './trading-pairs';
 
 // --- TYPE DEFINITIONS ---
 
@@ -68,7 +69,7 @@ const primaryClient = createPublicClient({ chain: base, transport: primaryTransp
 const fallbackClient = alchemyRpcUrl ? createPublicClient({ chain: base, transport: http(publicRpcUrl) }) : null;
 
 
-async function getAMMPrice(tokenIn: { address: string; decimals: number }, tokenOut: { address: string; decimals: number }): Promise < number | null > {
+export async function getAMMPrice(tokenIn: { address: string; decimals: number }, tokenOut: { address: string; decimals: number }): Promise < number | null > {
     const safeTokenInAddress = safeAddress(tokenIn.address);
     const safeTokenOutAddress = safeAddress(tokenOut.address);
 
@@ -113,25 +114,19 @@ function generateSyntheticDepth(midPrice: number): OrderBook {
     return { bids, asks };
 }
 
-async function getOrderBook(baseToken: Token, quoteToken: Token, pairId: string): Promise < OrderBook & { lastTradePrice: number | null } > {
-    let midPrice: number | null = await getAMMPrice(baseToken, quoteToken);
+async function getOrderBook(baseToken: Token, quoteToken: Token, pairId: string): Promise<OrderBook & { lastTradePrice: number | null }> {
+    const midPrice: number | null = await getAMMPrice(baseToken, quoteToken);
 
     let realOrders: Order[] = [];
     try {
         realOrders = await getOrdersByPairId(pairId);
     } catch (dbError) {
         console.error(`Database error fetching orders for ${pairId}:`, dbError);
-        // Continue without real orders
     }
 
-    const realBids: [string, string][] = realOrders.filter(o => o.side === 'buy').map(o => [o.price, o.quantity]);
-    const realAsks: [string, string][] = realOrders.filter(o => o.side === 'sell').map(o => [o.price, o.quantity]);
-
-    const syntheticDepth = midPrice ? generateSyntheticDepth(midPrice) : { bids: [], asks: [] };
-
-    const aggregateAndSort = (real: [string, string][], synthetic: [string, string][], reverse = false): [string, string][] => {
+    const aggregateAndSort = (orders: [string, string][], reverse = false): [string, string][] => {
         const book = new Map<string, number>();
-        [...real, ...synthetic].forEach(([price, size]) => {
+        orders.forEach(([price, size]) => {
             book.set(price, (book.get(price) || 0) + parseFloat(size));
         });
         const sorted = Array.from(book.entries()).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
@@ -139,9 +134,28 @@ async function getOrderBook(baseToken: Token, quoteToken: Token, pairId: string)
         return sorted.map(([price, size]) => [price, String(size)]);
     };
 
+    let bids: [string, string][];
+    let asks: [string, string][];
+
+    if (realOrders.length > 0) {
+        const realBids = realOrders.filter(o => o.side === 'buy').map(o => [o.price, o.quantity] as [string, string]);
+        const realAsks = realOrders.filter(o => o.side === 'sell').map(o => [o.price, o.quantity] as [string, string]);
+        bids = aggregateAndSort(realBids, true);
+        asks = aggregateAndSort(realAsks);
+    } else {
+        if (midPrice) {
+            const syntheticDepth = generateSyntheticDepth(midPrice);
+            bids = syntheticDepth.bids;
+            asks = syntheticDepth.asks;
+        } else {
+            bids = [];
+            asks = [];
+        }
+    }
+
     return {
-        bids: aggregateAndSort(realBids, syntheticDepth.bids, true),
-        asks: aggregateAndSort(realAsks, syntheticDepth.asks),
+        bids,
+        asks,
         lastTradePrice: midPrice
     };
 }
@@ -153,7 +167,7 @@ export function getMarkPrice(book: OrderBook & { lastTradePrice: number | null }
     return book.lastTradePrice;
 }
 
-export async function getMarketState(pairId: string): Promise < MarketState | null > {
+export async function getMarket(pairId: string): Promise < MarketState | null > {
     const now = Date.now();
     if (cache[pairId] && (now - cache[pairId].lastFetch < CACHE_DURATION)) {
         const cachedData = cache[pairId].data;
@@ -162,12 +176,13 @@ export async function getMarketState(pairId: string): Promise < MarketState | nu
     }
 
     try {
-        const pairInfo = await getPairById(pairId);
+        const pairInfo = TRADING_PAIRS.find(p => p.id === pairId);
         if (!pairInfo) {
             return null; // Or handle as a 404 earlier
         }
 
-        const { symbol: pair, baseToken, quoteToken, isActive } = pairInfo;
+        const baseToken = TOKENS[pairInfo.base];
+        const quoteToken = TOKENS[pairInfo.quote];
 
         // Fetch data concurrently, but safely
         const [bookResult, marketDataResult] = await Promise.allSettled([
@@ -179,10 +194,10 @@ export async function getMarketState(pairId: string): Promise < MarketState | nu
         const marketData = marketDataResult.status === 'fulfilled' ? marketDataResult.value : null;
 
         if (bookResult.status === 'rejected') {
-            console.error(`Failed to get order book for ${pair}:`, bookResult.reason);
+            console.error(`Failed to get order book for ${pairInfo.id}:`, bookResult.reason);
         }
         if (marketDataResult.status === 'rejected') {
-            console.error(`Failed to get market data for ${pair}:`, marketDataResult.reason);
+            console.error(`Failed to get market data for ${pairInfo.id}:`, marketDataResult.reason);
         }
 
         const markPrice = getMarkPrice(book);
@@ -202,7 +217,7 @@ export async function getMarketState(pairId: string): Promise < MarketState | nu
 
         const marketState: MarketState = {
             id: pairId,
-            symbol: pair,
+            symbol: `${pairInfo.base}/${pairInfo.quote}`,
             baseAsset: baseToken.symbol,
             quoteAsset: quoteToken.symbol,
             price: markPrice,
@@ -215,21 +230,21 @@ export async function getMarketState(pairId: string): Promise < MarketState | nu
             bids: book.bids,
             asks: book.asks,
             source: 'live',
-            isActive: isActive ?? false,
+            isActive: true,
         };
 
         cache[pairId] = { data: marketState, lastFetch: now };
         return marketState;
     } catch (error) {
-        console.error(`Critical failure in getMarketState for ${pairId}:`, error);
+        console.error(`Critical failure in getMarket for ${pairId}:`, error);
         return null; // Last resort, should not happen with the inner catches.
     }
 }
 
-export async function getMarketStateBySymbol(symbol: string): Promise<MarketState | null> {
-    const pair = await getPairBySymbol(symbol);
+export async function getMarketBySymbol(symbol: string): Promise<MarketState | null> {
+    const pair = TRADING_PAIRS.find(p => `${p.base}/${p.quote}` === symbol);
     if (!pair) {
         return null;
     }
-    return getMarketState(pair.id);
+    return getMarket(pair.id);
 }

@@ -1,14 +1,16 @@
 
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { getMarketState, getMarketStateBySymbol } from "./src/market";
+import { getMarket, getMarketBySymbol } from "./src/market";
 import { health } from "./src/health";
-import { getAllPairs, getTokensByChainId } from "./src/pairs";
+import { getMarkets } from "./src/markets";
+import { getTokens } from "./src/tokens";
 import { getTrendingPairs } from "./src/trending";
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { createOrder, getOrdersByAccount } from "./src/orders";
 import { broadcastToTopic } from "./websocket";
 import { getVaultTokens } from "./src/vault";
+import { TRADING_PAIRS } from "./src/trading-pairs";
 
 // Define the proxy middleware for the relayer service
 const relayerProxy = createProxyMiddleware({
@@ -64,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const marketState = await getMarketState(id);
+      const marketState = await getMarket(id);
       if (!marketState) {
           return res.status(404).json({ error: "Market not found" });
       }
@@ -74,9 +76,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  /**
-   * @deprecated Use /api/markets/:id instead
-   */
   app.get("/api/markets/by-symbol/:symbol", async (req: Request, res: Response) => {
     const { symbol } = req.params;
     if (typeof symbol !== 'string') {
@@ -84,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const marketState = await getMarketStateBySymbol(symbol);
+      const marketState = await getMarketBySymbol(symbol);
       if (!marketState) {
           return res.status(404).json({ error: "Market not found" });
       }
@@ -97,8 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // --- Trading Pairs Routes ---
   app.get("/api/trading-pairs", async (req: Request, res: Response) => {
     try {
-        const pairs = await getAllPairs();
-        res.json(pairs);
+        res.json(TRADING_PAIRS);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
@@ -106,8 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/trading-pairs/symbols", async (req: Request, res: Response) => {
     try {
-        const pairs = await getAllPairs();
-        const symbols = pairs.map(p => p.symbol);
+        const symbols = TRADING_PAIRS.map(p => `${p.base}/${p.quote}`);
         res.json(symbols);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -125,19 +122,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // --- Token Route ---
     app.get("/api/tokens", async (req: Request, res: Response) => {
-        const { chainId } = req.query;
-        if (!chainId || typeof chainId !== 'string') {
-            return res.status(400).json({ error: 'chainId query parameter is required' });
-        }
-
-        const numericChainId = parseInt(chainId);
-        if (isNaN(numericChainId)) {
-            return res.status(400).json({ error: `Invalid chainId: ${chainId}` });
-        }
-
         try {
-            const tokens = await getTokensByChainId(numericChainId);
-            res.json(tokens);
+            const { chainId } = req.query;
+            const tokens = getTokens();
+            const tokenDict: { [symbol: string]: { address: `0x${string}`; decimals: number } } = {};
+            for (const token of tokens) {
+              tokenDict[token.symbol] = {
+                address: token.address as `0x${string}`,
+                decimals: token.decimals,
+              };
+            }
+            res.json(tokenDict);
         } catch (error: any) {
             res.status(500).json({ error: error.message });
         }

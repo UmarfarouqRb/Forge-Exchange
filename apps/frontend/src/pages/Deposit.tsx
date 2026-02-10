@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
+import { WethAbi } from '@/abis/Weth';
 import { parseUnits, erc20Abi } from 'viem';
 import { useWriteContract, useReadContract, useBalance } from 'wagmi';
 import { useWallets } from '@privy-io/react-auth';
@@ -78,16 +79,20 @@ export default function Deposit() {
 
   const handleDeposit = async () => {
     setMessage(null);
+    console.log("Initiating deposit...");
     if (!connectedWallet) {
       toast.error('Please connect your wallet first.');
+      console.error("Wallet not connected.");
       return;
     }
     if (!amount || parseFloat(amount) <= 0) {
       toast.error('Please enter a valid amount.');
+      console.error("Invalid amount entered.");
       return;
     }
     if (!selectedToken) {
       toast.error('Please select a valid asset to deposit.');
+      console.error("No asset selected.");
       return;
     }
 
@@ -95,47 +100,95 @@ export default function Deposit() {
 
     if (balance && balance.value < parsedAmount) {
       toast.error('Insufficient balance for this deposit.');
+      console.error("Insufficient balance.");
       return;
     }
 
     setIsDepositing(true);
     const toastId = toast.loading('Initiating deposit...');
+    console.log(`Deposit details:`, {
+        token: selectedToken.symbol,
+        amount: amount,
+        parsedAmount: parsedAmount.toString(),
+        userAddress: address,
+    });
 
     try {
-      if (selectedAssetSymbol === 'ETH') {
-        // ETH deposit logic will require a separate handling since it is not in the pairs
-        toast.info('ETH deposit is not supported yet.');
-        setIsDepositing(false);
-      } else {
-        const needsApproval = allowance === undefined || allowance < parsedAmount;
+        if (selectedAssetSymbol === 'ETH') {
+            console.log("Processing ETH deposit...");
+            
+            // Step 1: Wrap ETH to WETH
+            toast.loading('Step 1/3: Wrapping ETH to WETH...', { id: toastId });
+            console.log("Wrapping ETH to WETH for amount:", amount);
+            const wrapHash = await writeContractAsync({
+                address: WETH_ADDRESS as `0x${string}`,
+                abi: WethAbi,
+                functionName: 'deposit',
+                value: parsedAmount,
+            });
+            await waitForTransactionReceipt(wagmiConfig, { hash: wrapHash });
+            toast.success('Step 1/3: ETH wrapped successfully!');
+            console.log("ETH wrapping tx successful:", wrapHash);
 
-        if (needsApproval) {
-          toast.loading(`Approving ${selectedAssetSymbol}...`, { id: toastId });
-          const approvalHash = await writeContractAsync({
-            address: selectedToken.address as `0x${string}`,
-            abi: erc20Abi,
-            functionName: 'approve',
-            args: [VAULT_SPOT_ADDRESS, parsedAmount],
-          });
-          await waitForTransactionReceipt(wagmiConfig, { hash: approvalHash });
-          toast.success('Approval successful!');
-          refetch();
+            // Step 2: Approve Vault to spend WETH
+            toast.loading('Step 2/3: Approving vault to spend WETH...', { id: toastId });
+            console.log("Approving Vault to spend WETH...");
+            const approveHash = await writeContractAsync({
+                address: WETH_ADDRESS as `0x${string}`,
+                abi: erc20Abi,
+                functionName: 'approve',
+                args: [VAULT_SPOT_ADDRESS, parsedAmount],
+            });
+            await waitForTransactionReceipt(wagmiConfig, { hash: approveHash });
+            toast.success('Step 2/3: Approval successful!');
+            console.log("WETH approval tx successful:", approveHash);
+
+            // Step 3: Deposit WETH into Vault
+            toast.loading('Step 3/3: Depositing WETH into vault...', { id: toastId });
+            console.log("Depositing WETH into vault...");
+            const depositHash = await writeContractAsync({
+                address: VAULT_SPOT_ADDRESS,
+                abi: VaultSpotAbi,
+                functionName: 'deposit',
+                args: [WETH_ADDRESS as `0x${string}`, parsedAmount],
+            });
+            setDepositTxHash(depositHash);
+            console.log("WETH deposit tx sent:", depositHash);
+            
+        } else { // ERC20 Logic
+            const needsApproval = allowance === undefined || allowance < parsedAmount;
+            if (needsApproval) {
+                console.log(`Approving ${selectedToken.symbol}...`);
+                toast.loading(`Approving ${selectedToken.symbol}...`, { id: toastId });
+                const approvalHash = await writeContractAsync({
+                    address: selectedToken.address as `0x${string}`,
+                    abi: erc20Abi,
+                    functionName: 'approve',
+                    args: [VAULT_SPOT_ADDRESS, parsedAmount],
+                });
+                await waitForTransactionReceipt(wagmiConfig, { hash: approvalHash });
+                toast.success('Approval successful!');
+                refetch();
+                console.log(`${selectedToken.symbol} approval transaction sent:`, approvalHash);
+            }
+
+            console.log(`Depositing ${selectedToken.symbol}...`);
+            toast.loading(`Depositing ${selectedToken.symbol}...`, { id: toastId });
+            const depositHash = await writeContractAsync({
+                address: VAULT_SPOT_ADDRESS,
+                abi: VaultSpotAbi,
+                functionName: 'deposit',
+                args: [selectedToken.address as `0x${string}`, parsedAmount],
+            });
+
+            console.log(`${selectedToken.symbol} deposit transaction sent:`, depositHash);
+            setDepositTxHash(depositHash);
         }
-
-        toast.loading(`Depositing ${selectedAssetSymbol}...`, { id: toastId });
-        const depositHash = await writeContractAsync({
-          address: VAULT_SPOT_ADDRESS,
-          abi: VaultSpotAbi,
-          functionName: 'deposit',
-          args: [selectedToken.address as `0x${string}`, parsedAmount],
-        });
-        setDepositTxHash(depositHash);
-      }
-      setAmount('');
+        setAmount('');
     } catch (err: any) {
-      console.error(err);
-      toast.error(err.shortMessage || 'An error occurred during the deposit.');
-      setIsDepositing(false);
+        console.error("Deposit failed:", err);
+        toast.error(err.shortMessage || 'An error occurred during the deposit.');
+        setIsDepositing(false);
     }
   };
 

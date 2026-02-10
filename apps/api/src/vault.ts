@@ -1,10 +1,7 @@
+import { TOKENS, Token } from "./token";
 
-import { db, tokens } from '@forge/db';
-
-export async function getVaultTokens() {
-    const allTokens = await db.select().from(tokens);
-
-    return allTokens.map(token => ({
+export function getVaultTokens() {
+    return Object.values(TOKENS).map((token: Token) => ({
         ...token,
         deposit_enabled: true,
         withdraw_enabled: true,
