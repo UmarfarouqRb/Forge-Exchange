@@ -6,6 +6,9 @@ export type Token = {
   symbol: string;
   name: string;
   decimals: number;
+  balance: bigint;
+  deposit_enabled: boolean;
+  withdraw_enabled: boolean;
 };
 
 export type TradingPair = {

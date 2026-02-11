@@ -63,11 +63,4 @@ export const TOKENS: Record<string, Token> = {
     symbol: "TRUMP",
     decimals: 18,
   },
-  SOL: {
-    id: "SOL",
-    address: "0x311935Cd80B76769bF2ecC9D8Ab7635b2139cf82",
-    name: "Wrapped Solana",
-    symbol: "SOL",
-    decimals: 9,
-  },
 };

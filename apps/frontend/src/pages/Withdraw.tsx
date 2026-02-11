@@ -9,7 +9,6 @@ import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { WethAbi } from '@/abis/Weth';
 import { parseUnits } from 'viem';
-import { useWriteContract } from 'wagmi';
 import { useWallets } from '@privy-io/react-auth';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
@@ -19,6 +18,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useRefetchContext } from '@/contexts/RefetchContext';
 import { useVault } from '@/contexts/VaultContext';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
+import { useTransaction } from '@/hooks/useTransaction';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -34,6 +34,7 @@ export default function Withdraw() {
   const assetSymbolFromUrl = params.get('asset');
 
   const { tokens: allTokens } = useVault();
+  const { writeContractAsync } = useTransaction();
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
@@ -44,7 +45,6 @@ export default function Withdraw() {
   const { wallets } = useWallets();
   const connectedWallet = wallets[0];
   const { address } = connectedWallet || {};
-  const { writeContractAsync } = useWriteContract();
 
   const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
 
@@ -67,12 +67,24 @@ export default function Withdraw() {
     }
     if (!amount || parseFloat(amount) <= 0) {
         toast.error('Please enter a valid amount.');
-        console.error("Invalid amount entered.");
+        console.error("Invalid amount entered:", { amount });
         return;
     }
     if (!selectedToken) {
         toast.error('Please select a valid asset to withdraw.');
-        console.error("No asset selected.");
+        console.error("No asset selected for withdrawal.");
+        return;
+    }
+
+    const parsedAmount = parseUnits(amount, selectedToken.decimals);
+    
+    // Check for sufficient balance in the vault
+    if (selectedToken.balance < parsedAmount) {
+        toast.error('Insufficient vault balance for this withdrawal.');
+        console.error("Insufficient vault balance for withdrawal.", {
+            requestedAmount: parsedAmount.toString(),
+            availableBalance: selectedToken.balance.toString(),
+        });
         return;
     }
 
@@ -81,18 +93,18 @@ export default function Withdraw() {
     console.log(`Withdrawal details:`, {
         token: selectedToken.symbol,
         amount: amount,
+        parsedAmount: parsedAmount.toString(),
         userAddress: address,
     });
 
     try {
-      const parsedAmount = parseUnits(amount, selectedToken.decimals);
 
       if (selectedAssetSymbol === 'ETH') {
         console.log("Processing ETH withdrawal...");
         
         // Step 1: Withdraw WETH from the Vault
         toast.loading('Step 1/2: Withdrawing WETH from vault...', { id: toastId });
-        console.log("Withdrawing WETH from vault...");
+        console.log("Withdrawing WETH from vault...", { amount: parsedAmount.toString() });
         const withdrawHash = await writeContractAsync({
             address: VAULT_SPOT_ADDRESS,
             abi: VaultSpotAbi,
@@ -105,7 +117,7 @@ export default function Withdraw() {
 
         // Step 2: Unwrap WETH to ETH
         toast.loading('Step 2/2: Unwrapping WETH to ETH...', { id: toastId });
-        console.log("Unwrapping WETH to ETH...");
+        console.log("Unwrapping WETH to ETH...", { amount: parsedAmount.toString() });
         const unwrapHash = await writeContractAsync({
             address: WETH_ADDRESS as `0x${string}`,
             abi: WethAbi,

@@ -9,7 +9,7 @@ import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { WethAbi } from '@/abis/Weth';
 import { parseUnits, erc20Abi } from 'viem';
-import { useWriteContract, useReadContract, useBalance } from 'wagmi';
+import { useReadContract, useBalance } from 'wagmi';
 import { useWallets } from '@privy-io/react-auth';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
@@ -19,6 +19,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useRefetchContext } from '@/contexts/RefetchContext';
 import { useVault } from '@/contexts/VaultContext';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
+import { useTransaction } from '@/hooks/useTransaction';
 
 export default function Deposit() {
   const [amount, setAmount] = useState('');
@@ -34,6 +35,7 @@ export default function Deposit() {
   const assetSymbolFromUrl = params.get('asset');
 
   const { tokens: allTokens } = useVault();
+  const { writeContractAsync } = useTransaction();
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
@@ -44,7 +46,6 @@ export default function Deposit() {
   const { wallets } = useWallets();
   const connectedWallet = wallets[0];
   const { address } = connectedWallet || {};
-  const { writeContractAsync } = useWriteContract();
 
   const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
 
@@ -205,7 +206,7 @@ export default function Deposit() {
             </div>
           )}
           <div className="space-y-4 py-4">
-            <div className="grid w-full items-center gap-1.5">
+            <div className="grid w-full items-.center gap-1.5">
               <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
               <VaultAssetSelector 
                 asset={selectedAssetSymbol}

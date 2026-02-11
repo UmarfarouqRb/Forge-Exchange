@@ -4,14 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@/privy-io/react-auth';
 import { FiSearch, FiDownload, FiUpload } from 'react-icons/fi';
 import { useState, useMemo } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
-import { formatUnits } from 'viem';
 import { useVault } from '@/contexts/VaultContext';
+import { formatBalance } from '@/lib/format';
 
 export default function Assets() {
   const { authenticated } = usePrivy();
@@ -43,7 +43,7 @@ export default function Assets() {
   const displayAssets = useMemo(() => {
     const assets = allTokens.map((token, index) => {
         const balance = balances ? balances[index] : undefined;
-        const available = balance && balance.status === 'success' ? formatUnits(balance.result as bigint, token.decimals) : '0';
+        const available = balance && balance.status === 'success' ? formatBalance(balance.result as bigint, token.decimals) : '0.000000';
 
         return {
             ...token,

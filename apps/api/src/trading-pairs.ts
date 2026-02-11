@@ -18,11 +18,6 @@ export const TRADING_PAIRS: TradingPair[] = [
     quote: TOKENS.USDC.symbol,
   },
   {
-    id: "SOL-USDC",
-    base: TOKENS.SOL.symbol,
-    quote: TOKENS.USDC.symbol,
-  },
-  {
     id: "AERO-WETH",
     base: TOKENS.AERO.symbol,
     quote: TOKENS.WETH.symbol,

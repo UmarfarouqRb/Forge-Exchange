@@ -2,7 +2,6 @@
 import { useNavigate } from 'react-router-dom';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { PriceChange } from '@/components/PriceChange';
-import { Skeleton } from '@/components/ui/skeleton';
 import { TradingPair, Market } from '@/types';
 
 type MarketRowProps = {
@@ -41,29 +40,18 @@ export function MarketRow({ pair, market }: MarketRowProps) {
     return `${prefix}${numValue.toFixed(2)}`;
   };
 
-  if (!market) {
-    return (
-      <TableRow onClick={() => handleRowClick(pair.symbol)} className="cursor-pointer hover:bg-muted/50">
-        <TableCell className="font-medium">{pair.symbol}</TableCell>
-        <TableCell colSpan={5}>
-          <Skeleton className="h-12 w-full" />
-        </TableCell>
-      </TableRow>
-    );
-  }
-
-  const priceChange24h = market.priceChangePercent || 0;
+  const priceChange24h = market?.priceChangePercent || 0;
 
   return (
     <TableRow onClick={() => handleRowClick(pair.symbol)} className="cursor-pointer hover:bg-muted/50">
       <TableCell className="font-medium">{pair.symbol}</TableCell>
-      <TableCell className="text-right font-mono">{renderValue(market.lastPrice, '$')}</TableCell>
+      <TableCell className="text-right font-mono">{renderValue(market?.lastPrice, '$')}</TableCell>
       <TableCell className="text-right">
         <PriceChange value={priceChange24h} />
       </TableCell>
-      <TableCell className="text-right font-mono">{renderValue(market.high24h, '$')}</TableCell>
-      <TableCell className="text-right font-mono">{renderValue(market.low24h, '$')}</TableCell>
-      <TableCell className="text-right font-mono">{formatVolume(market.volume24h)}</TableCell>
+      <TableCell className="text-right font-mono">{renderValue(market?.high24h, '$')}</TableCell>
+      <TableCell className="text-right font-mono">{renderValue(market?.low24h, '$')}</TableCell>
+      <TableCell className="text-right font-mono">{formatVolume(market?.volume24h)}</TableCell>
     </TableRow>
   );
 }
