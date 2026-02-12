@@ -1,5 +1,5 @@
 
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,11 +15,11 @@ import { TradeHistory } from '@/components/TradeHistory';
 import { OrderHistory } from '@/components/OrderHistory';
 import Trade from './Trade';
 import { MarketDataContext } from '@/contexts/MarketDataContext';
+import { TradingPairsContext } from '@/contexts/TradingPairsContext';
 
 function TradeHeader({ pair, market }: { pair?: TradingPair; market?: Market }) {
   const navigate = useNavigate();
-  const { pairs } = useContext(MarketDataContext)!;
-  const pairsArray = Array.from(pairs.values());
+  const { pairsList } = useContext(TradingPairsContext)!;
 
   const handleAssetChange = (symbol: string) => {
     navigate(`/spot/${symbol}`);
@@ -40,7 +40,7 @@ function TradeHeader({ pair, market }: { pair?: TradingPair; market?: Market }) 
             <NewAssetSelector 
               asset={pair?.symbol || ''}
               setAsset={handleAssetChange} 
-              assets={pairsArray} 
+              assets={pairsList} 
             />
             <div className="text-xs text-muted-foreground">Spot Trading</div>
           </div>
@@ -76,16 +76,17 @@ function TradeHeader({ pair, market }: { pair?: TradingPair; market?: Market }) 
 export default function Spot() {
   const { symbol } = useParams<{ symbol: string }>();
   const navigate = useNavigate();
-  const { pairs, markets } = useContext(MarketDataContext)!;
+  const { markets } = useContext(MarketDataContext)!;
+  const { pairs, pairsList } = useContext(TradingPairsContext)!;
 
   useEffect(() => {
-    if (!symbol && pairs.size > 0) {
-      const firstPairSymbol = Array.from(pairs.keys())[0];
-      if (firstPairSymbol) {
-        navigate(`/spot/${firstPairSymbol}`, { replace: true });
+    if (!symbol && pairsList.length > 0) {
+      const defaultPair = pairsList.find(p => p.symbol === 'BTC-USDT') || pairsList[0];
+      if (defaultPair) {
+        navigate(`/spot/${defaultPair.symbol}`, { replace: true });
       }
     }
-  }, [symbol, pairs, navigate]);
+  }, [symbol, pairsList, navigate]);
 
   const pair = symbol ? pairs.get(symbol) : undefined;
   const market = symbol ? markets.get(symbol) : undefined;
@@ -105,9 +106,14 @@ export default function Spot() {
     initialData: [],
   });
 
+  const tradingPairsMap = useMemo(() => {
+    const map = new Map<string, TradingPair>();
+    pairsList.forEach((p: TradingPair) => map.set(p.id, p));
+    return map;
+  }, [pairsList]);
+
   const renderOpenOrders = () => {
     const openOrders = userOrders?.filter((order: Order) => order.status === 'open');
-    const tradingPairsMap: Map<string, TradingPair> = new Map(Array.from(pairs.values()).map((p: TradingPair) => [p.id, p]));
 
     return (
         <TabsContent value="open-orders" className="flex-1 overflow-auto p-2 md:p-4 mt-0">

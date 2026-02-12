@@ -17,7 +17,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createOrder } from '@/lib/api';
-import { MarketDataContext } from '@/contexts/MarketDataContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface TradePanelProps {

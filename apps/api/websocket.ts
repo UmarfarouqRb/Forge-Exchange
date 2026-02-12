@@ -1,3 +1,4 @@
+
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { TRADING_PAIRS } from './src/trading-pairs';
@@ -116,5 +117,5 @@ async function broadcastPrices() {
 }
 
 function startPriceBroadcasting() {
-  setInterval(broadcastPrices, 5000); // Broadcast every 5 seconds
+  setInterval(broadcastPrices, 60000); // Broadcast every 1 minute
 }

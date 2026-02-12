@@ -1,29 +1,21 @@
 
-import { ReactNode, useEffect, useState, useMemo } from 'react';
+import { ReactNode, useEffect, useState, useMemo, useContext } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MarketDataContext } from './MarketDataContext';
-import { getAllPairs, getMarketBySymbol } from '@/lib/api';
+import { getMarketBySymbol } from '@/lib/api';
 import { subscribe, unsubscribe } from '@/lib/ws/market';
-import type { Market, TradingPair } from '@/types';
+import type { Market } from '@/types';
+import { TradingPairsContext } from './TradingPairsContext';
 
 export function MarketDataProvider({ children }: { children: ReactNode }) {
   const [markets, setMarkets] = useState(new Map<string, Market>());
+  const tradingPairsContext = useContext(TradingPairsContext);
 
-  const { data: pairsList } = useQuery<TradingPair[]>({
-    queryKey: ['trading-pairs'],
-    queryFn: getAllPairs,
-    initialData: [],
-  });
+  if (!tradingPairsContext) {
+    throw new Error('MarketDataProvider must be used within a TradingPairsProvider');
+  }
 
-  const pairs = useMemo(() => {
-    const pairsMap = new Map<string, TradingPair>();
-    if (pairsList) {
-      for (const pair of pairsList) {
-        pairsMap.set(pair.symbol, pair);
-      }
-    }
-    return pairsMap;
-  }, [pairsList]);
+  const { pairsList } = tradingPairsContext;
 
   const marketSymbols = useMemo(() => {
     return pairsList ? pairsList.map(pair => pair.symbol) : [];
@@ -64,7 +56,6 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
   }, [pairsList]);
 
   const contextValue = {
-    pairs,
     markets,
     marketSymbols,
   };

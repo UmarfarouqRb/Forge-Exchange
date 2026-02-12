@@ -10,7 +10,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { createOrder, getOrdersByAccount } from "./src/orders";
 import { broadcastToTopic } from "./websocket";
 import { getVaultTokens } from "./src/vault";
-import { TRADING_PAIRS } from "./src/trading-pairs";
+import { getTradingPairs, getTradingPairBySymbol } from "./src/trading-pairs";
 
 // Define the proxy middleware for the relayer service
 const relayerProxy = createProxyMiddleware({
@@ -96,18 +96,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // --- Trading Pairs Routes ---
   app.get("/api/trading-pairs", async (req: Request, res: Response) => {
     try {
-        res.json(TRADING_PAIRS);
+        res.json(getTradingPairs());
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
   });
 
-  app.get("/api/trading-pairs/symbols", async (req: Request, res: Response) => {
+  app.get("/api/trading-pairs/by-symbol/:symbol", async (req: Request, res: Response) => {
+    const { symbol } = req.params;
+    if (typeof symbol !== 'string') {
+        return res.status(400).json({ error: 'Symbol parameter is required' });
+    }
+
     try {
-        const symbols = TRADING_PAIRS.map(p => `${p.base}/${p.quote}`);
-        res.json(symbols);
+      const pair = getTradingPairBySymbol(symbol);
+      if (!pair) {
+          return res.status(404).json({ error: "Trading pair not found" });
+      }
+      res.json(pair);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 

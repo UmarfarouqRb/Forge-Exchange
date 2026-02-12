@@ -1,13 +1,12 @@
 
 import { createContext } from 'react';
-import type { Market, TradingPair } from '@/types';
+import type { Market } from '@/types';
 
-export interface MarketDataContextValue {
-  pairs: Map<string, TradingPair>;
+interface MarketDataContextType {
   markets: Map<string, Market>;
   marketSymbols: string[];
 }
 
-export const MarketDataContext = createContext<MarketDataContextValue | undefined>(
+export const MarketDataContext = createContext<MarketDataContextType | undefined>(
   undefined
 );

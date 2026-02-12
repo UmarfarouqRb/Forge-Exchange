@@ -4,7 +4,7 @@ Forge is a high-performance, decentralized exchange (DEX) platform built with a 
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 This guide will walk you through setting up the Forge Exchange project for local development and testing.
 
@@ -31,10 +31,10 @@ This project uses Supabase for its database. You will need to create a `.env` fi
 
 
 SUPABASE_URL="YOUR_SUPABASE_URL"
-SUPABASE_KEY="YOUR_SUPABASE_ANON_KEY"
+SUPABASE_KEY="YOUR_SUPABASE_SERVICE_ROLE_KEY"
 
 
-Replace `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY` with your actual Supabase credentials.
+Replace `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_SERVICE_ROLE_KEY` with your actual Supabase credentials.
 
 ### 3. Running the Development Environment
 

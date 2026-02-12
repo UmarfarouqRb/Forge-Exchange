@@ -5,21 +5,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MarketRow } from '@/components/MarketRow';
 import { MarketDataContext } from '@/contexts/MarketDataContext';
+import { TradingPairsContext } from '@/contexts/TradingPairsContext';
 
 export default function MarketPage() {
-  const { pairs, markets } = useContext(MarketDataContext)!;
+  const { pairsList } = useContext(TradingPairsContext)!;
+  const { markets } = useContext(MarketDataContext)!;
 
   const renderContent = () => {
-    if (pairs.size === 0) {
-      return (
-        <div className="space-y-2 p-4">
-          {[...Array(10)].map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      );
-    }
-
     return (
       <Table>
         <TableHeader>
@@ -33,9 +25,22 @@ export default function MarketPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {Array.from(pairs.values()).map((pair) => (
-            <MarketRow key={pair.symbol} pair={pair} market={markets.get(pair.symbol)} />
-          ))}
+          {pairsList.length > 0 ? (
+            pairsList.map((pair) => (
+              <MarketRow key={pair.symbol} pair={pair} market={markets.get(pair.symbol)} />
+            ))
+          ) : (
+            [...Array(10)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-full" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-full" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-full" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-full" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-full" /></TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     );

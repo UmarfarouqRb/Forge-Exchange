@@ -3,6 +3,7 @@ import { useContext } from 'react';
 import { OrderBook } from '@/components/OrderBook';
 import { TradePanel, SkeletonTradePanel } from '@/components/TradePanel';
 import { MarketDataContext } from '@/contexts/MarketDataContext';
+import { TradingPairsContext } from '@/contexts/TradingPairsContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface TradeProps {
@@ -10,7 +11,8 @@ interface TradeProps {
 }
 
 export default function Trade({ symbol }: TradeProps) {
-  const { pairs, markets } = useContext(MarketDataContext)!;
+  const { markets } = useContext(MarketDataContext)!;
+  const { pairs } = useContext(TradingPairsContext)!;
 
   const pair = pairs.get(symbol);
   const market = markets.get(symbol);

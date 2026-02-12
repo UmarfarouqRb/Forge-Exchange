@@ -9,8 +9,7 @@ import {
     isAddress
 } from 'viem';
 import { base } from 'viem/chains';
-import { INTENT_SPOT_ROUTER_ADDRESS } from '../../frontend/src/config/contracts';
-import { intentSpotRouterABI } from '../../frontend/src/abis/IntentSpotRouter';
+import { PANCAKE_QUOTER_V2_ADDRESS, PANCAKE_QUOTER_V2_ABI } from './QuoterV2';
 import type { Token } from './token';
 import { TOKENS } from './token';
 import { TRADING_PAIRS } from './trading-pairs';
@@ -25,9 +24,6 @@ export type OrderBook = {
 // This is the composite type that the API returns, combining DB data with live data.
 export type MarketState = {
     id: string;
-    symbol: string;
-    baseAsset: string;
-    quoteAsset: string;
     price: number | null; // Mark Price
     lastPrice: string | null;
     priceChangePercent: number;
@@ -78,27 +74,27 @@ export async function getAMMPrice(tokenIn: { address: string; decimals: number }
         return null;
     }
 
+    const params = {
+        tokenIn: safeTokenInAddress,
+        tokenOut: safeTokenOutAddress,
+        amountIn: parseUnits('1', tokenIn.decimals),
+        fee: 2500, // Using 0.25% as a default fee
+        sqrtPriceLimitX96: 0,
+    };
+
     const contractCall = {
-        address: INTENT_SPOT_ROUTER_ADDRESS[base.id],
-        abi: intentSpotRouterABI,
-        functionName: 'getAmountOut',
-        args: [safeTokenInAddress, safeTokenOutAddress, parseUnits('1', tokenIn.decimals)],
+        address: PANCAKE_QUOTER_V2_ADDRESS,
+        abi: PANCAKE_QUOTER_V2_ABI,
+        functionName: 'quoteExactInputSingle',
+        args: [params],
     } as const;
 
     try {
-        const amountOut = await primaryClient.readContract(contractCall);
+        const result = await primaryClient.readContract(contractCall);
+        const amountOut = result[0];
         return amountOut ? parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals)) : null;
     } catch (error) {
         console.error(`Error fetching AMM price from primary RPC:`, error);
-        if (fallbackClient) {
-            console.log('Falling back to public RPC...');
-            try {
-                const amountOut = await fallbackClient.readContract(contractCall);
-                return amountOut ? parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals)) : null;
-            } catch (fallbackError) {
-                console.error(`Error fetching AMM price from fallback RPC:`, fallbackError);
-            }
-        }
         return null; // Never throw, always return a value
     }
 }
@@ -181,8 +177,8 @@ export async function getMarket(pairId: string): Promise < MarketState | null > 
             return null; // Or handle as a 404 earlier
         }
 
-        const baseToken = TOKENS[pairInfo.base];
-        const quoteToken = TOKENS[pairInfo.quote];
+        const baseToken = TOKENS[pairInfo.base.symbol];
+        const quoteToken = TOKENS[pairInfo.quote.symbol];
 
         // Fetch data concurrently, but safely
         const [bookResult, marketDataResult] = await Promise.allSettled([
@@ -217,9 +213,6 @@ export async function getMarket(pairId: string): Promise < MarketState | null > 
 
         const marketState: MarketState = {
             id: pairId,
-            symbol: `${pairInfo.base}/${pairInfo.quote}`,
-            baseAsset: baseToken.symbol,
-            quoteAsset: quoteToken.symbol,
             price: markPrice,
             lastPrice: lastPrice,
             priceChangePercent: priceChangePercent,
@@ -242,7 +235,7 @@ export async function getMarket(pairId: string): Promise < MarketState | null > 
 }
 
 export async function getMarketBySymbol(symbol: string): Promise<MarketState | null> {
-    const pair = TRADING_PAIRS.find(p => `${p.base}/${p.quote}` === symbol);
+    const pair = TRADING_PAIRS.find(p => p.symbol === symbol);
     if (!pair) {
         return null;
     }

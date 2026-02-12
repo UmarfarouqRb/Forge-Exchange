@@ -15,6 +15,7 @@ import Docs from "@/pages/Docs";
 import Deposit from "@/pages/Deposit";
 import Withdraw from "@/pages/Withdraw";
 import { VaultProvider } from "./contexts/VaultContext";
+import { TradingPairsProvider } from "./contexts/TradingPairsProvider";
 
 function AppLayout() {
   return (
@@ -29,28 +30,30 @@ function AppLayout() {
 
 function App() {
   return (
-    <VaultProvider>
-      <TooltipProvider>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/market" element={<Market />} />
-            <Route path="/spot" element={<Spot />} />
-            <Route path="/spot/:pairId" element={<Spot />} />
-            <Route path="/futures" element={<Futures />} />
-            <Route path="/assets/*" element={<Assets />}>
-              <Route path="deposit" element={<Deposit />} />
-              <Route path="withdraw" element={<Withdraw />} />
+    <TradingPairsProvider>
+      <VaultProvider>
+        <TooltipProvider>
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/market" element={<Market />} />
+              <Route path="/spot" element={<Spot />} />
+              <Route path="/spot/:pairId" element={<Spot />} />
+              <Route path="/futures" element={<Futures />} />
+              <Route path="/assets/*" element={<Assets />}>
+                <Route path="deposit" element={<Deposit />} />
+                <Route path="withdraw" element={<Withdraw />} />
+              </Route>
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/portfolio" element={<Portfolio />} />
+              <Route path="/docs" element={<Docs />} />
             </Route>
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/portfolio" element={<Portfolio />} />
-            <Route path="/docs" element={<Docs />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-        <Toaster />
-      </TooltipProvider>
-    </VaultProvider>
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+          <Toaster />
+        </TooltipProvider>
+      </VaultProvider>
+    </TradingPairsProvider>
   );
 }
 
