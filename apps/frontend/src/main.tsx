@@ -13,6 +13,7 @@ import App from './App';
 import './index.css';
 import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
 import { RefetchProvider } from '@/contexts/RefetchContext';
+import { TradingPairsProvider } from './contexts/TradingPairsProvider';
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
 
@@ -48,9 +49,11 @@ function Main() {
         <QueryClientProvider client={queryClient}>
           <RefetchProvider>
             <ChainProvider>
-              <MarketDataProvider>
-                <App />
-              </MarketDataProvider>
+              <TradingPairsProvider>
+                <MarketDataProvider>
+                  <App />
+                </MarketDataProvider>
+              </TradingPairsProvider>
             </ChainProvider>
           </RefetchProvider>
         </QueryClientProvider>

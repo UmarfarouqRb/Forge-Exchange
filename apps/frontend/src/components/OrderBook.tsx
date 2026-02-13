@@ -1,8 +1,9 @@
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { Market, TradingPair } from '@/types';
 
 interface OrderBookProps {
-  pair: TradingPair;
+  pair?: TradingPair;
   book?: Market;
 }
 
@@ -17,13 +18,14 @@ export function OrderBookSkeleton() {
 }
 
 export function OrderBook({ pair, book }: OrderBookProps) {
-  if (!book) {
+  const bids = book?.bids || [];
+  const asks = book?.asks || [];
+  const baseAsset = pair?.baseToken.symbol;
+  const quoteAsset = pair?.quoteToken.symbol;
+
+  if (!pair) {
     return <OrderBookSkeleton />;
   }
-
-  const { bids, asks } = book;
-  const baseAsset = pair.baseToken.symbol;
-  const quoteAsset = pair.quoteToken.symbol;
 
   return (
     <div className="h-full flex flex-col bg-background p-2 text-xs">

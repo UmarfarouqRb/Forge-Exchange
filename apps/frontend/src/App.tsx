@@ -15,7 +15,6 @@ import Docs from "@/pages/Docs";
 import Deposit from "@/pages/Deposit";
 import Withdraw from "@/pages/Withdraw";
 import { VaultProvider } from "./contexts/VaultContext";
-import { TradingPairsProvider } from "./contexts/TradingPairsProvider";
 
 function AppLayout() {
   return (
@@ -30,7 +29,6 @@ function AppLayout() {
 
 function App() {
   return (
-    <TradingPairsProvider>
       <VaultProvider>
         <TooltipProvider>
           <Routes>
@@ -53,7 +51,6 @@ function App() {
           <Toaster />
         </TooltipProvider>
       </VaultProvider>
-    </TradingPairsProvider>
   );
 }
 
