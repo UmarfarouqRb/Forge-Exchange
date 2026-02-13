@@ -2,7 +2,7 @@
 let socket: WebSocket | null = null;
 const cbs = new Map<string, (data: any) => void>();
 
-const API_WS_URL = 'wss://forge-exchange-api.onrender.com';
+const API_WS_URL = 'wss://forge-exchange-api.onrender.com:10000';
 
 function connect() {
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
