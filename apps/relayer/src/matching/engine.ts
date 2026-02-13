@@ -4,6 +4,7 @@ import { base } from 'viem/chains';
 import { relayerConfig } from '@forge/common';
 import { getOrders, getChainId } from '@forge/db';
 import IntentSpotRouter from '../../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
+import { executeSavedOrder } from '../spot';
 
 const MIN_PROFIT_BPS = 10; // 0.1%
 
@@ -78,6 +79,7 @@ export class MatchingEngine {
 
                 if (profitBps >= MIN_PROFIT_BPS) {
                     console.log(`Found a profitable bid to fill:`, bid);
+                    await executeSavedOrder(bid);
                 }
             }
         }
@@ -101,6 +103,7 @@ export class MatchingEngine {
  
                  if (profitBps >= MIN_PROFIT_BPS) {
                     console.log(`Found a profitable ask to fill:`, ask);
+                    await executeSavedOrder(ask);
                  }
             }
         }

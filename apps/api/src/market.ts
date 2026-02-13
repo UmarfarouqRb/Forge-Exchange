@@ -46,7 +46,7 @@ function safeAddress(addr?: string | null): `0x${string}` | null {
         console.warn(`Invalid address provided: ${addr}`);
         return null;
     }
-    return getAddress(addr); // Return checksum-corrected address
+    return addr.toLowerCase() as `0x${string}`;
 }
 
 // --- CACHING ---
@@ -201,7 +201,7 @@ export async function getMarket(pairId: string): Promise < MarketState | null > 
         const lastPrice = marketData?.lastPrice ?? book.lastTradePrice?.toString() ?? null;
 
         let priceChangePercent = 0;
-        // @ts-ignore - open24h is not defined in the shared type, but is expected from the DB
+        // @ts-ignore - open24h is not in the shared type, but is expected from the DB
         const openPrice24h = marketData?.open24h;
 
         if (lastPrice && openPrice24h) {

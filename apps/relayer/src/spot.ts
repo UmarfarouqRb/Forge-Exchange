@@ -103,3 +103,62 @@ export const executeSpotTrade = async (intent: any, signature: `0x${string}`, or
         throw new Error(`Failed to execute spot trade: ${error.message}`);
     }
 };
+
+export const executeSavedOrder = async (order: any) => {
+    const { intent, signature, type: orderType, id: orderId } = order;
+
+    if (!intent || !signature || !orderType || !orderId) {
+        throw new Error('Missing required fields from saved order object');
+    }
+
+    try {
+        const network = relayerConfig.getNetworkByChainId(intent.chainId);
+        if (!network) {
+            throw new Error(`Unsupported chainId: ${intent.chainId}`);
+        }
+
+        const publicClient = createPublicClient({
+            chain: base,
+            transport: http(network.providerUrl),
+        });
+
+        const account = privateKeyToAccount(process.env.RELAYER_PRIVATE_KEY as `0x${string}`);
+
+        const walletClient = createWalletClient({
+            account,
+            chain: base,
+            transport: http(network.providerUrl),
+        });
+
+        const intentSpotRouterAddress = network.intentSpotRouterAddress as `0x${string}`;
+
+        if (orderType === 'limit') {
+            const { request } = await publicClient.simulateContract({
+                address: intentSpotRouterAddress,
+                abi: intentSpotRouterABI,
+                functionName: 'executeSwap',
+                args: [intent, signature],
+                account,
+            });
+
+            const tx = await walletClient.writeContract(request);
+            const receipt = await publicClient.waitForTransactionReceipt({ hash: tx });
+
+            if (receipt.status === 'reverted') {
+                throw new Error('Transaction reverted on-chain');
+            }
+
+            await updateOrderStatus(orderId, 'filled');
+
+            const price = await getMarketPrice(intent.tokenIn, intent.tokenOut, intent.chainId);
+            return { success: true, txHash: tx, price };
+        } else {
+            throw new Error(`Matching engine tried to execute non-limit order: ${orderType}`);
+        }
+
+    } catch (error: any) {
+        console.error(`Failed to execute saved order ${orderId}:`, error);
+        await updateOrderStatus(orderId, 'cancelled');
+        throw new Error(`Failed to execute saved order ${orderId}: ${error.message}`);
+    }
+};
