@@ -49,14 +49,15 @@ export type OrderBook = {
 export type Market = {
   id: string;
   symbol: string;
-  baseAsset: string;
-  quoteAsset: string;
-  lastPrice: string | null;
-  priceChangePercent: number;
-  high24h: string | null;
-  low24h: string | null;
-  volume24h: string | null;
-  bids: [string, string][];
-  asks: [string, string][];
+  price?: string | null;
+  lastPrice?: string | null;
+  priceChangePercent?: number;
+  high24h?: string | null;
+  low24h?: string | null;
+  volume24h?: string | null;
+  currentPrice?: string | null;
+  bids?: [string, string][];
+  asks?: [string, string][];
   source?: 'live' | 'cached' | 'unavailable';
+  isActive?: boolean;
 };

@@ -5,7 +5,6 @@ import {
     createPublicClient,
     parseUnits,
     formatUnits,
-    getAddress,
     isAddress
 } from 'viem';
 import { base } from 'viem/chains';
@@ -21,11 +20,10 @@ export type OrderBook = {
     asks: [string, string][];
 };
 
-// This is the composite type that the API returns, combining DB data with live data.
 export type MarketState = {
     id: string;
     symbol: string;
-    price: number | null; // Mark Price
+    price: number | null; 
     lastPrice: string | null;
     priceChangePercent: number;
     high24h: string | null;
@@ -58,15 +56,12 @@ const CACHE_DURATION = 600000; // 10 minutes
 const alchemyRpcUrl = process.env.ALCHEMY_RPC_URL;
 const publicRpcUrl = 'https://mainnet.base.org';
 
-// Prioritize Alchemy RPC if available
 const primaryTransport = alchemyRpcUrl ? http(alchemyRpcUrl) : http(publicRpcUrl);
 const primaryClient = createPublicClient({ chain: base, transport: primaryTransport });
 
-// Define a fallback client if Alchemy is used
 const fallbackClient = alchemyRpcUrl ? createPublicClient({ chain: base, transport: http(publicRpcUrl) }) : null;
 
-
-export async function getAMMPrice(tokenIn: { address: string; decimals: number }, tokenOut: { address: string; decimals: number }): Promise < number | null > {
+export async function getAMMPrice(tokenIn: { address: string; decimals: number }, tokenOut: { address: string; decimals: number }): Promise<number | null> {
     const safeTokenInAddress = safeAddress(tokenIn.address);
     const safeTokenOutAddress = safeAddress(tokenOut.address);
 
@@ -75,29 +70,47 @@ export async function getAMMPrice(tokenIn: { address: string; decimals: number }
         return null;
     }
 
-    const params = {
-        tokenIn: safeTokenInAddress,
-        tokenOut: safeTokenOutAddress,
-        amountIn: parseUnits('1', tokenIn.decimals),
-        fee: 2500, // Using 0.25% as a default fee
-        sqrtPriceLimitX96: 0,
-    };
+    const feeTiers = [100, 500, 2500, 10000]; // Tiers for 0.01%, 0.05%, 0.25%, 1%
 
-    const contractCall = {
-        address: PANCAKE_QUOTER_V2_ADDRESS,
-        abi: PANCAKE_QUOTER_V2_ABI,
-        functionName: 'quoteExactInputSingle',
-        args: [params],
-    } as const;
+    for (const fee of feeTiers) {
+        const params = {
+            tokenIn: safeTokenInAddress,
+            tokenOut: safeTokenOutAddress,
+            amountIn: parseUnits('1', tokenIn.decimals),
+            fee: fee,
+            sqrtPriceLimitX96: 0,
+        };
+        const contractCall = {
+            address: PANCAKE_QUOTER_V2_ADDRESS,
+            abi: PANCAKE_QUOTER_V2_ABI,
+            functionName: 'quoteExactInputSingle',
+            args: [params],
+        } as const;
 
-    try {
-        const result = await primaryClient.readContract(contractCall);
-        const amountOut = result[0];
-        return amountOut ? parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals)) : null;
-    } catch (error) {
-        console.error(`Error fetching AMM price from primary RPC:`, error);
-        return null; // Never throw, always return a value
+        try {
+            const result = await primaryClient.readContract(contractCall);
+            const amountOut = result[0];
+            if (amountOut) {
+                return parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals));
+            }
+        } catch (primaryError) {
+            if (fallbackClient) {
+                try {
+                    const result = await fallbackClient.readContract(contractCall);
+                    const amountOut = result[0];
+                    if (amountOut) {
+                        console.log('Used fallback RPC to get price.');
+                        return parseFloat(formatUnits(amountOut as bigint, tokenOut.decimals));
+                    }
+                } catch (fallbackError) {
+                    // Both failed, continue to next fee tier
+                }
+            }
+        }
     }
+
+    console.error(`Failed to fetch AMM price for pair after trying all fee tiers.`);
+    return null;
 }
 
 
@@ -175,13 +188,12 @@ export async function getMarket(pairId: string): Promise < MarketState | null > 
     try {
         const pairInfo = getTradingPairs().find(p => p.id === pairId);
         if (!pairInfo) {
-            return null; // Or handle as a 404 earlier
+            return null;
         }
 
         const baseToken = TOKENS[pairInfo.base.symbol];
         const quoteToken = TOKENS[pairInfo.quote.symbol];
 
-        // Fetch data concurrently, but safely
         const [bookResult, marketDataResult] = await Promise.allSettled([
             getOrderBook(baseToken, quoteToken, pairId),
             getMarketById(pairId)
@@ -201,8 +213,7 @@ export async function getMarket(pairId: string): Promise < MarketState | null > 
         const lastPrice = marketData?.lastPrice ?? book.lastTradePrice?.toString() ?? null;
 
         let priceChangePercent = 0;
-        // @ts-ignore - open24h is not in the shared type, but is expected from the DB
-        const openPrice24h = marketData?.open24h;
+        const openPrice24h = (marketData as any)?.open24h;
 
         if (lastPrice && openPrice24h) {
             const last = parseFloat(lastPrice);
@@ -232,7 +243,7 @@ export async function getMarket(pairId: string): Promise < MarketState | null > 
         return marketState;
     } catch (error) {
         console.error(`Critical failure in getMarket for ${pairId}:`, error);
-        return null; // Last resort, should not happen with the inner catches.
+        return null;
     }
 }
 

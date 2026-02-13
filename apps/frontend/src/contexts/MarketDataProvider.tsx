@@ -41,6 +41,23 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
         .then(updateMarketState)
         .catch(error => {
           console.error(`Failed to fetch market data for ${pair.symbol}:`, error);
+          // Create a placeholder market if the API call fails
+          const placeholderMarket: Market = {
+            id: pair.id,
+            symbol: pair.symbol,
+            price: null,
+            lastPrice: null,
+            priceChangePercent: 0,
+            high24h: null,
+            low24h: null,
+            volume24h: null,
+            currentPrice: null,
+            bids: [],
+            asks: [],
+            source: 'unavailable',
+            isActive: false,
+          };
+          updateMarketState(placeholderMarket);
         });
       if (!subscribedSymbols.has(pair.symbol)) {
         subscribe(pair.symbol, updateMarketState);

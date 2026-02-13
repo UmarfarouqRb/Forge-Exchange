@@ -19,7 +19,7 @@ import { useTradingPairs } from '@/contexts/TradingPairsContext';
 
 function TradeHeader({ market }: { market?: Market }) {
   const { selectedTradingPair } = useTradingPairs();
-  const currentPrice = market?.lastPrice ? `$${market.lastPrice}` : '-';
+  const currentPrice = market?.currentPrice ? `$${market.currentPrice}` : '-';
   const priceChange24h = market?.priceChangePercent || 0;
   const high = market?.high24h ? `$${market.high24h}` : '-';
   const low = market?.low24h ? `$${market.low24h}` : '-';

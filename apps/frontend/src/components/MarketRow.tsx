@@ -17,9 +17,9 @@ export function MarketRow({ pair, market }: MarketRowProps) {
   };
 
   const formatVolume = (volume: string | number | null | undefined) => {
-    if (volume === null || volume === undefined) return <span className="text-muted-foreground">-</span>;
+    if (volume === null || volume === undefined) return <span className="text-muted-foreground">N/A</span>;
     const numValue = parseFloat(volume.toString());
-    if (isNaN(numValue)) return <span className="text-muted-foreground">-</span>;
+    if (isNaN(numValue)) return <span className="text-muted-foreground">N/A</span>;
 
     if (numValue >= 1_000_000_000) {
       return `${(numValue / 1_000_000_000).toFixed(2)}B`;
@@ -34,9 +34,9 @@ export function MarketRow({ pair, market }: MarketRowProps) {
   };
   
   const renderValue = (value: string | number | null | undefined, prefix = '') => {
-    if (value === null || value === undefined) return <span className="text-muted-foreground">-</span>;
+    if (value === null || value === undefined) return <span className="text-muted-foreground">N/A</span>;
     const numValue = parseFloat(value.toString());
-    if (isNaN(numValue)) return <span className="text-muted-foreground">-</span>;
+    if (isNaN(numValue)) return <span className="text-muted-foreground">N/A</span>;
     return `${prefix}${numValue.toFixed(2)}`;
   };
 
