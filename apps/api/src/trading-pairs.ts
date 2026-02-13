@@ -81,7 +81,7 @@ export function getTradingPairs(): TradingPair[] {
       id: p.id,
       base: baseToken,
       quote: quoteToken,
-      symbol: `${p.base}/${p.quote}`,
+      symbol: `${p.base}-${p.quote}`,
     };
   }).filter((p): p is TradingPair => p !== null);
 

@@ -60,14 +60,16 @@ export function MarketDataProvider({ children }: { children: ReactNode }) {
           updateMarketState(placeholderMarket);
         });
       if (!subscribedSymbols.has(pair.symbol)) {
-        subscribe(pair.symbol, updateMarketState);
+        subscribe(`prices:${pair.symbol}`, (marketUpdate: Partial<Market>) => {
+          updateMarketState({ ...marketUpdate, symbol: pair.symbol } as Market);
+        });
         subscribedSymbols.add(pair.symbol);
       }
     });
 
     return () => {
       subscribedSymbols.forEach(symbol => {
-        unsubscribe(symbol);
+        unsubscribe(`prices:${symbol}`);
       });
     };
   }, [pairsList]);

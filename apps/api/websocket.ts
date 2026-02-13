@@ -117,7 +117,8 @@ async function broadcastPrices() {
 
     const price = await getAMMPrice(baseToken, quoteToken);
     if (price !== null) {
-      broadcastToTopic(`prices:${pair.id}`, { price });
+      const topic = `prices:${pair.symbol}`;
+      broadcastToTopic(topic, { topic, price });
     }
   }
 }

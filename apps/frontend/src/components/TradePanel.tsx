@@ -46,10 +46,15 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const [price, setPrice] = useState(market?.lastPrice || '');
   const [amount, setAmount] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
   const { ready, authenticated, user, login } = usePrivy();
   const { wallets } = useWallets();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const addLog = (log: string) => {
+    setLogs(prevLogs => [...prevLogs, `[${new Date().toLocaleTimeString()}] ${log}`]);
+  }
 
   const connectedWallet = wallets[0];
   const currentPrice = market?.lastPrice || '0';
@@ -85,22 +90,27 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const { mutate: submitOrder, isPending: isSubmitting } = useMutation({
     mutationFn: createOrder,
     onSuccess: () => {
+      addLog('Order placed successfully');
       queryClient.invalidateQueries({ queryKey: ['user-orders'] });
       setIsConfirming(false);
       setAmount('');
     },
     onError: (error) => {
+      addLog(`Error: ${error.message}`);
       console.error('Failed to create order:', error);
       setIsConfirming(false);
     }
   });
 
   const handlePlaceOrder = () => {
+    addLog('Initiating trade...');
     if (!authenticated) {
+      addLog('Please connect your wallet');
       login();
       return;
     }
     if (!hasSufficientBalance) {
+      addLog('Insufficient funds');
       return;
     }
     setIsConfirming(true);
@@ -109,6 +119,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const handleConfirmOrder = () => {
     if (!user?.wallet?.address) return;
 
+    addLog('Submitting order...');
     submitOrder({
       tradingPairId: pair.id,
       side,
@@ -201,6 +212,13 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         >
           {getButtonText()}
         </Button>
+
+        <div className="mt-4 p-2 border rounded-md h-32 overflow-y-auto">
+          <h4 className="font-semibold">Trade Log</h4>
+          {logs.map((log, i) => (
+            <div key={i} className="text-xs">{log}</div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -284,6 +302,13 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             total
           }}
         />
+
+        <div className="mt-4 p-2 border rounded-md h-32 overflow-y-auto">
+          <h4 className="font-semibold">Trade Log</h4>
+          {logs.map((log, i) => (
+            <div key={i} className="text-xs">{log}</div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

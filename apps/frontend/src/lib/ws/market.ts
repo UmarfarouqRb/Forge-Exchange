@@ -24,7 +24,13 @@ function connect() {
             const message = JSON.parse(event.data);
             console.log('WebSocket message received:', message);
             if (message.topic && cbs.has(message.topic)) {
-                cbs.get(message.topic)!(message.data);
+                const callback = cbs.get(message.topic)!;
+                if (message.data) {
+                    callback(message.data);
+                } else {
+                    const { topic, ...data } = message;
+                    callback(data);
+                }
             }
         } catch (error) {
             console.error('Error parsing WebSocket message:', error);
