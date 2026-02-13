@@ -7,10 +7,23 @@ import { createWebSocketServer } from "./websocket";
 const app = express();
 const server = http.createServer(app);
 
-// Loosen CORS policy
-app.use(cors({
-  origin: '*'
-}));
+// Specific CORS policy for production and local development
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'https://forge-exchange.onrender.com'
+];
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+};
+
+app.use(cors(corsOptions));
 
 declare module 'http' {
   interface IncomingMessage {
@@ -39,8 +52,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Register all the application routes
   await registerRoutes(app);
 
+  // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -48,8 +63,6 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
   });
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
     port,
