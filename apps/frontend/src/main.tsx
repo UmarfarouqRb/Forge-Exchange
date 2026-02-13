@@ -29,36 +29,36 @@ function Main() {
   const { theme } = useThemeContext();
 
   return (
-    <PrivyProvider
-      appId={privyAppId!}
-      config={{
-        appearance: {
-          theme: theme,
-          accentColor: '#ff6b00',
-        },
-        defaultChain: base,
-        supportedChains: [mainnet, base, bsc, arbitrum],
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: 'users-without-wallets',
-          },
-        },
-      }}
-    >
-      <WagmiProvider config={wagmiConfig}>
-        <QueryClientProvider client={queryClient}>
-          <RefetchProvider>
-            <ChainProvider>
-              <TradingPairsProvider>
-                <MarketDataProvider>
+    <QueryClientProvider client={queryClient}>
+      <TradingPairsProvider>
+        <MarketDataProvider>
+          <PrivyProvider
+            appId={privyAppId!}
+            config={{
+              appearance: {
+                theme: theme,
+                accentColor: '#ff6b00',
+              },
+              defaultChain: base,
+              supportedChains: [mainnet, base, bsc, arbitrum],
+              embeddedWallets: {
+                ethereum: {
+                  createOnLogin: 'users-without-wallets',
+                },
+              },
+            }}
+          >
+            <WagmiProvider config={wagmiConfig}>
+              <RefetchProvider>
+                <ChainProvider>
                   <App />
-                </MarketDataProvider>
-              </TradingPairsProvider>
-            </ChainProvider>
-          </RefetchProvider>
-        </QueryClientProvider>
-      </WagmiProvider>
-    </PrivyProvider>
+                </ChainProvider>
+              </RefetchProvider>
+            </WagmiProvider>
+          </PrivyProvider>
+        </MarketDataProvider>
+      </TradingPairsProvider>
+    </QueryClientProvider>
   )
 }
 
