@@ -1,5 +1,5 @@
 
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAllPairs } from '@/lib/api';
 import type { TradingPair } from '@/types';
@@ -12,19 +12,26 @@ export function TradingPairsProvider({ children }: { children: ReactNode }) {
     initialData: [],
   });
 
+  const [selectedTradingPair, setSelectedTradingPair] = useState<TradingPair | null>(null);
+
   const pairs = useMemo(() => {
     const pairsMap = new Map<string, TradingPair>();
     if (pairsList) {
       for (const pair of pairsList) {
         pairsMap.set(pair.symbol, pair);
       }
+      if (!selectedTradingPair && pairsList.length > 0) {
+        setSelectedTradingPair(pairsList[0]);
+      }
     }
     return pairsMap;
-  }, [pairsList]);
+  }, [pairsList, selectedTradingPair]);
 
   const contextValue = {
     pairs,
     pairsList: pairsList || [],
+    selectedTradingPair,
+    setSelectedTradingPair,
   };
 
   return (

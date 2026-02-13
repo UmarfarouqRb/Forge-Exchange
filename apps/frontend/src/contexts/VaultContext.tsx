@@ -12,6 +12,7 @@ interface Token {
   chainId: number;
   deposit_enabled: boolean;
   withdraw_enabled: boolean;
+  balance: string;
 }
 
 interface VaultContextType {

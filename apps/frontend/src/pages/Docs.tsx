@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 
 const CodeBlock: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -120,11 +121,19 @@ const Docs: React.FC = () => {
       title: 'API Endpoints',
       content: (
           <ul className="list-disc list-inside space-y-2">
-              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/session/authorize</code>: Authorizes a user session to perform authenticated actions.</li>
-              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/orders/:address</code>: Retrieves a list of orders for a specific user address.</li>
-              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/orders</code>: Submits a new trade order.</li>
-              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/pairs</code>: Retrieves a list of all available trading pairs.</li>
-              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/market</code>: Retrieves real-time market data, including price, volume, and order book.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/spot</code>: Proxied to the relayer for spot trades.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/session/authorize</code>: Proxied to the relayer for user authorization.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /health</code>: Health check.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/broadcast</code>: Broadcasts messages to clients via WebSocket.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">POST /api/orders</code>: Creates a new order.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/orders/:account</code>: Retrieves orders for a specific account.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/markets/:id</code>: Retrieves market state by ID.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/markets/by-symbol/:symbol</code>: Retrieves market state by symbol.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/trading-pairs</code>: Retrieves all trading pairs.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/trading-pairs/by-symbol/:symbol</code>: Retrieves a trading pair by symbol.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/trading-pairs/trending</code>: Retrieves trending trading pairs.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/tokens</code>: Retrieves all tokens.</li>
+              <li className="text-muted-foreground"><code className="font-mono text-sm bg-muted text-muted-foreground p-1 rounded-md">GET /api/vault/tokens</code>: Retrieves tokens from the vault.</li>
           </ul>
       ),
   },
@@ -158,6 +167,15 @@ const Docs: React.FC = () => {
                 </div>
                 ))}
             </div>
+
+            <footer className="text-center mt-12 text-muted-foreground">
+                <p>&copy; {new Date().getFullYear()} Forge.inc. All rights reserved.</p>
+                <div className="flex justify-center space-x-4 mt-4">
+                    <a href="https://twitter.com/forge" target="_blank" rel="noopener noreferrer">Twitter</a>
+                    <a href="https://discord.gg/forge" target="_blank" rel="noopener noreferrer">Discord</a>
+                    <a href="mailto:contact@forge.inc">Contact Us</a>
+                </div>
+            </footer>
         </div>
     </div>
   );

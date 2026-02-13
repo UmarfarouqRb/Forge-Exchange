@@ -1,6 +1,6 @@
 
 import { useContext, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,40 +8,30 @@ import { TradingChart } from '@/components/TradingChart';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
 import { getOrders } from '@/lib/api';
-import type { Order, Market, TradingPair } from '@/types/market-data';
+import type { Market, TradingPair, Order } from '@/types/market-data';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { NewAssetSelector } from "@/components/NewAssetSelector";
 import { TradeHistory } from '@/components/TradeHistory';
 import { OrderHistory } from '@/components/OrderHistory';
 import Trade from './Trade';
 import { MarketDataContext } from '@/contexts/MarketDataContext';
-import { TradingPairsContext } from '@/contexts/TradingPairsContext';
+import { useTradingPairs } from '@/contexts/TradingPairsContext';
 
-function TradeHeader({ pair, market }: { pair?: TradingPair; market?: Market }) {
-  const navigate = useNavigate();
-  const { pairsList } = useContext(TradingPairsContext)!;
-
-  const handleAssetChange = (symbol: string) => {
-    navigate(`/spot/${symbol}`);
-  };
-
+function TradeHeader({ market }: { market?: Market }) {
+  const { selectedTradingPair } = useTradingPairs();
   const currentPrice = market?.lastPrice ? `$${market.lastPrice}` : '-';
   const priceChange24h = market?.priceChangePercent || 0;
   const high = market?.high24h ? `$${market.high24h}` : '-';
   const low = market?.low24h ? `$${market.low24h}` : '-';
   const volume = market?.volume24h ? `${(parseFloat(market.volume24h) / 1e9).toFixed(2)}B` : '-';
-  const quoteAsset = pair?.quoteToken;
+  const quoteAsset = selectedTradingPair?.quoteToken;
 
   return (
     <div className="border-b border-border bg-card px-3 md:px-6 py-2 md:py-3 flex-shrink-0">
       <div className="flex items-center justify-between gap-2 md:gap-6">
         <div className="flex items-center gap-2 md:gap-6 flex-1 overflow-hidden">
           <div>
-            <NewAssetSelector 
-              asset={pair?.symbol || ''}
-              setAsset={handleAssetChange} 
-              assets={pairsList} 
-            />
+            <NewAssetSelector />
             <div className="text-xs text-muted-foreground">Spot Trading</div>
           </div>
           <div>
@@ -74,26 +64,23 @@ function TradeHeader({ pair, market }: { pair?: TradingPair; market?: Market }) 
 }
 
 export default function Spot() {
-  const { symbol } = useParams<{ symbol: string }>();
   const navigate = useNavigate();
   const { markets } = useContext(MarketDataContext)!;
-  const { pairs, pairsList } = useContext(TradingPairsContext)!;
+  const { pairsList, selectedTradingPair, setSelectedTradingPair } = useTradingPairs();
 
   useEffect(() => {
-    if (!symbol && pairsList.length > 0) {
-      const defaultPair = pairsList.find(p => p.symbol === 'BTC-USDT') || pairsList[0];
+    if (!selectedTradingPair && pairsList.length > 0) {
+      const defaultPair = pairsList.find((p: TradingPair) => p.symbol === 'BTC-USDT') || pairsList[0];
       if (defaultPair) {
-        navigate(`/spot/${defaultPair.symbol}`, { replace: true });
+        setSelectedTradingPair(defaultPair);
       }
     }
-  }, [symbol, pairsList, navigate]);
+  }, [selectedTradingPair, pairsList, setSelectedTradingPair, navigate]);
 
-  const pair = symbol ? pairs.get(symbol) : undefined;
-  const market = symbol ? markets.get(symbol) : undefined;
+  const market = selectedTradingPair ? markets.get(selectedTradingPair.symbol) : undefined;
 
   const { user, authenticated } = usePrivy();
   const wallet = user?.wallet;
-  const isDesktop = useBreakpoint('lg');
 
   const { data: userOrders, isLoading: areUserOrdersLoading, isError: areUserOrdersError } = useQuery<Order[]>({
     queryKey: ['user-orders', wallet?.address, 'spot'],
@@ -178,7 +165,7 @@ export default function Spot() {
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
-      <TradeHeader pair={pair} market={market} />
+      <TradeHeader market={market} />
       <Tabs defaultValue="chart" className="flex-1 flex flex-col overflow-hidden">
         <TabsList className="grid w-full grid-cols-3 rounded-none border-b border-border">
           <TabsTrigger value="chart">Chart</TabsTrigger>
@@ -186,10 +173,10 @@ export default function Spot() {
           <TabsTrigger value="orders">Orders</TabsTrigger>
         </TabsList>
         <TabsContent value="chart" className="flex-1 overflow-hidden">
-          {pair ? <TradingChart symbol={pair.symbol} /> : <div>Select a market to view the chart.</div>}
+          {selectedTradingPair ? <TradingChart symbol={selectedTradingPair.symbol} /> : <div>Select a market to view the chart.</div>}
         </TabsContent>
         <TabsContent value="trade" className="flex-1 overflow-auto p-2">
-          {symbol ? <Trade symbol={symbol} /> : <div>Select a market to trade.</div>}
+          {selectedTradingPair ? <Trade symbol={selectedTradingPair.symbol} /> : <div>Select a market to trade.</div>}
         </TabsContent>
         <TabsContent value="orders" className="flex-1 overflow-auto p-2">
           {renderOrderTabs()}

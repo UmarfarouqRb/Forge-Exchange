@@ -1,5 +1,5 @@
 
-import * as React from "react";
+import { useState } from "react";
 import {
   Command,
   CommandEmpty,
@@ -13,28 +13,16 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTradingPairs } from "@/contexts/TradingPairsContext";
+import { TradingPair } from "@/types";
 
-// We define a generic Asset type that can represent either a TradingPair or a Token.
-// This makes the component more flexible and reusable.
-type Asset = {
-  id: string;
-  symbol: string;
-};
-
-type NewAssetSelectorProps = {
-  asset: string; // Now represents the symbol of the selected asset
-  setAsset: (value: string) => void;
-  assets: Asset[];
-};
-
-export function NewAssetSelector(props: NewAssetSelectorProps) {
-  const { asset, setAsset, assets } = props;
-  const [open, setOpen] = React.useState(false);
+export function NewAssetSelector() {
+  const { pairsList, selectedTradingPair, setSelectedTradingPair } = useTradingPairs();
+  const [open, setOpen] = useState(false);
 
   const getDisplayValue = () => {
-    if (!asset || assets.length === 0) return "Select Asset";
-    const selectedAsset = assets.find(a => a.symbol === asset);
-    return selectedAsset?.symbol || "Select Asset";
+    if (!selectedTradingPair) return "Select Asset";
+    return selectedTradingPair.symbol;
   };
 
   return (
@@ -48,20 +36,20 @@ export function NewAssetSelector(props: NewAssetSelectorProps) {
         <Command>
           <CommandInput placeholder="Search for an asset..." />
           <CommandList>
-            {assets.length === 0 && (
+            {pairsList.length === 0 && (
               <CommandEmpty>No results found.</CommandEmpty>
             )}
             <CommandGroup>
-              {assets.map((item) => (
+              {pairsList.map((pair: TradingPair) => (
                 <CommandItem
-                  key={item.id}
-                  value={item.symbol}
+                  key={pair.id}
+                  value={pair.symbol}
                   onSelect={() => {
-                    setAsset(item.symbol);
+                    setSelectedTradingPair(pair);
                     setOpen(false);
                   }}
                 >
-                  {item.symbol}
+                  {pair.symbol}
                 </CommandItem>
               ))}
             </CommandGroup>

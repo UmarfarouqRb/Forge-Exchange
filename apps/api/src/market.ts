@@ -12,7 +12,7 @@ import { base } from 'viem/chains';
 import { PANCAKE_QUOTER_V2_ADDRESS, PANCAKE_QUOTER_V2_ABI } from './QuoterV2';
 import type { Token } from './token';
 import { TOKENS } from './token';
-import { TRADING_PAIRS } from './trading-pairs';
+import { getTradingPairs } from './trading-pairs';
 
 // --- TYPE DEFINITIONS ---
 
@@ -24,6 +24,7 @@ export type OrderBook = {
 // This is the composite type that the API returns, combining DB data with live data.
 export type MarketState = {
     id: string;
+    symbol: string;
     price: number | null; // Mark Price
     lastPrice: string | null;
     priceChangePercent: number;
@@ -172,7 +173,7 @@ export async function getMarket(pairId: string): Promise < MarketState | null > 
     }
 
     try {
-        const pairInfo = TRADING_PAIRS.find(p => p.id === pairId);
+        const pairInfo = getTradingPairs().find(p => p.id === pairId);
         if (!pairInfo) {
             return null; // Or handle as a 404 earlier
         }
@@ -213,6 +214,7 @@ export async function getMarket(pairId: string): Promise < MarketState | null > 
 
         const marketState: MarketState = {
             id: pairId,
+            symbol: pairInfo.symbol,
             price: markPrice,
             lastPrice: lastPrice,
             priceChangePercent: priceChangePercent,
@@ -235,7 +237,7 @@ export async function getMarket(pairId: string): Promise < MarketState | null > 
 }
 
 export async function getMarketBySymbol(symbol: string): Promise<MarketState | null> {
-    const pair = TRADING_PAIRS.find(p => p.symbol === symbol);
+    const pair = getTradingPairs().find(p => p.symbol === symbol);
     if (!pair) {
         return null;
     }

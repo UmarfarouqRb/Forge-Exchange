@@ -61,17 +61,36 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
   },
 ];
 
-export const TRADING_PAIRS: TradingPair[] = rawPairs.map((p) => ({
-  id: p.id,
-  base: TOKENS[p.base],
-  quote: TOKENS[p.quote],
-  symbol: `${p.base}/${p.quote}`,
-}));
+let tradingPairs: TradingPair[] | null = null;
 
 export function getTradingPairs(): TradingPair[] {
-  return TRADING_PAIRS;
+  if (tradingPairs) {
+    return tradingPairs;
+  }
+
+  tradingPairs = rawPairs.map((p) => {
+    const baseToken = TOKENS[p.base];
+    const quoteToken = TOKENS[p.quote];
+
+    if (!baseToken || !quoteToken) {
+      console.error(`Tokens not found for pair ${p.id}`);
+      return null;
+    }
+
+    return {
+      id: p.id,
+      base: baseToken,
+      quote: quoteToken,
+      symbol: `${p.base}/${p.quote}`,
+    };
+  }).filter((p): p is TradingPair => p !== null);
+
+  return tradingPairs;
 }
 
+// Initialize pairs on startup
+getTradingPairs();
+
 export function getTradingPairBySymbol(symbol: string): TradingPair | undefined {
-  return TRADING_PAIRS.find(p => p.symbol === symbol);
+  return getTradingPairs().find(p => p.symbol === symbol);
 }

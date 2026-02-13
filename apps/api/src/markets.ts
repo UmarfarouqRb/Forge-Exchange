@@ -1,12 +1,13 @@
-import { TRADING_PAIRS } from "./trading-pairs";
+import { getTradingPairs } from "./trading-pairs";
 import { getMarket, MarketState } from "./market";
 
 export async function getMarkets(): Promise<Partial<MarketState>[]> {
-  const marketPromises = TRADING_PAIRS.map(pair => getMarket(pair.id));
+  const tradingPairs = getTradingPairs();
+  const marketPromises = tradingPairs.map(pair => getMarket(pair.id));
   const results = await Promise.allSettled(marketPromises);
 
   const markets = results.map((result, index): Partial<MarketState> => {
-    const pair = TRADING_PAIRS[index];
+    const pair = tradingPairs[index];
     if (result.status === 'fulfilled' && result.value) {
       return result.value;
     } else {
@@ -16,9 +17,7 @@ export async function getMarkets(): Promise<Partial<MarketState>[]> {
       // Return a default state for the failed market
       return {
         id: pair.id,
-        symbol: `${pair.base}/${pair.quote}`,
-        baseAsset: pair.base,
-        quoteAsset: pair.quote,
+        symbol: `${pair.base.symbol}/${pair.quote.symbol}`,
         price: null,
         lastPrice: null,
         priceChangePercent: 0,
