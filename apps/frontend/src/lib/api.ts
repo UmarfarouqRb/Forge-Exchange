@@ -1,5 +1,5 @@
 
-import { Market, Order, TradingPair, InsertOrder } from "@/types/index";
+import { Market, Order, TradingPair, InsertOrder } from "@/types/market-data";
 
 const API_URL = 'https://forge-exchange-api.onrender.com';
 
@@ -39,6 +39,11 @@ export async function getTrendingPairs(): Promise<TradingPair[]> {
 export async function getMarketById(tradingPairId: string): Promise<Market> {
   const response = await fetch(`${API_URL}/api/markets/${tradingPairId}`);
   return handleResponse<Market>(response);
+}
+
+export async function getMarkets(): Promise<Market[]> {
+    const response = await fetch(`${API_URL}/api/markets`);
+    return handleResponse<Market[]>(response);
 }
 
 export async function getMarketBySymbol(symbol: string): Promise<Market> {

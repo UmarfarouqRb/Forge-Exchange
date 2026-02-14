@@ -1,12 +1,12 @@
 
 export type Token = {
-  id: number;
+  id?: number;
   chainId: number;
   address: string;
   symbol: string;
   name: string;
   decimals: number;
-  balance: bigint;
+  balance: string;
   deposit_enabled: boolean;
   withdraw_enabled: boolean;
 };

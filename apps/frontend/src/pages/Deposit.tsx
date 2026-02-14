@@ -9,17 +9,17 @@ import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { WethAbi } from '@/abis/Weth';
 import { parseUnits, erc20Abi } from 'viem';
-import { useReadContract, useBalance } from 'wagmi';
+import { useBalance, useReadContract } from 'wagmi';
 import { useWallets } from '@privy-io/react-auth';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useRefetchContext } from '@/contexts/RefetchContext';
 import { useVault } from '@/contexts/VaultContext';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
+import { useVaultBalance } from '@/hooks/useVaultBalance';
 
 export default function Deposit() {
   const [amount, setAmount] = useState('');
@@ -27,7 +27,6 @@ export default function Deposit() {
   const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
   const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>('');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
-  const { triggerRefetch } = useRefetchContext();
 
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -48,6 +47,7 @@ export default function Deposit() {
   const { address } = connectedWallet || {};
 
   const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
+  const { refetch: refetchVaultBalance } = useVaultBalance(selectedToken?.address as `0x${string}` | undefined);
 
   const { data: balance } = useBalance({
     address: address as `0x${string}` | undefined,
@@ -71,7 +71,7 @@ export default function Deposit() {
     hash: depositTxHash,
     onSuccess: () => {
       refetch();
-      triggerRefetch();
+      refetchVaultBalance();
       setMessage({ type: 'success', text: 'Deposit successful! Your balance will update shortly.' });
       toast.success('Deposit successful!');
       setIsDepositing(false);

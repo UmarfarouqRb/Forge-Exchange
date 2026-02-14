@@ -59,6 +59,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- Market Routes ---
+  app.get("/api/markets", async (req: Request, res: Response) => {
+    try {
+        const markets = await getMarkets();
+        res.json(markets);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/markets/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     if (typeof id !== 'string') {

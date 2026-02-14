@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect, useContext } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
-import { Market, TradingPair } from '@/types';
+import { Market, TradingPair } from '@/types/market-data';
 import { parseUnits, formatUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { Orders } from './Orders';
@@ -68,8 +68,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const baseToken = pair.baseToken;
   const quoteToken = pair.quoteToken;
 
-  const { data: baseBalance } = useVaultBalance(baseToken?.address);
-  const { data: quoteBalance } = useVaultBalance(quoteToken?.address);
+  const { data: baseBalance } = useVaultBalance(baseToken?.address as `0x${string}`);
+  const { data: quoteBalance } = useVaultBalance(quoteToken?.address as `0x${string}`);
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 
@@ -92,6 +92,9 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     onSuccess: () => {
       addLog('Order placed successfully');
       queryClient.invalidateQueries({ queryKey: ['user-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['vaultBalance', user?.wallet?.address, baseToken?.address] });
+      queryClient.invalidateQueries({ queryKey: ['vaultBalance', user?.wallet?.address, quoteToken?.address] });
+      queryClient.invalidateQueries({ queryKey: ['nativeBalance', user?.wallet?.address] });
       setIsConfirming(false);
       setAmount('');
     },

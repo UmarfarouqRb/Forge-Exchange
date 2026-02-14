@@ -1,5 +1,5 @@
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { formatUnits } from 'viem';
 import { FiDownload, FiUpload } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useVault } from '@/contexts/VaultContext';
 
 interface Asset {
@@ -23,6 +23,7 @@ export default function Portfolio() {
   const { authenticated } = usePrivy();
   const { address } = useAccount();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { tokens: allTokens, isLoading: tokensLoading } = useVault();
 
@@ -35,12 +36,16 @@ export default function Portfolio() {
     }));
   }, [address, allTokens]);
 
-  const { data: balances, isLoading: assetsLoading, isError } = useReadContracts({
+  const { data: balances, isLoading: assetsLoading, isError, refetch } = useReadContracts({
     contracts: tokenContracts,
     query: {
       enabled: authenticated && !!address && !tokensLoading,
     }
   });
+
+  useEffect(() => {
+    refetch();
+  }, [location, refetch]);
 
   const assets: Asset[] = useMemo(() => {
     if (!balances) return [];

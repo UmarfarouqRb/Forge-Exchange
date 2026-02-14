@@ -1,15 +1,76 @@
 
-import { useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MarketRow } from '@/components/MarketRow';
-import { MarketDataContext } from '@/contexts/MarketDataContext';
-import { TradingPairsContext } from '@/contexts/TradingPairsContext';
+import { TradingPair } from '@/types';
+import { Market } from '@/types/market-data';
+import { subscribe, unsubscribe } from '@/lib/ws/market';
+import { getAllPairs, getMarkets } from '@/lib/api';
 
 export default function MarketPage() {
-  const { pairsList } = useContext(TradingPairsContext)!;
-  const { markets } = useContext(MarketDataContext)!;
+  const [pairsList, setPairsList] = useState<TradingPair[]>([]);
+  const [markets, setMarkets] = useState<Map<string, Market>>(new Map());
+
+  useEffect(() => {
+    const fetchTradingPairs = async () => {
+      try {
+        const data = await getAllPairs();
+        setPairsList(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchTradingPairs();
+  }, []);
+
+  useEffect(() => {
+    if (pairsList.length === 0) {
+      return;
+    }
+
+    const fetchMarketData = async () => {
+      try {
+        const data = await getMarkets();
+        const newMarkets = new Map<string, Market>();
+        data.forEach(market => {
+          newMarkets.set(market.symbol, market);
+        });
+        setMarkets(newMarkets);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchMarketData();
+
+    const handlePriceUpdate = (data: { topic: string; price: number }) => {
+      const symbol = data.topic.split(':')[1];
+      setMarkets(prevMarkets => {
+        const newMarkets = new Map(prevMarkets);
+        const existingMarket = newMarkets.get(symbol);
+        if (existingMarket) {
+          const updatedMarket = { ...existingMarket, currentPrice: String(data.price) };
+          newMarkets.set(symbol, updatedMarket);
+        }
+        return newMarkets;
+      });
+    };
+
+    pairsList.forEach(pair => {
+      const topic = `prices:${pair.symbol}`;
+      subscribe(topic, handlePriceUpdate);
+    });
+
+    return () => {
+      pairsList.forEach(pair => {
+        const topic = `prices:${pair.symbol}`;
+        unsubscribe(topic);
+      });
+    };
+  }, [pairsList]);
 
   const renderContent = () => {
     return (

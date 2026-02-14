@@ -1,6 +1,6 @@
 
 import { Skeleton } from '@/components/ui/skeleton';
-import { Market, TradingPair } from '@/types';
+import { Market, TradingPair } from '@/types/market-data';
 
 interface OrderBookProps {
   pair?: TradingPair;

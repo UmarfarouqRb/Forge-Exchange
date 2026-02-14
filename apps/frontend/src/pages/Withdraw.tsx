@@ -15,10 +15,11 @@ import { wagmiConfig } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useRefetchContext } from '@/contexts/RefetchContext';
 import { useVault } from '@/contexts/VaultContext';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
+import { useVaultBalance } from '@/hooks/useVaultBalance';
+import type { Token } from '@/types/market-data';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -26,7 +27,6 @@ export default function Withdraw() {
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
   const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>('');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
-  const { triggerRefetch } = useRefetchContext();
 
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -46,11 +46,12 @@ export default function Withdraw() {
   const connectedWallet = wallets[0];
 
   const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
+  const { data: vaultBalance, refetch: refetchVaultBalance } = useVaultBalance(selectedToken?.address as `0x${string}` | undefined);
 
   useTrackedTx({
     hash: withdrawTxHash,
     onSuccess: () => {
-      triggerRefetch();
+      refetchVaultBalance();
       setMessage({ type: 'success', text: 'Withdrawal successful! Your balance will update shortly.' });
       toast.success('Withdrawal successful!');
       setIsWithdrawing(false);
@@ -125,7 +126,7 @@ export default function Withdraw() {
 
     const parsedAmount = parseUnits(amount, selectedToken.decimals);
     
-    if (BigInt(selectedToken.balance) < parsedAmount) {
+    if (vaultBalance && vaultBalance < parsedAmount) {
         setMessage({ type: 'error', text: 'Insufficient vault balance for this withdrawal.' });
         toast.error('Insufficient vault balance for this withdrawal.');
         return;

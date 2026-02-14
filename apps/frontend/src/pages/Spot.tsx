@@ -1,5 +1,5 @@
 
-import { useContext, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,22 +7,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TradingChart } from '@/components/TradingChart';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
-import { getOrders } from '@/lib/api';
+import { getOrders, getAllPairs, getMarketBySymbol } from '@/lib/api';
 import type { Market, TradingPair, Order } from '@/types/market-data';
-import { useBreakpoint } from '@/hooks/use-breakpoint';
 import { NewAssetSelector } from "@/components/NewAssetSelector";
 import { TradeHistory } from '@/components/TradeHistory';
 import { OrderHistory } from '@/components/OrderHistory';
 import Trade from './Trade';
-import { MarketDataContext } from '@/contexts/MarketDataContext';
-import { useTradingPairs } from '@/contexts/TradingPairsContext';
+import { subscribe, unsubscribe } from '@/lib/ws/market';
 
-function TradeHeader({ market }: { market?: Market }) {
-  const { selectedTradingPair } = useTradingPairs();
-  const currentPrice = market?.currentPrice ? `$${market.currentPrice}` : '-';
+function TradeHeader({ 
+    market, 
+    selectedTradingPair, 
+    pairsList, 
+    setSelectedTradingPair 
+}: { 
+    market?: Market, 
+    selectedTradingPair?: TradingPair, 
+    pairsList: TradingPair[], 
+    setSelectedTradingPair: (pair: TradingPair) => void 
+}) {
+  const currentPrice = market?.currentPrice ? `$${parseFloat(market.currentPrice).toFixed(2)}` : '-';
   const priceChange24h = market?.priceChangePercent || 0;
-  const high = market?.high24h ? `$${market.high24h}` : '-';
-  const low = market?.low24h ? `$${market.low24h}` : '-';
+  const high = market?.high24h ? `$${parseFloat(market.high24h).toFixed(2)}` : '-';
+  const low = market?.low24h ? `$${parseFloat(market.low24h).toFixed(2)}` : '-';
   const volume = market?.volume24h ? `${(parseFloat(market.volume24h) / 1e9).toFixed(2)}B` : '-';
   const quoteAsset = selectedTradingPair?.quoteToken;
 
@@ -31,7 +38,11 @@ function TradeHeader({ market }: { market?: Market }) {
       <div className="flex items-center justify-between gap-2 md:gap-6">
         <div className="flex items-center gap-2 md:gap-6 flex-1 overflow-hidden">
           <div>
-            <NewAssetSelector />
+            <NewAssetSelector 
+                pairsList={pairsList} 
+                selectedTradingPair={selectedTradingPair} 
+                setSelectedTradingPair={setSelectedTradingPair} 
+            />
             <div className="text-xs text-muted-foreground">Spot Trading</div>
           </div>
           <div>
@@ -65,19 +76,74 @@ function TradeHeader({ market }: { market?: Market }) {
 
 export default function Spot() {
   const navigate = useNavigate();
-  const { markets } = useContext(MarketDataContext)!;
-  const { pairsList, selectedTradingPair, setSelectedTradingPair } = useTradingPairs();
+  const [pairsList, setPairsList] = useState<TradingPair[]>([]);
+  const [selectedTradingPair, setSelectedTradingPair] = useState<TradingPair | undefined>();
+  const [market, setMarket] = useState<Market | undefined>();
 
   useEffect(() => {
-    if (!selectedTradingPair && pairsList.length > 0) {
-      const defaultPair = pairsList.find((p: TradingPair) => p.symbol === 'BTC-USDT') || pairsList[0];
-      if (defaultPair) {
-        setSelectedTradingPair(defaultPair);
+    const fetchTradingPairs = async () => {
+      try {
+        const data = await getAllPairs();
+        setPairsList(data);
+        if (!selectedTradingPair) {
+            const defaultPair = data.find((p: TradingPair) => p.symbol === 'BTC/USDC') || data[0];
+            setSelectedTradingPair(defaultPair);
+        }
+      } catch (error) {
+        console.error("Failed to fetch trading pairs:", error);
       }
-    }
-  }, [selectedTradingPair, pairsList, setSelectedTradingPair, navigate]);
+    };
+    fetchTradingPairs();
+  }, []);
 
-  const market = selectedTradingPair ? markets.get(selectedTradingPair.symbol) : undefined;
+  useEffect(() => {
+    if (!selectedTradingPair) return;
+
+    const topic = `prices:${selectedTradingPair.symbol}`;
+    const handleUpdate = (update: { price: number }) => {
+        setMarket(prevMarket => {
+            if (prevMarket) {
+                return {
+                    ...prevMarket,
+                    currentPrice: String(update.price),
+                };
+            }
+            return {
+                id: selectedTradingPair.id,
+                symbol: selectedTradingPair.symbol,
+                currentPrice: String(update.price),
+                priceChangePercent: 0,
+                high24h: null,
+                low24h: null,
+                volume24h: null,
+                lastPrice: null,
+                bids: [],
+                asks: [],
+                source: 'live',
+                isActive: true,
+            };
+        });
+    };
+    
+    const fetchMarket = async () => {
+        try {
+            const data = await getMarketBySymbol(selectedTradingPair.symbol);
+            setMarket(data);
+        } catch (error) {
+            console.error("Failed to fetch market data:", error);
+            setMarket(undefined);
+        }
+    };
+
+    fetchMarket();
+
+    subscribe(topic, handleUpdate);
+
+    return () => {
+      unsubscribe(topic);
+    };
+  }, [selectedTradingPair]);
+
 
   const { user, authenticated } = usePrivy();
   const wallet = user?.wallet;
@@ -165,7 +231,12 @@ export default function Spot() {
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
-      <TradeHeader market={market} />
+      <TradeHeader 
+        market={market} 
+        selectedTradingPair={selectedTradingPair} 
+        pairsList={pairsList} 
+        setSelectedTradingPair={setSelectedTradingPair} 
+      />
       <Tabs defaultValue="chart" className="flex-1 flex flex-col overflow-hidden">
         <TabsList className="grid w-full grid-cols-3 rounded-none border-b border-border">
           <TabsTrigger value="chart">Chart</TabsTrigger>
@@ -176,7 +247,7 @@ export default function Spot() {
           {selectedTradingPair ? <TradingChart symbol={selectedTradingPair.symbol} /> : <div>Select a market to view the chart.</div>}
         </TabsContent>
         <TabsContent value="trade" className="flex-1 overflow-auto p-2">
-          {selectedTradingPair ? <Trade symbol={selectedTradingPair.symbol} /> : <div>Select a market to trade.</div>}
+          {selectedTradingPair ? <Trade pair={selectedTradingPair} market={market} /> : <div>Select a market to trade.</div>}
         </TabsContent>
         <TabsContent value="orders" className="flex-1 overflow-auto p-2">
           {renderOrderTabs()}

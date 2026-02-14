@@ -7,13 +7,10 @@ import { PrivyProvider } from "@privy-io/react-auth";
 import { WagmiProvider } from 'wagmi';
 import { wagmiConfig } from './wagmi';
 import { ChainProvider } from "@/contexts/ChainContext";
-import { MarketDataProvider } from '@/contexts/MarketDataProvider';
 import { mainnet, base, bsc, arbitrum } from 'viem/chains';
 import App from './App';
 import './index.css';
 import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
-import { RefetchProvider } from '@/contexts/RefetchContext';
-import { TradingPairsProvider } from './contexts/TradingPairsProvider';
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
 
@@ -30,34 +27,28 @@ function Main() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TradingPairsProvider>
-        <MarketDataProvider>
-          <PrivyProvider
-            appId={privyAppId!}
-            config={{
-              appearance: {
-                theme: theme,
-                accentColor: '#ff6b00',
-              },
-              defaultChain: base,
-              supportedChains: [mainnet, base, bsc, arbitrum],
-              embeddedWallets: {
-                ethereum: {
-                  createOnLogin: 'users-without-wallets',
-                },
-              },
-            }}
-          >
-            <WagmiProvider config={wagmiConfig}>
-              <RefetchProvider>
-                <ChainProvider>
-                  <App />
-                </ChainProvider>
-              </RefetchProvider>
-            </WagmiProvider>
-          </PrivyProvider>
-        </MarketDataProvider>
-      </TradingPairsProvider>
+      <PrivyProvider
+        appId={privyAppId!}
+        config={{
+          appearance: {
+            theme: theme,
+            accentColor: '#ff6b00',
+          },
+          defaultChain: base,
+          supportedChains: [mainnet, base, bsc, arbitrum],
+          embeddedWallets: {
+            ethereum: {
+              createOnLogin: 'users-without-wallets',
+            },
+          },
+        }}
+      >
+        <WagmiProvider config={wagmiConfig}>
+            <ChainProvider>
+              <App />
+            </ChainProvider>
+        </WagmiProvider>
+      </PrivyProvider>
     </QueryClientProvider>
   )
 }

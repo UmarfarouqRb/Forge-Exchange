@@ -1,60 +1,92 @@
 
-import { useReadContracts } from 'wagmi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 import { FiSearch, FiDownload, FiUpload } from 'react-icons/fi';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
-import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { useVault } from '@/contexts/VaultContext';
 import { formatBalance } from '@/lib/format';
+import { useVaultBalance } from '@/hooks/useVaultBalance';
+import type { Token } from '@/types/market-data';
+import { useQueryClient } from '@tanstack/react-query';
+
+function AssetRow({ asset }: { asset: Token }) {
+    const { data: balance, isLoading: isBalanceLoading } = useVaultBalance(asset.address as `0x${string}`);
+
+    const available = balance ? formatBalance(balance, asset.decimals) : '0.000000';
+    const navigate = useNavigate();
+
+    return (
+        <div
+            key={asset.symbol}
+            className="grid grid-cols-1 md:grid-cols-3 gap-y-2 md:gap-4 p-4 items-center hover-elevate"
+            data-testid={`row-asset-${asset.symbol}`}>
+            <div className="flex justify-between items-center md:block">
+            <span className="text-sm text-muted-foreground md:hidden">Asset</span>
+            <div className="font-medium text-foreground">{asset.symbol}</div>
+            </div>
+
+            <div className="flex justify-between items-center md:block md:text-right">
+                <span className="text-sm text-muted-foreground md:hidden">Available</span>
+                {isBalanceLoading ? (
+                    <Skeleton className="h-5 w-24" />
+                ) : (
+                    <div className="font-mono">{available}</div>
+                )}
+            </div>
+
+            <div className="flex justify-between items-center mt-2 md:mt-0 md:block md:text-right">
+                <span className="text-sm text-muted-foreground md:hidden">Actions</span>
+            <div className="flex gap-2 justify-end">
+                <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/assets/deposit?asset=${asset.symbol}`)}
+                data-testid={`button-deposit-${asset.symbol}`}
+                disabled={!asset.deposit_enabled}>
+                <FiDownload className="w-3 h-3 mr-1" />
+                Deposit
+                </Button>
+                <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/assets/withdraw?asset=${asset.symbol}`)}
+                data-testid={`button-withdraw-${asset.symbol}`}
+                disabled={!asset.withdraw_enabled}>
+                <FiUpload className="w-3 h-3 mr-1" />
+                Withdraw
+                </Button>
+            </div>
+            </div>
+        </div>
+    )
+}
 
 export default function Assets() {
   const { authenticated } = usePrivy();
-  const { wallets } = useWallets();
-  const connectedWallet = wallets[0];
-  const { address } = connectedWallet || {};
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const { tokens: allTokens, isLoading: tokensLoading } = useVault();
 
-  const tokenContracts = useMemo(() => {
-    return allTokens.map(token => ({
-      address: VAULT_SPOT_ADDRESS as `0x${string}`,
-      abi: VaultSpotAbi,
-      functionName: 'availableBalance',
-      args: address ? [address, token.address] : undefined,
-    }));
-  }, [address, allTokens]);
-
-  const { data: balances, isLoading: assetsLoading, error: assetsError } = useReadContracts({
-    contracts: tokenContracts,
-    query: {
-      enabled: authenticated && !!address && !tokensLoading,
-    }
-  });
-
   const displayAssets = useMemo(() => {
-    const assets = allTokens.map((token, index) => {
-        const balance = balances ? balances[index] : undefined;
-        const available = balance && balance.status === 'success' ? formatBalance(balance.result as bigint, token.decimals) : '0.000000';
-
-        return {
-            ...token,
-            available,
-        };
-    });
-
-    return assets.filter(asset => 
+    return allTokens.filter(asset => 
         asset.symbol.toLowerCase().includes(searchQuery.toLowerCase())
     );
-}, [balances, searchQuery, allTokens]);
+  }, [searchQuery, allTokens]);
+
+  const isBaseAssetsPage = location.pathname === '/assets' || location.pathname === '/assets/';
+
+  useEffect(() => {
+    if (isBaseAssetsPage) {
+        queryClient.invalidateQueries({ queryKey: ['vaultBalance'] });
+    }
+}, [isBaseAssetsPage, queryClient]);
 
 
   if (!authenticated) {
@@ -74,9 +106,6 @@ export default function Assets() {
       </div>
     );
   }
-
-  const isBaseAssetsPage = location.pathname === '/assets' || location.pathname === '/assets/';
-  const isLoading = tokensLoading || assetsLoading;
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -123,22 +152,7 @@ export default function Assets() {
                     <div className="text-right">Actions</div>
                     </div>
                     <div className="divide-y divide-border">
-                    {assetsError ? (
-                        <div className="p-12 text-center">
-                        <div className="max-w-md mx-auto">
-                            <p className="text-destructive font-medium mb-2">Failed to load assets</p>
-                            <p className="text-sm text-muted-foreground mb-4">{(assetsError as Error).message}</p>
-                            <Button
-                            onClick={() => window.location.reload()}
-                            variant="outline"
-                            size="sm"
-                            data-testid="button-retry-assets"
-                            >
-                            Retry
-                            </Button>
-                        </div>
-                        </div>
-                    ) : isLoading ? (
+                    {tokensLoading ? (
                         Array.from({ length: 5 }).map((_, i) => (
                         <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 items-center">
                             <div className="flex justify-between items-center md:hidden">
@@ -173,44 +187,7 @@ export default function Assets() {
                         ))
                     ) : displayAssets && displayAssets.length > 0 ? (
                         displayAssets.map((asset) => (
-                        <div
-                            key={asset.symbol}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-y-2 md:gap-4 p-4 items-center hover-elevate"
-                            data-testid={`row-asset-${asset.symbol}`}>
-                            <div className="flex justify-between items-center md:block">
-                            <span className="text-sm text-muted-foreground md:hidden">Asset</span>
-                            <div className="font-medium text-foreground">{asset.symbol}</div>
-                            </div>
-
-                            <div className="flex justify-between items-center md:block md:text-right">
-                                <span className="text-sm text-muted-foreground md:hidden">Available</span>
-                                <div className="font-mono">{asset.available}</div>
-                            </div>
-
-                            <div className="flex justify-between items-center mt-2 md:mt-0 md:block md:text-right">
-                                <span className="text-sm text-muted-foreground md:hidden">Actions</span>
-                            <div className="flex gap-2 justify-end">
-                                <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/assets/deposit?asset=${asset.symbol}`)}
-                                data-testid={`button-deposit-${asset.symbol}`}
-                                disabled={!asset.deposit_enabled}>
-                                <FiDownload className="w-3 h-3 mr-1" />
-                                Deposit
-                                </Button>
-                                <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => navigate(`/assets/withdraw?asset=${asset.symbol}`)}
-                                data-testid={`button-withdraw-${asset.symbol}`}
-                                disabled={!asset.withdraw_enabled}>
-                                <FiUpload className="w-3 h-3 mr-1" />
-                                Withdraw
-                                </Button>
-                            </div>
-                            </div>
-                        </div>
+                            <AssetRow key={asset.symbol} asset={asset} />
                         ))
                     ) : (
                         <div className="p-12 text-center text-muted-foreground">No assets found</div>

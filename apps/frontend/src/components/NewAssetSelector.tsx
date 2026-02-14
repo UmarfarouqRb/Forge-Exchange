@@ -13,11 +13,15 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useTradingPairs } from "@/contexts/TradingPairsContext";
-import { TradingPair } from "@/types";
+import { TradingPair } from "@/types/market-data";
 
-export function NewAssetSelector() {
-  const { pairsList, selectedTradingPair, setSelectedTradingPair } = useTradingPairs();
+interface NewAssetSelectorProps {
+    pairsList: TradingPair[];
+    selectedTradingPair: TradingPair | undefined;
+    setSelectedTradingPair: (pair: TradingPair) => void;
+}
+
+export function NewAssetSelector({ pairsList, selectedTradingPair, setSelectedTradingPair }: NewAssetSelectorProps) {
   const [open, setOpen] = useState(false);
 
   const getDisplayValue = () => {
@@ -26,36 +30,36 @@ export function NewAssetSelector() {
   };
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <button className="text-lg md:text-2xl font-bold font-mono h-auto border-0 focus:ring-0 focus:ring-offset-0">
-          {getDisplayValue()}
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-full">
-        <Command>
-          <CommandInput placeholder="Search for an asset..." />
-          <CommandList>
-            {pairsList.length === 0 && (
-              <CommandEmpty>No results found.</CommandEmpty>
-            )}
-            <CommandGroup>
-              {pairsList.map((pair: TradingPair) => (
-                <CommandItem
-                  key={pair.id}
-                  value={pair.symbol}
-                  onSelect={() => {
-                    setSelectedTradingPair(pair);
-                    setOpen(false);
-                  }}
-                >
-                  {pair.symbol}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <button className="text-lg md:text-2xl font-bold font-mono h-auto border-0 focus:ring-0 focus:ring-offset-0">
+            {getDisplayValue()}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-full">
+          <Command>
+            <CommandInput placeholder="Search for an asset..." />
+            <CommandList>
+              {pairsList.length === 0 && (
+                <CommandEmpty>No results found.</CommandEmpty>
+              )}
+              <CommandGroup>
+                {pairsList.map((pair: TradingPair) => (
+                  <CommandItem
+                    key={pair.id}
+                    value={pair.symbol}
+                    onSelect={() => {
+                      setSelectedTradingPair(pair);
+                      setOpen(false);
+                    }}
+                  >
+                    {pair.symbol}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </DropdownMenuContent>
+      </DropdownMenu>
   );
 }
