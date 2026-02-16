@@ -187,7 +187,7 @@ export default function Spot() {
             <div>Select a market to view the chart.</div>
           )}
         </TabsContent>
-        <TabsContent value="trade" className="flex-1 overflow-auto p-2">
+        <TabsContent value="trade" className="flex-1 overflow-auto p-2 flex flex-col h-full">
           {isLoadingMarket ? (
             <div className="flex items-center justify-center h-full text-lg">Loading market data...</div>
           ) : isErrorMarket ? (

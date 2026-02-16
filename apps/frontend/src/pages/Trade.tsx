@@ -1,4 +1,3 @@
-
 import { OrderBook } from '@/components/OrderBook';
 import { TradePanel } from '@/components/TradePanel';
 import { TradingPair, Market, Order } from '@/types/market-data';
@@ -108,7 +107,7 @@ export default function Trade({ pair, market, pairsList }: TradeProps) {
 
   return (
     <div className="flex flex-col h-full bg-background text-xs">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 flex-1">
+      <div className="grid grid-cols-2 gap-2 p-2 flex-1">
         <div className="col-span-1">
           <TradePanel pair={pair} market={market} />
         </div>
