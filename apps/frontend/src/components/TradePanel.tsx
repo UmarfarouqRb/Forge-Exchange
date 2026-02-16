@@ -1,7 +1,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,8 +9,6 @@ import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { Market, TradingPair } from '@/types/market-data';
 import { parseUnits, formatUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
-import { Orders } from './Orders';
-import { TradeHistory } from './TradeHistory';
 import { OrderTypeSelector } from './OrderTypeSelector';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNavigate } from 'react-router-dom';
@@ -53,7 +50,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const queryClient = useQueryClient();
 
   const addLog = (log: string) => {
-    setLogs(prevLogs => [...prevLogs, `[${new Date().toLocaleTimeString()}] ${log}`]);
+    setLogs(prevLogs => [`[${new Date().toLocaleTimeString()}] ${log}`, ...prevLogs]);
   }
 
   const connectedWallet = wallets[0];
@@ -145,7 +142,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
   if (isMobile) {
     return (
-      <div className="p-2 bg-background h-full flex flex-col">
+      <div className="p-2 bg-background h-full flex flex-col text-xs">
          <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => {
           if (value) setSide(value);
         }} className="w-full mb-2">
@@ -167,7 +164,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
               className="w-2/3 bg-transparent border-0"
               placeholder={`Price (${quoteToken?.symbol})`}
             />
-            <span className="text-sm text-muted-foreground p-2">BBO</span>
+            <span className="text-xs text-muted-foreground p-2">BBO</span>
           </div>
         )}
 
@@ -180,20 +177,20 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             className="w-2/3 bg-transparent border-0"
             placeholder={`Quantity (${baseToken?.symbol})`}
           />
-          <span className="text-sm text-muted-foreground p-2">{baseToken?.symbol}</span>
+          <span className="text-xs text-muted-foreground p-2">{baseToken?.symbol}</span>
         </div>
         
         <div className="mb-2 p-2 bg-input rounded-md">
-          <span className="text-sm text-muted-foreground">Total</span>
-          <span className="text-lg font-mono float-right">{total.toFixed(2)} {quoteToken?.symbol}</span>
+          <span className="text-xs text-muted-foreground">Total</span>
+          <span className="text-sm font-mono float-right">{total.toFixed(2)} {quoteToken?.symbol}</span>
         </div>
         
         <div className="mb-2 flex items-center">
           <input type="checkbox" id="tp_sl" className="mr-2" />
-          <label htmlFor="tp_sl" className="text-sm">TP/SL</label>
+          <label htmlFor="tp_sl" className="text-xs">TP/SL</label>
         </div>
         
-        <div className="text-sm text-muted-foreground mb-2">
+        <div className="text-xs text-muted-foreground mb-2">
           Available: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'} {quoteToken?.symbol}
         </div>
 
@@ -209,7 +206,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
         
         <Button
-          className={`w-full text-lg p-6 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
+          className={`w-full text-base p-6 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
           onClick={handlePlaceOrder}
           disabled={disabled || isSubmitting || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance}
         >
@@ -227,22 +224,10 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   }
 
   return (
-    <Card className="h-full">
-      <CardContent className="p-4">
-        <Tabs defaultValue="orders">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="orders">Open Orders</TabsTrigger>
-            <TabsTrigger value="history">Trade History</TabsTrigger>
-          </TabsList>
-          <TabsContent value="orders">
-            <Orders />
-          </TabsContent>
-          <TabsContent value="history">
-            <TradeHistory />
-          </TabsContent>
-        </Tabs>
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold">Trade</h3>
+    <Card className="h-full bg-transparent border-0 md:border">
+      <CardContent className="p-0 md:p-4 text-xs">
+        <div className="mt-0">
+          <h3 className="text-base font-semibold mb-4">Trade</h3>
            <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => {
             if (value) setSide(value);
           }} className="w-full mb-4">
@@ -280,7 +265,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
 
         <div className="mt-8">
-          <h3 className="text-lg font-semibold">Vault</h3>
+          <h3 className="text-base font-semibold">Vault</h3>
           <div className="mt-4">
             <Label>{quoteToken?.symbol || '-'} Balance: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
           </div>

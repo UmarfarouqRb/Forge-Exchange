@@ -22,7 +22,7 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
   {
     id: "BTCETH",
     base: "BTC",
-    quote: "WETH",
+    quote: "ETH",
   },
   {
     id: "USDTUSDC",
@@ -31,7 +31,7 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
   },
   {
     id: "ETHUSDT",
-    base: "WETH",
+    base: "ETH",
     quote: "USDT",
   },
   {
@@ -45,14 +45,9 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
     quote: "USDC",
   },
   {
-    id: "TRUMPETH",
+    id: "TRUMPUSDT",
     base: "TRUMP",
-    quote: "WETH",
-  },
-  {
-    id: "AEROETH",
-    base: "AERO",
-    quote: "WETH", 
+    quote: "USDT", 
   }, 
   {
     id:"AEROUSDC",

@@ -51,10 +51,10 @@ export function OrderBook({ pair, book }: OrderBookProps) {
         {/* Spread */}
         <div className="my-2 py-2">
           <div className="flex items-center justify-center gap-2">
-            <span className="text-xl font-bold font-mono text-green-500" data-testid="text-spread-price">
+            <span className="text-lg font-bold font-mono text-green-500" data-testid="text-spread-price">
               {bids[0]?.[0] || '0.00'}
             </span>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               ≈${bids[0]?.[0] || '0.00'}
             </span>
           </div>

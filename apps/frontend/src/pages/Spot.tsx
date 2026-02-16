@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -77,22 +76,31 @@ export default function Spot() {
   const [pairsList, setPairsList] = useState<TradingPair[]>([]);
   const [selectedTradingPair, setSelectedTradingPair] = useState<TradingPair | undefined>();
   const [market, setMarket] = useState<Market | undefined>();
+  const [isLoadingPairs, setIsLoadingPairs] = useState<boolean>(true);
+  const [isErrorPairs, setIsErrorPairs] = useState<boolean>(false);
+  const [isLoadingMarket, setIsLoadingMarket] = useState<boolean>(true);
+  const [isErrorMarket, setIsErrorMarket] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchTradingPairs = async () => {
+      setIsLoadingPairs(true);
+      setIsErrorPairs(false);
       try {
         const data = await getAllPairs();
         setPairsList(data);
-        if (!selectedTradingPair) {
-            const defaultPair = data.find((p: TradingPair) => p.symbol === 'BTCUSDC') || data[0];
-            setSelectedTradingPair(defaultPair);
-        }
+        // Initialize selectedTradingPair if it hasn't been set yet
+        // A default pair should always be set if data is available
+        const defaultPair = data.find((p: TradingPair) => p.symbol === 'BTCUSDC') || data[0];
+        setSelectedTradingPair(defaultPair);
       } catch (error) {
         console.error("Failed to fetch trading pairs:", error);
+        setIsErrorPairs(true);
+      } finally {
+        setIsLoadingPairs(false);
       }
     };
     fetchTradingPairs();
-  }, [selectedTradingPair]);
+  }, []); // Empty dependency array means this effect runs only once on mount
 
   useEffect(() => {
     if (!selectedTradingPair) return;
@@ -124,12 +132,17 @@ export default function Spot() {
     };
     
     const fetchMarket = async () => {
+        setIsLoadingMarket(true);
+        setIsErrorMarket(false);
         try {
             const data = await getMarketBySymbol(selectedTradingPair.symbol);
             setMarket(data);
         } catch (error) {
             console.error("Failed to fetch market data:", error);
+            setIsErrorMarket(true);
             setMarket(undefined);
+        } finally {
+            setIsLoadingMarket(false);
         }
     };
 
@@ -142,93 +155,16 @@ export default function Spot() {
     };
   }, [selectedTradingPair]);
 
+  if (isLoadingPairs) {
+    return <div className="h-[calc(100vh-4rem)] flex items-center justify-center text-lg">Loading trading pairs...</div>;
+  }
 
-  const { user, authenticated } = usePrivy();
-  const wallet = user?.wallet;
-
-  const { data: userOrders, isLoading: areUserOrdersLoading, isError: areUserOrdersError } = useQuery<Order[]>({
-    queryKey: ['user-orders', wallet?.address, 'spot'],
-    queryFn: async (): Promise<Order[]> => {
-      if (!wallet?.address) return [];
-      return getOrders(wallet.address);
-    },
-    enabled: authenticated && !!wallet?.address,
-    refetchInterval: 10000,
-    initialData: [],
-  });
-
-  const tradingPairsMap = useMemo(() => {
-    const map = new Map<string, TradingPair>();
-    pairsList.forEach((p: TradingPair) => map.set(p.id, p));
-    return map;
-  }, [pairsList]);
-
-  const renderOpenOrders = () => {
-    const openOrders = userOrders?.filter((order: Order) => order.status === 'open');
-
-    return (
-        <TabsContent value="open-orders" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
-            {authenticated ? (
-                <div className="overflow-auto">
-                    <div className="grid grid-cols-7 gap-2 text-xs text-muted-foreground mb-2 pb-2 border-b border-border">
-                        <div>Date</div>
-                        <div>Pair</div>
-                        <div>Type</div>
-                        <div className="text-right">Price</div>
-                        <div className="text-right">Amount</div>
-                        <div className="text-right">Total</div>
-                        <div className="text-right">Action</div>
-                    </div>
-                    {areUserOrdersLoading ? (
-                        <div className="text-center py-8 text-muted-foreground">Loading open orders...</div>
-                    ) : areUserOrdersError ? (
-                        <div className="text-center py-8 text-destructive">Failed to load open orders.</div>
-                    ) : openOrders && openOrders.length > 0 ? (
-                        openOrders.map((order: Order) => (
-                          <div key={order.id} className="grid grid-cols-7 gap-2 text-xs py-2 border-b border-border hover-elevate">
-                            <div className="text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}</div>
-                            <div>{tradingPairsMap.get(order.tradingPairId)?.symbol}</div>
-                            <div className={order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}>{order.side.toUpperCase()}</div>
-                            <div className="text-right font-mono">${order.price}</div>
-                            <div className="text-right font-mono">{order.quantity}</div>
-                            <div className="text-right font-mono">${(parseFloat(order.price) * parseFloat(order.quantity)).toFixed(2)}</div>
-                            <div className="text-right"><button className="text-destructive hover:underline text-xs">Cancel</button></div>
-                          </div>
-                        ))
-                    ) : (
-                        <div className="text-center py-8 text-muted-foreground">No open orders</div>
-                    )}
-                </div>
-            ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">Connect wallet to view orders</div>
-            )}
-        </TabsContent>
-    );
-  };
-
-  const renderOrderTabs = () => (
-    <Card className="h-full flex flex-col">
-      <CardContent className="p-0 flex-1 overflow-hidden">
-        <Tabs defaultValue="open-orders" className="h-full flex flex-col">
-          <TabsList className="w-full justify-start rounded-none border-b border-border px-4">
-            <TabsTrigger value="open-orders">Open Orders</TabsTrigger>
-            <TabsTrigger value="history">Order History</TabsTrigger>
-            <TabsTrigger value="trades">Trade History</TabsTrigger>
-          </TabsList>
-          {renderOpenOrders()}
-          <TabsContent value="history" className="flex-1 overflow-auto p-4 mt-0">
-            <OrderHistory />
-          </TabsContent>
-          <TabsContent value="trades" className="flex-1 overflow-auto p-4 mt-0">
-            <TradeHistory />
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
-  );
+  if (isErrorPairs) {
+    return <div className="h-[calc(100vh-4rem)] flex items-center justify-center text-lg text-red-500">Error loading trading pairs. Please try again later.</div>;
+  }
 
   return (
-    <div className="h-[calc(100vh-4rem)] bg-background flex flex-col">
+    <div className="h-[calc(100vh-4rem)] bg-background flex flex-col text-xs">
       <TradeHeader 
         market={market} 
         selectedTradingPair={selectedTradingPair} 
@@ -236,19 +172,31 @@ export default function Spot() {
         setSelectedTradingPair={setSelectedTradingPair} 
       />
       <Tabs defaultValue="chart" className="flex-1 flex flex-col overflow-hidden">
-        <TabsList className="grid w-full grid-cols-3 rounded-none border-b border-border">
+        <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-border">
           <TabsTrigger value="chart">Chart</TabsTrigger>
           <TabsTrigger value="trade">Trade</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
         </TabsList>
         <TabsContent value="chart" className="flex-1 overflow-hidden">
-          {selectedTradingPair ? <TradingChart symbol={selectedTradingPair.symbol} /> : <div>Select a market to view the chart.</div>}
+          {isLoadingMarket ? (
+            <div className="flex items-center justify-center h-full text-lg">Loading market data...</div>
+          ) : isErrorMarket ? (
+            <div className="flex items-center justify-center h-full text-lg text-red-500">Error loading market data.</div>
+          ) : selectedTradingPair ? (
+            <TradingChart symbol={selectedTradingPair.symbol} />
+          ) : (
+            <div>Select a market to view the chart.</div>
+          )}
         </TabsContent>
         <TabsContent value="trade" className="flex-1 overflow-auto p-2">
-          {selectedTradingPair ? <Trade pair={selectedTradingPair} market={market} /> : <div>Select a market to trade.</div>}
-        </TabsContent>
-        <TabsContent value="orders" className="flex-1 overflow-auto p-2">
-          {renderOrderTabs()}
+          {isLoadingMarket ? (
+            <div className="flex items-center justify-center h-full text-lg">Loading market data...</div>
+          ) : isErrorMarket ? (
+            <div className="flex items-center justify-center h-full text-lg text-red-500">Error loading market data.</div>
+          ) : selectedTradingPair ? (
+            <Trade pair={selectedTradingPair} market={market} pairsList={pairsList} />
+          ) : (
+            <div>Select a market to trade.</div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

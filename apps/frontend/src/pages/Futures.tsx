@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { TradingChart } from '@/components/TradingChart';
 import { PriceChange } from '@/components/PriceChange';
 import { usePrivy } from '@privy-io/react-auth';
-import type { Order, TradingPair } from '../types';
+import type { Order, TradingPair } from '../types/market-data';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 import FuturesTrade from './FuturesTrade';
 import { FuturesTradePanel } from '@/components/FuturesTradePanel';

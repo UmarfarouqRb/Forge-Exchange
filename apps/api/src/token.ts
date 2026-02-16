@@ -7,7 +7,7 @@ export type Token = {
 };
 
 export const TOKENS: Record<string, Token> = {
-  WETH: {
+  ETH: {
     id: "ETH",
     address: "0x4200000000000000000000000000000000000006",
     name: "Wrapped Ether",
