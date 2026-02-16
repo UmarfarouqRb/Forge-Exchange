@@ -1,5 +1,5 @@
 
-import { Market, Order, TradingPair, InsertOrder } from "@/types/market-data";
+import { Market, Order, TradingPair, InsertOrder, Token } from "@/types/market-data";
 
 const API_URL = 'https://forge-exchange-api.onrender.com';
 
@@ -72,9 +72,9 @@ export async function getTokens(chainId: string): Promise<{ [symbol: string]: { 
     return handleResponse<{ [symbol: string]: { address: `0x${string}`; decimals: number } }>(response);
 }
 
-export async function getVaultTokens(): Promise<any> {
+export async function getVaultTokens(): Promise<Token[]> {
     const response = await fetch(`${API_URL}/api/vault/tokens`);
-    return handleResponse<any>(response);
+    return handleResponse<Token[]>(response);
 }
 
 // --- Relayer Proxied Routes ---
@@ -85,7 +85,7 @@ export interface PlaceOrderPayload {
   orderType: 'limit' | 'market';
 }
 
-export async function placeOrder(payload: PlaceOrderPayload) {
+export async function placeOrder(payload: PlaceOrderPayload): Promise<Order> {
   const response = await fetch(`${API_URL}/api/spot/execute`, {
     method: 'POST',
     headers: {
@@ -93,5 +93,5 @@ export async function placeOrder(payload: PlaceOrderPayload) {
     },
     body: JSON.stringify(payload),
   });
-  return handleResponse(response);
+  return handleResponse<Order>(response);
 }

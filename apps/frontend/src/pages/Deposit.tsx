@@ -20,6 +20,8 @@ import { useVault } from '@/contexts/VaultContext';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
+import { Token } from '@/types/market-data';
+import { TransactionError } from '@/types/errors';
 
 export default function Deposit() {
   const [amount, setAmount] = useState('');
@@ -109,15 +111,15 @@ export default function Deposit() {
           args: [WETH_ADDRESS as `0x${string}`, parsedAmount],
       });
       setDepositTxHash(depositHash);
-    } catch (err: any) {
-        const errorMsg = err.shortMessage || 'An error occurred during the ETH deposit.';
+    } catch (err: unknown) {
+        const errorMsg = (err as TransactionError).shortMessage || 'An error occurred during the ETH deposit.';
         setMessage({ type: 'error', text: errorMsg });
         toast.error(errorMsg, { id: toastId });
         setIsDepositing(false);
     }
   }
 
-  const handleErc20Deposit = async (parsedAmount: bigint, token: any) => {
+  const handleErc20Deposit = async (parsedAmount: bigint, token: Token) => {
     const toastId = toast.loading(`Initiating ${token.symbol} deposit...`);
     try {
         const needsApproval = allowance === undefined || allowance < parsedAmount;
@@ -143,8 +145,8 @@ export default function Deposit() {
         });
 
         setDepositTxHash(depositHash);
-    } catch (err: any) {
-        const errorMsg = err.shortMessage || `An error occurred during the ${token.symbol} deposit.`;
+    } catch (err: unknown) {
+        const errorMsg = (err as TransactionError).shortMessage || `An error occurred during the ${token.symbol} deposit.`;
         setMessage({ type: 'error', text: errorMsg });
         toast.error(errorMsg, { id: toastId });
         setIsDepositing(false);

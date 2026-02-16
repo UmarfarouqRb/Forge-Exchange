@@ -1,6 +1,5 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -75,7 +74,6 @@ function TradeHeader({
 }
 
 export default function Spot() {
-  const navigate = useNavigate();
   const [pairsList, setPairsList] = useState<TradingPair[]>([]);
   const [selectedTradingPair, setSelectedTradingPair] = useState<TradingPair | undefined>();
   const [market, setMarket] = useState<Market | undefined>();
@@ -86,7 +84,7 @@ export default function Spot() {
         const data = await getAllPairs();
         setPairsList(data);
         if (!selectedTradingPair) {
-            const defaultPair = data.find((p: TradingPair) => p.symbol === 'BTC/USDC') || data[0];
+            const defaultPair = data.find((p: TradingPair) => p.symbol === 'BTCUSDC') || data[0];
             setSelectedTradingPair(defaultPair);
         }
       } catch (error) {
@@ -94,7 +92,7 @@ export default function Spot() {
       }
     };
     fetchTradingPairs();
-  }, []);
+  }, [selectedTradingPair]);
 
   useEffect(() => {
     if (!selectedTradingPair) return;

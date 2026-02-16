@@ -10,55 +10,60 @@ export type TradingPair = {
 
 const rawPairs: { id: string; base: string; quote: string }[] = [
   {
-    id: "BTC/USDC",
+    id: "BTCUSDC",
     base: "BTC",
     quote: "USDC",
   },
   {
-    id: "ETH/USDC",
-    base: "WETH",
-    quote: "USDC",
+    id: "BTCUSDT",
+    base: "BTC",
+    quote: "USDT",
   },
   {
-    id: "AERO/WETH",
-    base: "AERO",
+    id: "BTCETH",
+    base: "BTC",
     quote: "WETH",
   },
   {
-    id: "TRUMP/WETH",
-    base: "TRUMP",
-    quote: "WETH",
-  },
-  {
-    id: "DAI/USDC",
-    base: "DAI",
-    quote: "USDC",
-  },
-  {
-    id: "USDT/USDC",
+    id: "USDTUSDC",
     base: "USDT",
     quote: "USDC",
   },
   {
-    id: "BTC/USDT",
-    base: "BTC",
-    quote: "USDT",
-  },
-  {
-    id: "ETH/USDT",
+    id: "ETHUSDT",
     base: "WETH",
     quote: "USDT",
   },
   {
-    id: "AERO/USDT",
-    base: "AERO",
-    quote: "USDT",
+    id: "ETHUSDC",
+    base: "ETH",
+    quote: "USDC",
   },
   {
-    id: "TRUMP/USDT",
+    id: "TRUMPUSDC",
     base: "TRUMP",
-    quote: "USDT",
+    quote: "USDC",
   },
+  {
+    id: "TRUMPETH",
+    base: "TRUMP",
+    quote: "WETH",
+  },
+  {
+    id: "AEROETH",
+    base: "AERO",
+    quote: "WETH", 
+  }, 
+  {
+    id:"AEROUSDC",
+    base: "AERO",
+    quote: "USDC", 
+  },
+  {
+    id: "DAIUSDC",
+    base: "DAI",
+    quote: "USDC", 
+  }
 ];
 
 let tradingPairs: TradingPair[] | null = null;
@@ -77,11 +82,13 @@ export function getTradingPairs(): TradingPair[] {
       return null;
     }
 
+    const symbol = `${p.base}${p.quote}`;
+
     return {
-      id: p.id,
+      id: symbol,
       base: baseToken,
       quote: quoteToken,
-      symbol: p.id, // Use the ID as the symbol directly
+      symbol: symbol,
     };
   }).filter((p): p is TradingPair => p !== null);
 

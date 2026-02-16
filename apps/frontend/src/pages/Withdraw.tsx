@@ -19,7 +19,8 @@ import { useVault } from '@/contexts/VaultContext';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
-import type { Token } from '@/types/market-data';
+import { Token } from '@/types/market-data';
+import { TransactionError } from '@/types/errors';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -79,15 +80,15 @@ export default function Withdraw() {
           args: [parsedAmount],
       });
       setWithdrawTxHash(unwrapHash);
-    } catch (err: any) {
-        const errorMsg = err.shortMessage || 'An error occurred during the ETH withdrawal.';
+    } catch (err: unknown) {
+        const errorMsg = (err as TransactionError).shortMessage || 'An error occurred during the ETH withdrawal.';
         setMessage({ type: 'error', text: errorMsg });
         toast.error(errorMsg, { id: toastId });
         setIsWithdrawing(false);
     }
   }
 
-  const handleErc20Withdraw = async (parsedAmount: bigint, token: any) => {
+  const handleErc20Withdraw = async (parsedAmount: bigint, token: Token) => {
     const toastId = toast.loading(`Initiating ${token.symbol} withdrawal...`);
     try {
       toast.loading(`Withdrawing ${token.symbol}...`, { id: toastId });
@@ -98,8 +99,8 @@ export default function Withdraw() {
         args: [token.address as `0x${string}`, parsedAmount]
       });
       setWithdrawTxHash(withdrawHash);
-    } catch (err: any) {
-        const errorMsg = err.shortMessage || `An error occurred during the ${token.symbol} withdrawal.`;
+    } catch (err: unknown) {
+        const errorMsg = (err as TransactionError).shortMessage || `An error occurred during the ${token.symbol} withdrawal.`;
         setMessage({ type: 'error', text: errorMsg });
         toast.error(errorMsg, { id: toastId });
         setIsWithdrawing(false);

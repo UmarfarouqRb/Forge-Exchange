@@ -32,7 +32,7 @@ export type MarketState = {
     currentPrice: string | null;
     bids: [string, string][];
     asks: [string, string][];
-    source: 'live' | 'cached' | 'unavailable';
+    source: 'live' | 'cached' | 'unavailable' | 'mock';
     isActive: boolean;
 };
 

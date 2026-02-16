@@ -1,5 +1,7 @@
+
 import { getTradingPairs } from "./trading-pairs";
 import { getMarket, MarketState } from "./market";
+import { mockMarketStats } from "./market-stats";
 
 export async function getMarkets(): Promise<Partial<MarketState>[]> {
   const tradingPairs = getTradingPairs();
@@ -15,9 +17,27 @@ export async function getMarkets(): Promise<Partial<MarketState>[]> {
         console.error(`Failed to fetch market data for ${pair.id}:`, result.reason);
       }
       // Return a default state for the failed market
+      const mockStat = mockMarketStats.find(m => m.id === pair.id);
+      if (mockStat) {
+        return {
+            id: pair.id,
+            symbol: pair.symbol,
+            price: parseFloat(mockStat.currentPrice),
+            lastPrice: mockStat.lastPrice,
+            priceChangePercent: mockStat.priceChangePercent,
+            high24h: mockStat.high24h,
+            low24h: mockStat.low24h,
+            volume24h: mockStat.volume24h,
+            currentPrice: mockStat.currentPrice,
+            bids: [],
+            asks: [],
+            source: 'mock',
+            isActive: true,
+        };
+      }
       return {
         id: pair.id,
-        symbol: `${pair.base.symbol}/${pair.quote.symbol}`,
+        symbol: `${pair.base.symbol}${pair.quote.symbol}`,
         price: null,
         lastPrice: null,
         priceChangePercent: 0,

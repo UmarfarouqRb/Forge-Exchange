@@ -1,4 +1,6 @@
 
+import { OrderBook, Market } from "@/types/market-data";
+
 let socket: WebSocket | null = null;
 const cbs = new Map<string, (data: any) => void>();
 
@@ -22,7 +24,6 @@ function connect() {
     socket.onmessage = (event) => {
         try {
             const message = JSON.parse(event.data);
-            console.log('WebSocket message received:', message);
             if (message.topic && cbs.has(message.topic)) {
                 const callback = cbs.get(message.topic)!;
                 if (message.data) {
@@ -49,7 +50,7 @@ function connect() {
     };
 }
 
-function sendMessage(message: any) {
+function sendMessage(message: { type: string, topic: string }) {
     if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(message));
     } else {

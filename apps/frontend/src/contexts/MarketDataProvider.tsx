@@ -1,6 +1,5 @@
 
 import { ReactNode, useEffect, useState, useMemo, useContext } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { MarketDataContext } from './MarketDataContext';
 import { getMarketBySymbol } from '@/lib/api';
 import { subscribe, unsubscribe } from '@/lib/ws/market';

@@ -9,6 +9,7 @@ export type Token = {
   balance: string;
   deposit_enabled: boolean;
   withdraw_enabled: boolean;
+  logoURI: string;
 };
 
 export type TradingPair = {
