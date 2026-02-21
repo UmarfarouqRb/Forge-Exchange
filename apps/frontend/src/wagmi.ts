@@ -1,5 +1,6 @@
-import { http, createConfig } from 'wagmi';
-import { base, mainnet, bsc, arbitrum } from 'wagmi/chains';
+import { createConfig } from '@privy-io/wagmi';
+import { http } from 'wagmi';
+import { base, mainnet, bsc, arbitrum } from 'viem/chains';
 
 export const wagmiConfig = createConfig({
   chains: [mainnet, base, bsc, arbitrum],

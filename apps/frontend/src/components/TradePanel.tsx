@@ -242,17 +242,16 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           {orderType === 'limit' && (
             <div className="mb-4">
               <Label htmlFor="price">Price</Label>
-              <Input id="price" type="number" value={price || '-'} onChange={(e) => setPrice(e.target.value)} />
+              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${quoteToken?.symbol || ''})`} className="bg-transparent border-0" />
             </div>
           )}
 
           <div className="mb-4">
-            <Label htmlFor="amount">Amount ({baseToken?.symbol || '-'})</Label>
-            <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount (${baseToken?.symbol || ''})`} className="bg-transparent border-0" />
           </div>
 
           <div className="mb-4">
-              <span>Total: {total.toFixed(2)} {quoteToken?.symbol || '-'}</span>
+              <span>Total: {total.toFixed(2)} {quoteToken?.symbol || ''}</span>
           </div>
 
           <Button
@@ -267,13 +266,13 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         <div className="mt-8">
           <h3 className="text-base font-semibold">Vault</h3>
           <div className="mt-4">
-            <Label>{quoteToken?.symbol || '-'} Balance: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
+            <Label>{quoteToken?.symbol || ''} Balance: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
           </div>
           <div className="mt-2">
-            <Button onClick={() => navigate('/assets/deposit')} className="w-full">Deposit</Button>
+            <Button onClick={() => navigate('/assets/deposit')} className="w-full bg-white/10">Deposit</Button>
           </div>
           <div className="mt-2">
-            <Button onClick={() => navigate('/assets/withdraw')} className="w-full">Withdraw</Button>
+            <Button onClick={() => navigate('/assets/withdraw')} className="w-full bg-white/10">Withdraw</Button>
           </div>
         </div>
 

@@ -9,8 +9,7 @@ import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { WethAbi } from '@/abis/Weth';
 import { parseUnits, erc20Abi } from 'viem';
-import { useBalance, useReadContract } from 'wagmi';
-import { useWallets } from '@privy-io/react-auth';
+import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
@@ -22,12 +21,13 @@ import { useTransaction } from '@/hooks/useTransaction';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
+import { safeAddress } from '@/lib/utils';
 
 export default function Deposit() {
   const [amount, setAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
-  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>('');
+  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>( '');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   const { search } = useLocation();
@@ -44,28 +44,30 @@ export default function Deposit() {
     }
   }, [assetSymbolFromUrl]);
 
-  const { wallets } = useWallets();
-  const connectedWallet = wallets[0];
-  const { address } = connectedWallet || {};
+  const { address } = useAccount();
 
   const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
-  const { refetch: refetchVaultBalance } = useVaultBalance(selectedToken?.address as `0x${string}` | undefined);
+  const tokenAddress = safeAddress(selectedToken?.address);
+  const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
+  const wethAddress = safeAddress(WETH_ADDRESS);
+
+  const { refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
 
   const { data: balance } = useBalance({
-    address: address as `0x${string}` | undefined,
-    token: selectedAssetSymbol === 'ETH' ? undefined : (selectedToken?.address as `0x${string}` | undefined),
+    address: address,
+    token: selectedAssetSymbol === 'ETH' ? undefined : tokenAddress,
     query: {
       enabled: !!address && !!selectedAssetSymbol,
     },
   });
 
   const { data: allowance, refetch } = useReadContract({
-    address: selectedToken?.address as `0x${string}` | undefined,
+    address: tokenAddress,
     abi: erc20Abi,
     functionName: 'allowance',
-    args: address ? [address as `0x${string}`, VAULT_SPOT_ADDRESS] : undefined,
+    args: address && vaultAddress ? [address, vaultAddress] : undefined,
     query: {
-      enabled: !!address && !!selectedToken && selectedAssetSymbol !== 'ETH',
+      enabled: !!address && !!tokenAddress && !!vaultAddress && selectedAssetSymbol !== 'ETH',
     },
   });
 
@@ -82,10 +84,11 @@ export default function Deposit() {
 
   const handleEthDeposit = async (parsedAmount: bigint) => {
     const toastId = toast.loading('Initiating ETH deposit...');
+    if (!wethAddress || !vaultAddress) return;
     try {
       toast.loading('Step 1/3: Wrapping ETH to WETH...', { id: toastId });
       const wrapHash = await writeContractAsync({
-          address: WETH_ADDRESS as `0x${string}`,
+          address: wethAddress,
           abi: WethAbi,
           functionName: 'deposit',
           value: parsedAmount,
@@ -95,20 +98,20 @@ export default function Deposit() {
 
       toast.loading('Step 2/3: Approving vault to spend WETH...', { id: toastId });
       const approveHash = await writeContractAsync({
-          address: WETH_ADDRESS as `0x${string}`,
+          address: wethAddress,
           abi: erc20Abi,
           functionName: 'approve',
-          args: [VAULT_SPOT_ADDRESS, parsedAmount],
+          args: [vaultAddress, parsedAmount],
       });
       await waitForTransactionReceipt(wagmiConfig, { hash: approveHash });
       toast.success('Step 2/3: Approval successful!');
 
       toast.loading('Step 3/3: Depositing WETH into vault...', { id: toastId });
       const depositHash = await writeContractAsync({
-          address: VAULT_SPOT_ADDRESS,
+          address: vaultAddress,
           abi: VaultSpotAbi,
           functionName: 'deposit',
-          args: [WETH_ADDRESS as `0x${string}`, parsedAmount],
+          args: [wethAddress, parsedAmount],
       });
       setDepositTxHash(depositHash);
     } catch (err: unknown) {
@@ -121,15 +124,18 @@ export default function Deposit() {
 
   const handleErc20Deposit = async (parsedAmount: bigint, token: Token) => {
     const toastId = toast.loading(`Initiating ${token.symbol} deposit...`);
+    const tokenAddr = safeAddress(token.address)
+    if(!tokenAddr || !vaultAddress) return;
+
     try {
         const needsApproval = allowance === undefined || allowance < parsedAmount;
         if (needsApproval) {
             toast.loading(`Approving ${token.symbol}...`, { id: toastId });
             const approvalHash = await writeContractAsync({
-                address: token.address as `0x${string}`,
+                address: tokenAddr,
                 abi: erc20Abi,
                 functionName: 'approve',
-                args: [VAULT_SPOT_ADDRESS, parsedAmount],
+                args: [vaultAddress, parsedAmount],
             });
             await waitForTransactionReceipt(wagmiConfig, { hash: approvalHash });
             toast.success('Approval successful!');
@@ -138,10 +144,10 @@ export default function Deposit() {
 
         toast.loading(`Depositing ${token.symbol}...`, { id: toastId });
         const depositHash = await writeContractAsync({
-            address: VAULT_SPOT_ADDRESS,
+            address: vaultAddress,
             abi: VaultSpotAbi,
             functionName: 'deposit',
-            args: [token.address as `0x${string}`, parsedAmount],
+            args: [tokenAddr, parsedAmount],
         });
 
         setDepositTxHash(depositHash);
@@ -155,7 +161,7 @@ export default function Deposit() {
 
   const handleDeposit = async () => {
     setMessage(null);
-    if (!connectedWallet) {
+    if (!address) {
         const errorMsg = 'Please connect your wallet first.';
         setMessage({ type: 'error', text: errorMsg });
         toast.error(errorMsg);

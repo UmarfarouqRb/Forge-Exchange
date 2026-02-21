@@ -9,7 +9,7 @@ import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { WethAbi } from '@/abis/Weth';
 import { parseUnits } from 'viem';
-import { useWallets } from '@privy-io/react-auth';
+import { useAccount } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { wagmiConfig } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
@@ -21,12 +21,13 @@ import { useTransaction } from '@/hooks/useTransaction';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
+import { safeAddress } from '@/lib/utils';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
-  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>('');
+  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>( '');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   const { search } = useLocation();
@@ -43,11 +44,14 @@ export default function Withdraw() {
     }
 }, [assetSymbolFromUrl]);
 
-  const { wallets } = useWallets();
-  const connectedWallet = wallets[0];
+  const { address } = useAccount();
 
   const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
-  const { data: vaultBalance, refetch: refetchVaultBalance } = useVaultBalance(selectedToken?.address as `0x${string}` | undefined);
+  const tokenAddress = safeAddress(selectedToken?.address);
+  const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
+  const wethAddress = safeAddress(WETH_ADDRESS);
+
+  const { data: vaultBalance, refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
 
   useTrackedTx({
     hash: withdrawTxHash,
@@ -61,20 +65,21 @@ export default function Withdraw() {
 
   const handleEthWithdraw = async (parsedAmount: bigint) => {
     const toastId = toast.loading('Initiating ETH withdrawal...');
+    if (!vaultAddress || !wethAddress) return;
     try {
       toast.loading('Step 1/2: Withdrawing WETH from vault...', { id: toastId });
       const withdrawHash = await writeContractAsync({
-          address: VAULT_SPOT_ADDRESS,
+          address: vaultAddress,
           abi: VaultSpotAbi,
           functionName: 'withdraw',
-          args: [WETH_ADDRESS as `0x${string}`, parsedAmount],
+          args: [wethAddress, parsedAmount],
         });
       await waitForTransactionReceipt(wagmiConfig, { hash: withdrawHash });
       toast.success('Step 1/2: WETH withdrawn successfully!');
 
       toast.loading('Step 2/2: Unwrapping WETH to ETH...', { id: toastId });
       const unwrapHash = await writeContractAsync({
-          address: WETH_ADDRESS as `0x${string}`,
+          address: wethAddress,
           abi: WethAbi,
           functionName: 'withdraw',
           args: [parsedAmount],
@@ -90,13 +95,16 @@ export default function Withdraw() {
 
   const handleErc20Withdraw = async (parsedAmount: bigint, token: Token) => {
     const toastId = toast.loading(`Initiating ${token.symbol} withdrawal...`);
+    const tokenAddr = safeAddress(token.address);
+    if (!vaultAddress || !tokenAddr) return;
+
     try {
       toast.loading(`Withdrawing ${token.symbol}...`, { id: toastId });
       const withdrawHash = await writeContractAsync({
-        address: VAULT_SPOT_ADDRESS,
+        address: vaultAddress,
         abi: VaultSpotAbi,
         functionName: 'withdraw',
-        args: [token.address as `0x${string}`, parsedAmount]
+        args: [tokenAddr, parsedAmount]
       });
       setWithdrawTxHash(withdrawHash);
     } catch (err: unknown) {
@@ -109,7 +117,7 @@ export default function Withdraw() {
 
   const handleWithdraw = async () => {
     setMessage(null);
-    if (!connectedWallet) {
+    if (!address) {
       setMessage({ type: 'error', text: 'Please connect your wallet first.' });
       toast.error('Please connect your wallet first.');
       return;

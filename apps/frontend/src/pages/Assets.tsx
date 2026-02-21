@@ -12,9 +12,10 @@ import { formatBalance } from '@/lib/format';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
 import type { Token } from '@/types/market-data';
 import { useQueryClient } from '@tanstack/react-query';
+import { safeAddress } from '@/lib/utils';
 
 function AssetRow({ asset }: { asset: Token }) {
-    const { data: balance, isLoading: isBalanceLoading } = useVaultBalance(asset.address as `0x${string}`);
+    const { data: balance, isLoading: isBalanceLoading } = useVaultBalance(safeAddress(asset.address));
 
     const available = balance ? formatBalance(balance, asset.decimals) : '0.000000';
     const navigate = useNavigate();

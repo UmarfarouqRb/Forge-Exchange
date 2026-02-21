@@ -26,7 +26,6 @@ function Main() {
   const { theme } = useThemeContext();
 
   return (
-    <QueryClientProvider client={queryClient}>
       <PrivyProvider
         appId={privyAppId!}
         config={{
@@ -44,12 +43,13 @@ function Main() {
         }}
       >
         <WagmiProvider config={wagmiConfig}>
+          <QueryClientProvider client={queryClient}>
             <ChainProvider>
               <App />
             </ChainProvider>
+          </QueryClientProvider>
         </WagmiProvider>
       </PrivyProvider>
-    </QueryClientProvider>
   )
 }
 

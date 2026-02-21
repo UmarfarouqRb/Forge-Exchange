@@ -17,6 +17,7 @@ import {
   FiClock
 } from 'react-icons/fi';
 import type { TradingPair } from '../types';
+import { NotificationCenter } from '@/components/NotificationCenter';
 
 declare global {
   interface Window {
@@ -118,6 +119,9 @@ export default function Home() {
             <p className="text-sm sm:text-base text-muted-foreground/80 mb-8">
               No KYC • Low Fees • Lightning Fast Execution
             </p>
+            <div className="mb-8 flex justify-center">
+              <NotificationCenter />
+            </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Button asChild size="lg" className="w-full sm:w-auto text-base px-8">
                     <Link to="/spot" data-testid="button-start-trading">
