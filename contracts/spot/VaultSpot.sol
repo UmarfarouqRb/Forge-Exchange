@@ -24,6 +24,12 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 /// or arbitrarily modify any user's funds or internal balances.
 ///
 /// SAFETY PROPERTY (SP-3): Users can always withdraw their funds in an emergency.
+
+interface IWETH is IERC20 {
+    function deposit() external payable;
+    function withdraw(uint256 amount) external;
+}
+
 contract VaultSpot is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -31,6 +37,7 @@ contract VaultSpot is Ownable, ReentrancyGuard {
 
     address public spotRouter;
     bool public emergencyMode;
+    IWETH public weth;
 
     /// @dev Internal ledger mapping: user -> token -> balance.
     mapping(address => mapping(address => uint256)) public balances;
@@ -45,6 +52,7 @@ contract VaultSpot is Ownable, ReentrancyGuard {
     event FeeCollected(address indexed token, uint256 amount);
     event RouterChanged(address indexed newRouter);
     event EmergencyModeChanged(bool isEmergency);
+    event WethSet(address indexed weth);
 
     // --- Modifiers ---
 
@@ -76,6 +84,14 @@ contract VaultSpot is Ownable, ReentrancyGuard {
         spotRouter = _router;
         emit RouterChanged(_router);
     }
+    
+    /// @notice Sets the WETH address for handling native ETH deposits and withdrawals.
+    /// @param _weth The address of the WETH contract.
+    function setWETH(address _weth) external onlyOwner {
+        require(_weth != address(0), "Vault: Cannot set WETH to zero address");
+        weth = IWETH(_weth);
+        emit WethSet(_weth);
+    }
 
     /// @notice Activates or deactivates emergency mode.
     /// @param _isEmergency The desired state for emergency mode.
@@ -86,11 +102,27 @@ contract VaultSpot is Ownable, ReentrancyGuard {
 
     // --- User Functions (Normal Operations) ---
 
+    /// @notice Deposits ETH into the vault.
+    /// @dev Wraps the ETH into WETH and credits the user's WETH balance.
+    function depositETH() external payable nonReentrant whenNotInEmergency {
+        require(msg.value > 0, "Vault: Deposit amount must be positive");
+        require(address(weth) != address(0), "Vault: WETH address not set");
+
+        uint256 balanceBefore = balances[msg.sender][address(weth)];
+
+        weth.deposit{value: msg.value}();
+        balances[msg.sender][address(weth)] += msg.value;
+
+        assert(balances[msg.sender][address(weth)] == balanceBefore + msg.value);
+        emit Deposit(msg.sender, address(weth), msg.value);
+    }
+    
     /// @notice Deposits tokens into the vault.
     /// @dev This action is disabled during emergency mode.
     /// EXECUTION INVARIANT (EI-D1): Post-deposit balance must equal pre-deposit balance + amount.
     function deposit(address token, uint256 amount) external nonReentrant whenNotInEmergency {
         require(amount > 0, "Vault: Deposit amount must be positive");
+        require(token != address(weth), "Vault: Use depositETH for native ETH");
 
         uint256 balanceBefore = balances[msg.sender][token];
 
@@ -101,10 +133,27 @@ contract VaultSpot is Ownable, ReentrancyGuard {
         emit Deposit(msg.sender, token, amount);
     }
 
+    /// @notice Withdraws WETH from the vault and unwraps it to ETH.
+    function withdrawETH(uint256 amount) external nonReentrant whenNotInEmergency {
+        require(amount > 0, "Vault: Withdraw amount must be positive");
+        require(address(weth) != address(0), "Vault: WETH address not set");
+
+        uint256 balanceBefore = balances[msg.sender][address(weth)];
+        require(balanceBefore >= amount, "Vault: Insufficient balance");
+
+        balances[msg.sender][address(weth)] -= amount;
+        weth.withdraw(amount);
+        payable(msg.sender).transfer(amount);
+
+        assert(balances[msg.sender][address(weth)] == balanceBefore - amount);
+        emit Withdraw(msg.sender, address(weth), amount);
+    }
+
     /// @notice Withdraws tokens from the vault.
     /// @dev This action is disabled during emergency mode to prevent conflicts with emergencyWithdraw.
     function withdraw(address token, uint256 amount) external nonReentrant whenNotInEmergency {
         require(amount > 0, "Vault: Withdraw amount must be positive");
+        require(token != address(weth), "Vault: Use withdrawETH for native ETH");
 
         uint256 balanceBefore = balances[msg.sender][token];
         require(balanceBefore >= amount, "Vault: Insufficient balance");
@@ -129,7 +178,13 @@ contract VaultSpot is Ownable, ReentrancyGuard {
 
         // Checks-Effects-Interactions Pattern
         balances[msg.sender][token] = 0;
-        IERC20(token).safeTransfer(msg.sender, amount);
+        
+        if (token == address(weth)) {
+            weth.withdraw(amount);
+            payable(msg.sender).transfer(amount);
+        } else {
+            IERC20(token).safeTransfer(msg.sender, amount);
+        }
 
         emit EmergencyWithdraw(msg.sender, token, amount);
     }

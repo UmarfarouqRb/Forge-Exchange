@@ -1,8 +1,9 @@
-import { createConfig } from '@privy-io/wagmi';
-import { http } from 'wagmi';
-import { base, mainnet, bsc, arbitrum } from 'viem/chains';
+import {http} from 'wagmi';
+import {mainnet, base, bsc, arbitrum} from 'wagmi/chains';
 
-export const wagmiConfig = createConfig({
+import {createConfig} from '@privy-io/wagmi';
+
+export const config = createConfig({
   chains: [mainnet, base, bsc, arbitrum],
   transports: {
     [mainnet.id]: http(),
@@ -11,3 +12,9 @@ export const wagmiConfig = createConfig({
     [arbitrum.id]: http(),
   },
 });
+
+declare module 'wagmi' {
+  interface Register {
+    config: typeof config;
+  }
+}

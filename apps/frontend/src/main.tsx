@@ -4,13 +4,13 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { PrivyProvider } from "@privy-io/react-auth";
-import { WagmiProvider } from 'wagmi';
-import { wagmiConfig } from './wagmi';
+import { WagmiProvider } from '@privy-io/wagmi';
 import { ChainProvider } from "@/contexts/ChainContext";
 import { mainnet, base, bsc, arbitrum } from 'viem/chains';
 import App from './App';
 import './index.css';
 import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
+import { config } from './wagmi';
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
 
@@ -42,13 +42,13 @@ function Main() {
           },
         }}
       >
-        <WagmiProvider config={wagmiConfig}>
-          <QueryClientProvider client={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <WagmiProvider config={config}>
             <ChainProvider>
               <App />
             </ChainProvider>
-          </QueryClientProvider>
-        </WagmiProvider>
+          </WagmiProvider>
+        </QueryClientProvider>
       </PrivyProvider>
   )
 }
