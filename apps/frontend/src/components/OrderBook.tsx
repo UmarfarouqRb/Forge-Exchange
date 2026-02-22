@@ -30,8 +30,8 @@ export function OrderBook({ pair, book }: OrderBookProps) {
   return (
     <div className="h-full flex flex-col bg-background p-2 text-xs">
       <div className="grid grid-cols-2 gap-2 text-muted-foreground mb-2">
-        <div className="text-left">Price ({quoteAsset || '-'})</div>
-        <div className="text-right">Quantity ({baseAsset || '-'})</div>
+        <div className="text-left">Price {quoteAsset || ''}</div>
+        <div className="text-right">Quantity {baseAsset || ''}</div>
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -42,8 +42,8 @@ export function OrderBook({ pair, book }: OrderBookProps) {
               key={i}
               className="grid grid-cols-2 gap-2 py-1 relative"
               data-testid={`row-ask-${i}`}>
-              <div className="font-mono text-red-500">{price}</div>
-              <div className="font-mono text-right">{amount}</div>
+              <div className="font-mono text-red-500 text-xs">{price}</div>
+              <div className="font-mono text-right text-xs">{amount}</div>
             </div>
           ))}
         </div>
@@ -51,7 +51,7 @@ export function OrderBook({ pair, book }: OrderBookProps) {
         {/* Spread */}
         <div className="my-2 py-2">
           <div className="flex items-center justify-center gap-2">
-            <span className="text-lg font-bold font-mono text-green-500" data-testid="text-spread-price">
+            <span className="text-base font-bold font-mono text-green-500" data-testid="text-spread-price">
               {bids[0]?.[0] || '0.00'}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -67,8 +67,8 @@ export function OrderBook({ pair, book }: OrderBookProps) {
               key={i}
               className="grid grid-cols-2 gap-2 py-1 relative"
               data-testid={`row-bid-${i}`}>
-              <div className="font-mono text-green-500">{price}</div>
-              <div className="font-mono text-right">{amount}</div>
+              <div className="font-mono text-green-500 text-xs">{price}</div>
+              <div className="font-mono text-right text-xs">{amount}</div>
             </div>
           ))}
         </div>

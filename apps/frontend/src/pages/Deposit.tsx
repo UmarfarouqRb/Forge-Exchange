@@ -11,7 +11,7 @@ import { WethAbi } from '@/abis/Weth';
 import { parseUnits, erc20Abi } from 'viem';
 import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
-import { wagmiConfig } from '@/wagmi';
+import { config } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -93,7 +93,7 @@ export default function Deposit() {
           functionName: 'deposit',
           value: parsedAmount,
       });
-      await waitForTransactionReceipt(wagmiConfig, { hash: wrapHash });
+      await waitForTransactionReceipt(config, { hash: wrapHash });
       toast.success('Step 1/3: ETH wrapped successfully!');
 
       toast.loading('Step 2/3: Approving vault to spend WETH...', { id: toastId });
@@ -103,7 +103,7 @@ export default function Deposit() {
           functionName: 'approve',
           args: [vaultAddress, parsedAmount],
       });
-      await waitForTransactionReceipt(wagmiConfig, { hash: approveHash });
+      await waitForTransactionReceipt(config, { hash: approveHash });
       toast.success('Step 2/3: Approval successful!');
 
       toast.loading('Step 3/3: Depositing WETH into vault...', { id: toastId });
@@ -137,7 +137,7 @@ export default function Deposit() {
                 functionName: 'approve',
                 args: [vaultAddress, parsedAmount],
             });
-            await waitForTransactionReceipt(wagmiConfig, { hash: approvalHash });
+            await waitForTransactionReceipt(config, { hash: approvalHash });
             toast.success('Approval successful!');
             refetch();
         }

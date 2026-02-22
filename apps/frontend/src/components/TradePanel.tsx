@@ -213,12 +213,16 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           {getButtonText()}
         </Button>
 
-        <div className="mt-4 p-2 border rounded-md h-32 overflow-y-auto">
-          <h4 className="font-semibold">Trade Log</h4>
-          {logs.map((log, i) => (
-            <div key={i} className="text-xs">{log}</div>
-          ))}
-        </div>
+        {logs.length > 0 && (
+          <div className="mt-4 p-4 border rounded-lg shadow-inner bg-background/50 h-40 overflow-y-auto">
+            <h4 className="font-bold text-sm mb-2">Trade Log</h4>
+            <div className="space-y-2">
+              {logs.map((log, i) => (
+                <div key={i} className="text-xs text-gray-400 font-mono break-all">{log}</div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -242,16 +246,18 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           {orderType === 'limit' && (
             <div className="mb-4">
               <Label htmlFor="price">Price</Label>
-              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${quoteToken?.symbol || ''})`} className="bg-transparent border-0" />
+              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${quoteToken?.symbol || ''})`} className="bg-white/5 border-0" />
             </div>
           )}
 
           <div className="mb-4">
-            <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount (${baseToken?.symbol || ''})`} className="bg-transparent border-0" />
+            <Label htmlFor="amount">Amount</Label>
+            <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount`} className="bg-white/5 border-0" />
           </div>
 
           <div className="mb-4">
-              <span>Total: {total.toFixed(2)} {quoteToken?.symbol || ''}</span>
+            <Label>Total: </Label>
+            <span className='text-right'>{total.toFixed(2)} {quoteToken?.symbol || ''}</span>
           </div>
 
           <Button
@@ -264,9 +270,9 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
 
         <div className="mt-8">
-          <h3 className="text-base font-semibold">Vault</h3>
+          <h3 className="text-base font-semibold">Vault Balance</h3>
           <div className="mt-4">
-            <Label>{quoteToken?.symbol || ''} Balance: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
+            <Label>{quoteToken?.symbol || ''}: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
           </div>
           <div className="mt-2">
             <Button onClick={() => navigate('/assets/deposit')} className="w-full bg-white/10">Deposit</Button>
@@ -290,12 +296,16 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           }}
         />
 
-        <div className="mt-4 p-2 border rounded-md h-32 overflow-y-auto">
-          <h4 className="font-semibold">Trade Log</h4>
-          {logs.map((log, i) => (
-            <div key={i} className="text-xs">{log}</div>
-          ))}
-        </div>
+        {logs.length > 0 && (
+          <div className="mt-4 p-4 border rounded-lg shadow-inner bg-background/50 h-40 overflow-y-auto">
+            <h4 className="font-bold text-sm mb-2">Trade Log</h4>
+            <div className="space-y-2">
+              {logs.map((log, i) => (
+                <div key={i} className="text-xs text-gray-400 font-mono break-all">{log}</div>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

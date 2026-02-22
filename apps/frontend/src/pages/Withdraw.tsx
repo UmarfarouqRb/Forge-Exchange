@@ -11,7 +11,7 @@ import { WethAbi } from '@/abis/Weth';
 import { parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
-import { wagmiConfig } from '@/wagmi';
+import { config } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -74,7 +74,7 @@ export default function Withdraw() {
           functionName: 'withdraw',
           args: [wethAddress, parsedAmount],
         });
-      await waitForTransactionReceipt(wagmiConfig, { hash: withdrawHash });
+      await waitForTransactionReceipt(config, { hash: withdrawHash });
       toast.success('Step 1/2: WETH withdrawn successfully!');
 
       toast.loading('Step 2/2: Unwrapping WETH to ETH...', { id: toastId });
