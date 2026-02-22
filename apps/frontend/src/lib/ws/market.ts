@@ -1,7 +1,6 @@
 
-import { OrderBook, Market } from "@/types/market-data";
-
 let socket: WebSocket | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const cbs = new Map<string, (data: any) => void>();
 
 const API_WS_URL = 'wss://forge-exchange-api.onrender.com:10000';
@@ -29,8 +28,7 @@ function connect() {
                 if (message.data) {
                     callback(message.data);
                 } else {
-                    const { topic, ...data } = message;
-                    callback(data);
+                    callback(message);
                 }
             }
         } catch (error) {
@@ -58,6 +56,7 @@ function sendMessage(message: { type: string, topic: string }) {
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function subscribe(topic: string, cb: (data: any) => void) {
   console.log(`Subscribing to WebSocket topic: ${topic}`);
   cbs.set(topic, cb);

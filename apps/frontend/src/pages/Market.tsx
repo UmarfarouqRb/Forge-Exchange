@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MarketRow } from '@/components/MarketRow';
 import { TradingPair } from '@/types';
 import { Market } from '@/types/market-data';
@@ -12,13 +11,10 @@ import { getAllPairs, getMarkets } from '@/lib/api';
 export default function MarketPage() {
   const [pairsList, setPairsList] = useState<TradingPair[]>([]);
   const [markets, setMarkets] = useState<Map<string, Market>>(new Map());
-  const [isLoadingPairs, setIsLoadingPairs] = useState(true);
   const [isErrorPairs, setIsErrorPairs] = useState(false);
-  const [isErrorMarkets, setIsErrorMarkets] = useState(false);
 
   useEffect(() => {
     const fetchTradingPairs = async () => {
-      setIsLoadingPairs(true);
       setIsErrorPairs(false);
       try {
         const data = await getAllPairs();
@@ -26,8 +22,6 @@ export default function MarketPage() {
       } catch (error) {
         console.error("Failed to fetch trading pairs:", error);
         setIsErrorPairs(true);
-      } finally {
-        setIsLoadingPairs(false);
       }
     };
 
@@ -38,7 +32,6 @@ export default function MarketPage() {
     if (pairsList.length === 0) return;
 
     const fetchMarketData = async () => {
-      setIsErrorMarkets(false);
       try {
         const data = await getMarkets();
         const newMarkets = new Map<string, Market>();
@@ -50,7 +43,6 @@ export default function MarketPage() {
         setMarkets(newMarkets);
       } catch (error) {
         console.error("Failed to fetch market data:", error);
-        setIsErrorMarkets(true);
       }
     };
 
@@ -68,7 +60,6 @@ export default function MarketPage() {
           const updatedMarket = { ...existingMarket, currentPrice: String(data.price) };
           newMarkets.set(symbol, updatedMarket);
         } else {
-          // If market data is not yet available, we can create a placeholder
           newMarkets.set(symbol, { id: pair.id, currentPrice: String(data.price), symbol: symbol });
         }
         return newMarkets;
@@ -89,42 +80,13 @@ export default function MarketPage() {
   }, [pairsList]);
 
   const renderContent = () => {
-    if (isLoadingPairs) {
-      return (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Pair</TableHead>
-              <TableHead className="text-right">Price</TableHead>
-              <TableHead className="text-right">24h Change</TableHead>
-              <TableHead className="text-right">24h High</TableHead>
-              <TableHead className="text-right">24h Low</TableHead>
-              <TableHead className="text-right">24h Volume</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[...Array(10)].map((_, i) => (
-              <TableRow key={i}>
-                <TableCell><Skeleton className="h-6 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-6 w-full" /></TableCell>
-                <TableCell><Skeleton className="h-6 w-full" /></TableCell>
-                <TableCell><Skeleton className="h-6 w-full" /></TableCell>
-                <TableCell><Skeleton className="h-6 w-full" /></TableCell>
-                <TableCell><Skeleton className="h-6 w-full" /></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      );
-    }
-
     if (isErrorPairs) {
       return (
         <div className="p-4 text-center text-destructive">Error loading trading pairs. Please try again later.</div>
       );
     }
 
-    if (pairsList.length === 0) {
+    if (pairsList.length === 0 && !isErrorPairs) {
       return (
         <div className="p-4 text-center text-muted-foreground">No trading pairs available.</div>
       );
