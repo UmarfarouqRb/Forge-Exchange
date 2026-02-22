@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@":"/src",
+      "zod/mini": "zod",
     },
   },
 });

@@ -15,11 +15,6 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
     quote: "USDC",
   },
   {
-    id: "BTCUSDT",
-    base: "BTC",
-    quote: "USDT",
-  },
-  {
     id: "BTCETH",
     base: "BTC",
     quote: "ETH",
@@ -28,11 +23,6 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
     id: "USDTUSDC",
     base: "USDT",
     quote: "USDC",
-  },
-  {
-    id: "ETHUSDT",
-    base: "ETH",
-    quote: "USDT",
   },
   {
     id: "ETHUSDC",
@@ -45,11 +35,6 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
     quote: "USDC",
   },
   {
-    id: "TRUMPUSDT",
-    base: "TRUMP",
-    quote: "USDT", 
-  }, 
-  {
     id:"AEROUSDC",
     base: "AERO",
     quote: "USDC", 
@@ -58,7 +43,67 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
     id: "DAIUSDC",
     base: "DAI",
     quote: "USDC", 
-  }
+  },
+  {
+    id: "SOLETH",
+    base: "SOL",
+    quote: "ETH",
+  },
+  {
+    id: "SOLUSDC",
+    base: "SOL",
+    quote: "USDC",
+  },
+  {
+    id: "BTCSOL",
+    base: "BTC",
+    quote: "SOL",
+  },
+  {
+    id: "EUROCUSDC",
+    base: "EUROC",
+    quote: "USDC",
+  },
+  {
+    id: "ETHEUROC",
+    base: "ETH",
+    quote: "EUROC",
+  },
+  {
+    id: "ZORAUSDC",
+    base: "ZORA",
+    quote: "USDC",
+  },
+  {
+    id: "ETHZORA",
+    base: "ETH",
+    quote: "ZORA",
+  },
+  {
+    id: "XRPBTC",
+    base: "XRP",
+    quote: "BTC",
+  },
+  {
+    id: "VIRTUALUSDC",
+    base: "VIRTUAL",
+    quote: "USDC",
+  },
+  {
+    id: "AAVEETH",
+    base: "AAVE",
+    quote: "ETH",
+  },
+  {
+    id: "HYPEUSDC",
+    base: "HYPE",
+    quote: "USDC",
+  },
+  {
+    id: "ETHHYPE",
+    base: "ETH",
+    quote: "HYPE",
+  },
 ];
 
 let tradingPairs: TradingPair[] | null = null;

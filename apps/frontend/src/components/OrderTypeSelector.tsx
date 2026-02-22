@@ -12,11 +12,11 @@ export function OrderTypeSelector({ orderType, setOrderType }: OrderTypeSelector
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-full">
+        <Button variant="outline" className="w-full bg-white/10">
           {orderType.charAt(0).toUpperCase() + orderType.slice(1)}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent className="bg-white/10">
         <DropdownMenuItem onSelect={() => setOrderType('limit')}>
           Limit
         </DropdownMenuItem>
