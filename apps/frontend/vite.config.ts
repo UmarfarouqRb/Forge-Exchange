@@ -8,13 +8,12 @@ export default defineConfig({
     outDir:"dist",
   },
   define: {
-    'global.Buffer': 'globalThis.Buffer',
+    global: 'globalThis',
   },
   resolve: {
     alias: {
       "@":"/src",
       "zod/mini": "zod",
-      "buffer": "buffer",
     },
   },
 });
