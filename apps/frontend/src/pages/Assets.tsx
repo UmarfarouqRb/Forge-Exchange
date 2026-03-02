@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePrivy } from '@privy-io/react-auth';
-import { FiSearch, FiDownload, FiUpload } from 'react-icons/fi';
+import { FiSearch, FiDownload, FiUpload, FiSend } from 'react-icons/fi';
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useVault } from '@/contexts/VaultContext';
@@ -50,6 +50,15 @@ function AssetRow({ asset }: { asset: Token }) {
                 disabled={!asset.deposit_enabled}>
                 <FiDownload className="w-3 h-3 mr-1" />
                 Deposit
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/assets/transfer?asset=${asset.symbol}`)}
+                    data-testid={`button-transfer-${asset.symbol}`}
+                    disabled={!asset.withdraw_enabled} >
+                    <FiSend className="w-3 h-3 mr-1" />
+                    Transfer
                 </Button>
                 <Button
                 variant="outline"
@@ -120,6 +129,10 @@ export default function Assets() {
                     <Button className="flex-1" onClick={() => navigate('/assets/deposit')}>
                     <FiDownload className="w-4 h-4 mr-2" />
                     Deposit
+                    </Button>
+                    <Button className="flex-1" variant="outline" onClick={() => navigate('/assets/transfer')}>
+                        <FiSend className="w-4 h-4 mr-2" />
+                        Transfer
                     </Button>
                     <Button className="flex-1" variant="outline" onClick={() => navigate('/assets/withdraw')}>
                     <FiUpload className="w-4 h-4 mr-2" />

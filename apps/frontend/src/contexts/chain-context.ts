@@ -15,6 +15,18 @@ export type Chain = {
 
 export const SUPPORTED_CHAINS: Chain[] = [
   {
+   id: "base sepolia",
+   name: "Base sepolia",
+   chainId: 84532,
+   rpcUrl: "https://sepolia.base.org",
+   nativeCurrency: {
+    name: "Ethereum",
+    symbol: "ETH",
+    decimals: 18, 
+   },
+   blockExplorerUrl: "https://sepolia.base.org", 
+  },
+  {
     id: "base",
     name: "Base",
     chainId: 8453,
@@ -51,13 +63,13 @@ export const SUPPORTED_CHAINS: Chain[] = [
     blockExplorerUrl: "https://arbiscan.io",
   },
   {
-    id: "sui",
-    name: "SUI (Coming Soon)",
+    id: "SOL",
+    name: "SOL (Coming Soon)",
     chainId: 101,
     rpcUrl: "https://fullnode.mainnet.sui.io",
     nativeCurrency: {
-      name: "SUI",
-      symbol: "SUI",
+      name: "SOL",
+      symbol: "SOL",
       decimals: 9,
     },
     blockExplorerUrl: "https://explorer.sui.io",

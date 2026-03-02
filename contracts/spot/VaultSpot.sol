@@ -7,7 +7,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @title VaultSpot
-/// @author Protocol-Dev
+/// @author umarfarouqrb
 /// @notice This contract is the central custody and accounting system for a spot trading protocol.
 /// It holds all user assets in a non-custodial manner, tracking individual balances through an
 /// internal ledger. It is designed with formal invariants to ensure safety and predictability.
@@ -33,6 +33,10 @@ interface IWETH is IERC20 {
 contract VaultSpot is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+    // --- Constants ---
+    uint256 public constant BPS_DENOMINATOR = 10_000;
+    uint256 public constant WITHDRAW_FEE_BPS = 10; // 10 bps = 0.1%
+
     // --- State Variables ---
 
     address public spotRouter;
@@ -45,8 +49,9 @@ contract VaultSpot is Ownable, ReentrancyGuard {
     // --- Events ---
 
     event Deposit(address indexed user, address indexed token, uint256 amount);
-    event Withdraw(address indexed user, address indexed token, uint256 amount);
-    event EmergencyWithdraw(address indexed user, address indexed token, uint256 amount);
+    event Withdraw(address indexed user, address indexed token, uint256 amount, uint256 fee);
+    event EmergencyWithdraw(address indexed user, address indexed token, uint256 amount, uint256 fee);
+    event InternalTransfer(address indexed from, address indexed to, address indexed token, uint256 amount);
     event Debit(address indexed user, address indexed token, uint256 amount);
     event Credit(address indexed user, address indexed token, uint256 amount);
     event FeeCollected(address indexed token, uint256 amount);
@@ -103,7 +108,7 @@ contract VaultSpot is Ownable, ReentrancyGuard {
     // --- User Functions (Normal Operations) ---
 
     /// @notice Deposits ETH into the vault.
-    /// @dev Wraps the ETH into WETH and credits the user's WETH balance.
+    /// @dev Wraps the ETH into WETH and credits the user'''s WETH balance.
     function depositETH() external payable nonReentrant whenNotInEmergency {
         require(msg.value > 0, "Vault: Deposit amount must be positive");
         require(address(weth) != address(0), "Vault: WETH address not set");
@@ -135,35 +140,74 @@ contract VaultSpot is Ownable, ReentrancyGuard {
 
     /// @notice Withdraws WETH from the vault and unwraps it to ETH.
     function withdrawETH(uint256 amount) external nonReentrant whenNotInEmergency {
-        require(amount > 0, "Vault: Withdraw amount must be positive");
+        require(amount > 0, "Vault: amount must be positive");
         require(address(weth) != address(0), "Vault: WETH address not set");
 
         uint256 balanceBefore = balances[msg.sender][address(weth)];
-        require(balanceBefore >= amount, "Vault: Insufficient balance");
+        require(balanceBefore >= amount, "Vault: insufficient balance");
+
+        uint256 fee = _calculateFee(amount);
+        require(amount > fee, "Vault: amount too small");
 
         balances[msg.sender][address(weth)] -= amount;
+
         weth.withdraw(amount);
-        payable(msg.sender).transfer(amount);
+
+        // fee → multisig
+        if (fee > 0) {
+            (bool feeOk, ) = payable(owner()).call{value: fee}("");
+            require(feeOk, "Vault: fee transfer failed");
+        }
+
+        // net ETH → user
+        uint256 netAmount = amount - fee;
+        (bool success, ) = payable(msg.sender).call{value: netAmount}("");
+        require(success, "Vault: ETH transfer failed");
 
         assert(balances[msg.sender][address(weth)] == balanceBefore - amount);
-        emit Withdraw(msg.sender, address(weth), amount);
+        emit Withdraw(msg.sender, address(weth), amount, fee);
     }
 
     /// @notice Withdraws tokens from the vault.
     /// @dev This action is disabled during emergency mode to prevent conflicts with emergencyWithdraw.
     function withdraw(address token, uint256 amount) external nonReentrant whenNotInEmergency {
-        require(amount > 0, "Vault: Withdraw amount must be positive");
-        require(token != address(weth), "Vault: Use withdrawETH for native ETH");
+        require(amount > 0, "Vault: amount must be positive");
+        require(token != address(weth), "Vault: use withdrawETH");
 
         uint256 balanceBefore = balances[msg.sender][token];
-        require(balanceBefore >= amount, "Vault: Insufficient balance");
+        require(balanceBefore >= amount, "Vault: insufficient balance");
+
+        uint256 fee = _calculateFee(amount);
+        uint256 netAmount = amount - fee;
 
         // Checks-Effects-Interactions Pattern
         balances[msg.sender][token] -= amount;
-        IERC20(token).safeTransfer(msg.sender, amount);
+
+        if (fee > 0) {
+            IERC20(token).safeTransfer(owner(), fee);
+        }
+
+        IERC20(token).safeTransfer(msg.sender, netAmount);
 
         assert(balances[msg.sender][token] == balanceBefore - amount);
-        emit Withdraw(msg.sender, token, amount);
+        emit Withdraw(msg.sender, token, amount, fee);
+    }
+    
+    /// @notice Transfers tokens internally between two users within the vault.
+    /// @dev This does not trigger any external token transfers, only updates the internal ledger.
+    function internalTransfer(address recipient, address token, uint256 amount) external nonReentrant whenNotInEmergency {
+        require(amount > 0, "Vault: Transfer amount must be positive");
+        require(recipient != address(0), "Vault: Invalid recipient");
+        require(recipient != msg.sender, "Vault: Recipient cannot be sender");
+
+        uint256 senderBalance = balances[msg.sender][token];
+        require(senderBalance >= amount, "Vault: Insufficient balance");
+
+        // Effects
+        balances[msg.sender][token] -= amount;
+        balances[recipient][token] += amount;
+
+        emit InternalTransfer(msg.sender, recipient, token, amount);
     }
 
     // --- User Functions (Emergency Operations) ---
@@ -176,22 +220,35 @@ contract VaultSpot is Ownable, ReentrancyGuard {
         uint256 amount = balances[msg.sender][token];
         require(amount > 0, "Vault: No balance to withdraw");
 
+        uint256 fee = _calculateFee(amount);
+        uint256 netAmount = amount - fee;
+
         // Checks-Effects-Interactions Pattern
         balances[msg.sender][token] = 0;
         
         if (token == address(weth)) {
             weth.withdraw(amount);
-            payable(msg.sender).transfer(amount);
+
+            if (fee > 0) {
+                (bool feeOk, ) = payable(owner()).call{value: fee}("");
+                require(feeOk, "Vault: fee transfer failed");
+            }
+
+            (bool success, ) = payable(msg.sender).call{value: netAmount}("");
+            require(success, "Vault: ETH transfer failed");
         } else {
-            IERC20(token).safeTransfer(msg.sender, amount);
+            if (fee > 0) {
+                IERC20(token).safeTransfer(owner(), fee);
+            }
+            IERC20(token).safeTransfer(msg.sender, netAmount);
         }
 
-        emit EmergencyWithdraw(msg.sender, token, amount);
+        emit EmergencyWithdraw(msg.sender, token, amount, fee);
     }
 
     // --- Router-Only Functions ---
 
-    /// @notice Debits tokens from a user's balance to initiate a swap. Called only by the SpotRouter.
+    /// @notice Debits tokens from a user'''s balance to initiate a swap. Called only by the SpotRouter.
     /// @dev This action is disabled during emergency mode.
     /// EXECUTION INVARIANT (EI-S1): Debit must precede any external call in a swap.
     function debit(address user, address token, uint256 amount) external onlyRouter nonReentrant whenNotInEmergency {
@@ -234,5 +291,10 @@ contract VaultSpot is Ownable, ReentrancyGuard {
         if (currentAllowance > 0) {
             IERC20(token).safeDecreaseAllowance(spender, currentAllowance);
         }
+    }
+    
+    // --- Internal Helper Functions ---
+    function _calculateFee(uint256 amount) internal pure returns (uint256) {
+        return (amount * WITHDRAW_FEE_BPS) / BPS_DENOMINATOR;
     }
 }

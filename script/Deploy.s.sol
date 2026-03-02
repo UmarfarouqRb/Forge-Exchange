@@ -19,14 +19,18 @@ contract Deploy is Script {
     address deployerAddress = vm.rememberKey(deployerPrivateKey);
     address multisig = vm.envAddress("MULTISIG");
     string public outputFilename = vm.envString("OUTPUT_FILENAME");
-    string public jsonOutput;
 
+    // --- Chain IDs ---
+    uint256 public constant BASE_SEPOLIA_CHAIN_ID = 84532;
 
     function run() public {
-        vm.startBroadcast(deployerPrivateKey);
+        if (block.chainid == BASE_SEPOLIA_CHAIN_ID) {
+            deployBaseSepolia();
+        } 
+    }
 
-        // Deploy WETH for testing purposes if needed (on a local network)
-        WETH weth = new WETH();
+    function deployBaseSepolia() public {
+        vm.startBroadcast(deployerPrivateKey);
 
         // 1. Deploy VaultSpot
         VaultSpot vault = new VaultSpot();
@@ -60,19 +64,17 @@ contract Deploy is Script {
 
         // 8. Save deployed addresses to a file
         string memory root = vm.projectRoot();
-        string memory basePath = string.concat(root, "/script/constants/output/");
+        string memory basePath = string.concat(root, "/deployment/BaseSepolia/");
         string memory path = string.concat(basePath, outputFilename);
 
-        jsonOutput = "{}";
-        jsonOutput = jsonOutput.serialize("weth", address(weth));
-        jsonOutput = jsonOutput.serialize("vault", address(vault));
-        jsonOutput = jsonOutput.serialize("router", address(router));
-        jsonOutput = jsonOutput.serialize("feeController", address(feeController));
-        jsonOutput = jsonOutput.serialize("pancakeV3Adapter", address(pancakeV3Adapter));
-        jsonOutput = jsonOutput.serialize("uniswapV2Adapter", address(uniswapV2Adapter));
-        jsonOutput = jsonOutput.serialize("aerodromeAdapter", address(aerodromeAdapter));
+        string memory json = "{}";
+        json = json.serialize("vault", address(vault));
+        json = json.serialize("router", address(router));
+        json = json.serialize("feeController", address(feeController));
+        json = json.serialize("pancakeV3Adapter", address(pancakeV3Adapter));
+        json = json.serialize("uniswapV2Adapter", address(uniswapV2Adapter));
+        json = json.serialize("aerodromeAdapter", address(aerodromeAdapter));
 
-
-        vm.writeFile(path, jsonOutput);
+        vm.writeFile(path, json);
     }
 }

@@ -1,4 +1,3 @@
-
 import { TOKENS, Token } from "./token";
 
 export type TradingPair = {
@@ -10,99 +9,19 @@ export type TradingPair = {
 
 const rawPairs: { id: string; base: string; quote: string }[] = [
   {
+    id: "WETHUSDC",
+    base: "WETH",
+    quote: "USDC",
+  },
+  {
+    id: "USDCWETH",
+    base: "USDC",
+    quote: "WETH",
+  },
+  {
     id: "BTCUSDC",
     base: "BTC",
     quote: "USDC",
-  },
-  {
-    id: "BTCETH",
-    base: "BTC",
-    quote: "ETH",
-  },
-  {
-    id: "USDTUSDC",
-    base: "USDT",
-    quote: "USDC",
-  },
-  {
-    id: "ETHUSDC",
-    base: "ETH",
-    quote: "USDC",
-  },
-  {
-    id: "TRUMPUSDC",
-    base: "TRUMP",
-    quote: "USDC",
-  },
-  {
-    id:"AEROUSDC",
-    base: "AERO",
-    quote: "USDC", 
-  },
-  {
-    id: "DAIUSDC",
-    base: "DAI",
-    quote: "USDC", 
-  },
-  {
-    id: "SOLETH",
-    base: "SOL",
-    quote: "ETH",
-  },
-  {
-    id: "SOLUSDC",
-    base: "SOL",
-    quote: "USDC",
-  },
-  {
-    id: "BTCSOL",
-    base: "BTC",
-    quote: "SOL",
-  },
-  {
-    id: "EUROCUSDC",
-    base: "EUROC",
-    quote: "USDC",
-  },
-  {
-    id: "ETHEUROC",
-    base: "ETH",
-    quote: "EUROC",
-  },
-  {
-    id: "ZORAUSDC",
-    base: "ZORA",
-    quote: "USDC",
-  },
-  {
-    id: "ETHZORA",
-    base: "ETH",
-    quote: "ZORA",
-  },
-  {
-    id: "XRPBTC",
-    base: "XRP",
-    quote: "BTC",
-  },
-  {
-    id: "VIRTUALUSDC",
-    base: "VIRTUAL",
-    quote: "USDC",
-  },
-  {
-    id: "AAVEETH",
-    base: "AAVE",
-    quote: "ETH",
-  },
-  {
-    id: "HYPEUSDC",
-    base: "HYPE",
-    quote: "USDC",
-  },
-  {
-    id: "ETHHYPE",
-    base: "ETH",
-    quote: "HYPE",
   },
 ];
 

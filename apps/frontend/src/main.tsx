@@ -13,7 +13,7 @@ import { queryClient } from '@/lib/queryClient';
 import { PrivyProvider } from "@privy-io/react-auth";
 import { WagmiProvider } from '@privy-io/wagmi';
 import { ChainProvider } from "@/contexts/ChainContext";
-import { mainnet, base, bsc, arbitrum } from 'viem/chains';
+import { mainnet, base, bsc, arbitrum, baseSepolia } from 'viem/chains';
 import App from './App';
 import './index.css';
 import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
@@ -40,8 +40,8 @@ function Main() {
             theme: theme,
             accentColor: '#ff6b00',
           },
-          defaultChain: base,
-          supportedChains: [mainnet, base, bsc, arbitrum],
+          defaultChain: baseSepolia,
+          supportedChains: [mainnet, base, bsc, arbitrum, baseSepolia],
           embeddedWallets: {
             ethereum: {
               createOnLogin: 'users-without-wallets',

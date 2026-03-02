@@ -3,18 +3,9 @@ import { Token } from './token';
 const COINGECKO_ID_MAP: Record<string, string> = {
     'ETH': 'ethereum',
     'USDC': 'usd-coin',
-    'USDT': 'tether',
     'DAI': 'dai',
     'BTC': 'wrapped-bitcoin',
-    'AERO': 'aerodrome-finance',
-    'TRUMP': 'maga',
-    'SOL': 'solana',
-    'EUROC': 'euro-coin',
-    'ZORA': 'zora',
-    'XRP': 'ripple',
-    'VIRTUAL': 'virtual',
-    'AAVE': 'aave',
-    'HYPE': 'hype-token',
+ 
 };
 
 export type MarketData24h = {

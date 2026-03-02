@@ -14,7 +14,8 @@ import {
   FiSettings,
   FiLoader,
   FiCopy,
-  FiBookOpen
+  FiBookOpen,
+  FiKey
 } from 'react-icons/fi';
 import {
   DropdownMenu,
@@ -24,6 +25,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { useState } from 'react';
 
 const navItems = [
   { path: '/', label: 'Home', icon: FiHome },
@@ -37,14 +39,38 @@ const navItems = [
 export function Navigation() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { ready, authenticated, user, login, logout, exportWallet } = usePrivy();
   const wallet = user?.wallet;
   const { toast } = useToast();
+  const [privateKey, setPrivateKey] = useState<string | null>(null);
 
-  const copyToClipboard = () => {
+  const copyAddressToClipboard = () => {
     if (wallet?.address) {
       navigator.clipboard.writeText(wallet.address);
       toast({ title: 'Copied!', description: 'Wallet address copied to clipboard.' });
+    }
+  };
+
+  const copyPrivateKeyToClipboard = () => {
+    if (privateKey) {
+      navigator.clipboard.writeText(privateKey);
+      toast({ title: 'Copied!', description: 'Private key copied to clipboard.' });
+    }
+  };
+
+  const handleExportPrivateKey = async () => {
+    try {
+      const exportedKey = await exportWallet();
+      if (typeof exportedKey === 'string') {
+        setPrivateKey(exportedKey);
+        navigator.clipboard.writeText(exportedKey);
+        toast({ title: 'Private Key Exported', description: 'Your private key has been copied to the clipboard.' });
+      } else {
+        toast({ title: 'Error', description: 'Failed to export private key.', variant: 'destructive' });
+      }
+    } catch (error) {
+      console.error('Failed to export private key:', error);
+      toast({ title: 'Error', description: 'An error occurred while exporting your private key.', variant: 'destructive' });
     }
   };
 
@@ -96,12 +122,25 @@ export function Navigation() {
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground font-mono truncate">{wallet?.address}</span>
-                    <Button variant="ghost" size="icon" onClick={copyToClipboard} className="h-8 w-8">
+                    <Button variant="ghost" size="icon" onClick={copyAddressToClipboard} className="h-8 w-8">
                       <FiCopy className="h-4 w-4" />
                     </Button>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {privateKey && (
+                  <>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground font-mono truncate">{privateKey}</span>
+                        <Button variant="ghost" size="icon" onClick={copyPrivateKeyToClipboard} className="h-8 w-8">
+                          <FiCopy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={() => navigate('/portfolio')}>
                   <FiFolder className="w-4 h-4 mr-2" />
                   Portfolio
@@ -109,6 +148,10 @@ export function Navigation() {
                 <DropdownMenuItem onClick={() => navigate('/settings')}>
                   <FiSettings className="w-4 h-4 mr-2" />
                   Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPrivateKey}>
+                  <FiKey className="w-4 h-4 mr-2" />
+                  Export Private Key
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout} data-testid="button-wallet-disconnect" className="text-red-500 focus:text-red-500">

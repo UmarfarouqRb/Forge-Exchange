@@ -5,14 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
-import { WethAbi } from '@/abis/Weth';
 import { parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
-import { config } from '@/wagmi';
-import { waitForTransactionReceipt } from 'wagmi/actions';
 import { FiLoader } from 'react-icons/fi';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useVault } from '@/contexts/VaultContext';
@@ -49,7 +46,6 @@ export default function Withdraw() {
   const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
   const tokenAddress = safeAddress(selectedToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
-  const wethAddress = safeAddress(WETH_ADDRESS);
 
   const { data: vaultBalance, refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
 
@@ -65,26 +61,16 @@ export default function Withdraw() {
 
   const handleEthWithdraw = async (parsedAmount: bigint) => {
     const toastId = toast.loading('Initiating ETH withdrawal...');
-    if (!vaultAddress || !wethAddress) return;
+    if (!vaultAddress) return;
     try {
-      toast.loading('Step 1/2: Withdrawing WETH from vault...', { id: toastId });
+      toast.loading('Withdrawing ETH from vault...', { id: toastId });
       const withdrawHash = await writeContractAsync({
           address: vaultAddress,
           abi: VaultSpotAbi,
-          functionName: 'withdraw',
-          args: [wethAddress, parsedAmount],
-        });
-      await waitForTransactionReceipt(config, { hash: withdrawHash });
-      toast.success('Step 1/2: WETH withdrawn successfully!');
-
-      toast.loading('Step 2/2: Unwrapping WETH to ETH...', { id: toastId });
-      const unwrapHash = await writeContractAsync({
-          address: wethAddress,
-          abi: WethAbi,
-          functionName: 'withdraw',
+          functionName: 'withdrawETH',
           args: [parsedAmount],
-      });
-      setWithdrawTxHash(unwrapHash);
+        });
+      setWithdrawTxHash(withdrawHash);
     } catch (err: unknown) {
         const errorMsg = (err as TransactionError).shortMessage || 'An error occurred during the ETH withdrawal.';
         setMessage({ type: 'error', text: errorMsg });
@@ -135,7 +121,7 @@ export default function Withdraw() {
 
     const parsedAmount = parseUnits(amount, selectedToken.decimals);
     
-    if (vaultBalance && vaultBalance < parsedAmount) {
+    if (typeof vaultBalance !== 'bigint' || vaultBalance < parsedAmount) {
         setMessage({ type: 'error', text: 'Insufficient vault balance for this withdrawal.' });
         toast.error('Insufficient vault balance for this withdrawal.');
         return;

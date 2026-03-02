@@ -10,6 +10,7 @@ export function ChainProvider({ children }: { children: ReactNode }) {
       const chain = SUPPORTED_CHAINS.find(c => c.id === savedChainId);
       if (chain) {
         setSelectedChainState(chain);
+        switchChain(chain.id);
       }
     }
   }, []);
@@ -17,6 +18,7 @@ export function ChainProvider({ children }: { children: ReactNode }) {
   const setSelectedChain = (chain: Chain) => {
     setSelectedChainState(chain);
     localStorage.setItem("selectedChainId", chain.id);
+    switchChain(chain.id);
   };
 
   const switchChain = async (chainId: string) => {
@@ -25,8 +27,8 @@ export function ChainProvider({ children }: { children: ReactNode }) {
       throw new Error("Unsupported chain");
     }
 
-    if (chain.id === 'sui') {
-      throw new Error("SUI network support coming soon. Please use an EVM-compatible chain.");
+    if (chain.id === 'SOL') {
+      throw new Error("SOL network support coming soon. Please use an EVM-compatible chain.");
     }
 
     if (typeof window.ethereum !== 'undefined') {
@@ -35,7 +37,7 @@ export function ChainProvider({ children }: { children: ReactNode }) {
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: `0x${chain.chainId.toString(16)}` }],
         });
-        setSelectedChain(chain);
+        setSelectedChainState(chain);
       } catch (error: unknown) {
         if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: unknown }).code === 4902) {
           try {
@@ -49,7 +51,7 @@ export function ChainProvider({ children }: { children: ReactNode }) {
                 blockExplorerUrls: [chain.blockExplorerUrl],
               }],
             });
-            setSelectedChain(chain);
+            setSelectedChainState(chain);
           } catch (addError) {
             throw new Error("Failed to add chain");
           }
@@ -58,7 +60,7 @@ export function ChainProvider({ children }: { children: ReactNode }) {
         }
       }
     } else {
-      setSelectedChain(chain);
+      setSelectedChainState(chain);
     }
   };
 

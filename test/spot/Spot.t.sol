@@ -9,7 +9,7 @@ import {PancakeV3Adapter} from "contracts/spot/adapters/PancakeV3Adapter.sol";
 import {AerodromeAdapter} from "contracts/spot/adapters/AerodromeAdapter.sol";
 import {IAdapter} from "contracts/spot/interfaces/IAdapter.sol";
 import {IERC20} from "@openzeppelin-contracts/token/ERC20/IERC20.sol";
-import {WETH} from "solmate/src/tokens/WETH.sol";
+import {WETH} from "solmate/tokens/WETH.sol";
 import {MockERC20} from "test/mocks/MockERC20.sol";
 
 contract SpotTest is Test {

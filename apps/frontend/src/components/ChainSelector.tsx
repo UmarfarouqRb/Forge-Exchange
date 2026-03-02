@@ -16,11 +16,11 @@ export function ChainSelector() {
   const handleChainChange = async (chainId: string) => {
     const chain = SUPPORTED_CHAINS.find(c => c.id === chainId);
     
-    if (chainId === 'sui') {
+    if (chainId === 'SOL') {
       setSelectedChain(chain!);
       toast({
         title: "Coming Soon",
-        description: "SUI network support is coming soon. Currently only EVM-compatible chains are supported.",
+        description: "SOL network support is coming soon. Currently only EVM-compatible chains are supported.",
         variant: "default",
       });
       return;

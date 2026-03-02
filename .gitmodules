@@ -7,3 +7,6 @@
 [submodule "lib/pancake-v3-contracts"]
 	path = lib/pancake-v3-contracts
 	url = https://github.com/pancakeswap/pancake-v3-contracts
+[submodule "lib/v3-core"]
+	path = lib/v3-core
+	url = https://github.com/Uniswap/v3-core

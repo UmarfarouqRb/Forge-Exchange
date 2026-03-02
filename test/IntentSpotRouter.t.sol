@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {ECDSA} from "@openzeppelin-contracts/utils/cryptography/ECDSA.sol";
-import {WETH} from "solmate/src/tokens/WETH.sol";
+import {WETH} from "solmate/tokens/WETH.sol";
 
 import {IntentSpotRouter} from "contracts/spot/IntentSpotRouter.sol";
 import {VaultSpot} from "contracts/spot/VaultSpot.sol";
@@ -100,7 +100,8 @@ contract IntentSpotRouterTest is Test {
             minAmountOut: expectedAmountOut,
             deadline: block.timestamp + 1 hours,
             nonce: 0,
-            adapter: address(adapter)
+            adapter: address(adapter),
+            relayerFee: 0
         });
 
         bytes32 digest = getDigest(intent);
@@ -151,7 +152,8 @@ contract IntentSpotRouterTest is Test {
             minAmountOut: expectedAmountOut,
             deadline: block.timestamp + 1 hours,
             nonce: 0, // Each test has its own state, so nonce starts at 0
-            adapter: address(adapter)
+            adapter: address(adapter),
+            relayerFee: 0
         });
 
         bytes32 digest = getDigest(intent);
@@ -180,7 +182,8 @@ contract IntentSpotRouterTest is Test {
             intent.minAmountOut,
             intent.deadline,
             intent.nonce,
-            intent.adapter
+            intent.adapter,
+            intent.relayerFee
         ));
 
         bytes32 DOMAIN_SEPARATOR_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");

@@ -131,7 +131,7 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
      * @param adapter The address of the new adapter contract.
      */
     function addAdapter(bytes32 id, address adapter) external onlyOwner {
-        require(adapters[id] == IAdapter(address(0)), "Adapter already exists");
+        require(address(adapters[id]) == address(0), "Adapter already exists");
         require(adapterAddressToId[adapter] == bytes32(0), "Adapter address already registered");
         adapters[id] = IAdapter(adapter);
         adapterAddressToId[adapter] = id;
@@ -145,7 +145,7 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
      * @param id The unique identifier for the adapter to be removed.
      */
     function removeAdapter(bytes32 id) external onlyOwner {
-        require(adapters[id] != IAdapter(address(0)), "Adapter does not exist");
+        require(address(adapters[id]) != address(0), "Adapter does not exist");
         address adapterAddress = address(adapters[id]);
         delete adapterAddressToId[adapterAddress];
         delete adapters[id];

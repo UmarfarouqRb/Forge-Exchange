@@ -5,9 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
-import { WethAbi } from '@/abis/Weth';
 import { parseUnits, erc20Abi } from 'viem';
 import { useAccount, useBalance, useReadContract } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
@@ -49,7 +48,6 @@ export default function Deposit() {
   const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
   const tokenAddress = safeAddress(selectedToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
-  const wethAddress = safeAddress(WETH_ADDRESS);
 
   const { refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
 
@@ -84,34 +82,14 @@ export default function Deposit() {
 
   const handleEthDeposit = async (parsedAmount: bigint) => {
     const toastId = toast.loading('Initiating ETH deposit...');
-    if (!wethAddress || !vaultAddress) return;
+    if (!vaultAddress) return;
     try {
-      toast.loading('Step 1/3: Wrapping ETH to WETH...', { id: toastId });
-      const wrapHash = await writeContractAsync({
-          address: wethAddress,
-          abi: WethAbi,
-          functionName: 'deposit',
-          value: parsedAmount,
-      });
-      await waitForTransactionReceipt(config, { hash: wrapHash });
-      toast.success('Step 1/3: ETH wrapped successfully!');
-
-      toast.loading('Step 2/3: Approving vault to spend WETH...', { id: toastId });
-      const approveHash = await writeContractAsync({
-          address: wethAddress,
-          abi: erc20Abi,
-          functionName: 'approve',
-          args: [vaultAddress, parsedAmount],
-      });
-      await waitForTransactionReceipt(config, { hash: approveHash });
-      toast.success('Step 2/3: Approval successful!');
-
-      toast.loading('Step 3/3: Depositing WETH into vault...', { id: toastId });
+      toast.loading('Depositing ETH into vault...', { id: toastId });
       const depositHash = await writeContractAsync({
           address: vaultAddress,
           abi: VaultSpotAbi,
-          functionName: 'deposit',
-          args: [wethAddress, parsedAmount],
+          functionName: 'depositETH',
+          value: parsedAmount
       });
       setDepositTxHash(depositHash);
     } catch (err: unknown) {
@@ -128,7 +106,7 @@ export default function Deposit() {
     if(!tokenAddr || !vaultAddress) return;
 
     try {
-        const needsApproval = allowance === undefined || allowance < parsedAmount;
+        const needsApproval = allowance == null || allowance < parsedAmount;
         if (needsApproval) {
             toast.loading(`Approving ${token.symbol}...`, { id: toastId });
             const approvalHash = await writeContractAsync({
@@ -182,7 +160,7 @@ export default function Deposit() {
 
     const parsedAmount = parseUnits(amount, selectedToken.decimals);
 
-    if (balance && balance.value < parsedAmount) {
+    if (balance == null || balance.value < parsedAmount) {
         const errorMsg = 'Insufficient balance for this deposit.';
         setMessage({ type: 'error', text: errorMsg });
         toast.error(errorMsg);

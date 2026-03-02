@@ -71,7 +71,8 @@ contract AerodromeAdapterTest is Test {
             minAmountOut: 0,
             deadline: block.timestamp + 1 hours,
             nonce: 0,
-            adapter: address(adapter)
+            adapter: address(adapter),
+            relayerFee: 0
         });
 
         bytes32 digest = getDigest(intent);
@@ -100,7 +101,8 @@ contract AerodromeAdapterTest is Test {
             intent.minAmountOut,
             intent.deadline,
             intent.nonce,
-            intent.adapter
+            intent.adapter,
+            intent.relayerFee
         ));
 
         bytes32 DOMAIN_SEPARATOR_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
