@@ -1,6 +1,6 @@
 
 import { createPublicClient, http, parseUnits, formatUnits } from 'viem';
-import { base } from 'viem/chains';
+import { getChain } from '../utils/chain';
 import { relayerConfig } from '@forge/common';
 import { getOrders, getChainId } from '@forge/db';
 import IntentSpotRouter from '../../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
@@ -14,8 +14,10 @@ async function getMarketPrice(tokenIn: string, tokenOut: string, chainId: number
         throw new Error(`Unsupported chainId: ${chainId}`);
     }
 
+    const chain = getChain(chainId);
+
     const publicClient = createPublicClient({
-        chain: base,
+        chain,
         transport: http(network.providerUrl),
     });
 

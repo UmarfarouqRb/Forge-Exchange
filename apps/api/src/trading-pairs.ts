@@ -9,6 +9,11 @@ export type TradingPair = {
 
 const rawPairs: { id: string; base: string; quote: string }[] = [
   {
+    id: "BTCUSDC",
+    base: "BTC",
+    quote: "USDC",
+  },
+  {
     id: "WETHUSDC",
     base: "WETH",
     quote: "USDC",
@@ -17,11 +22,6 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
     id: "USDCWETH",
     base: "USDC",
     quote: "WETH",
-  },
-  {
-    id: "BTCUSDC",
-    base: "BTC",
-    quote: "USDC",
   },
 ];
 
@@ -41,7 +41,7 @@ export function getTradingPairs(): TradingPair[] {
       return null;
     }
 
-    const symbol = `${p.base}${p.quote}`;
+    const symbol = p.id.includes('WETH') ? p.id.replace('WETH', 'ETH') : p.id;
 
     return {
       id: symbol,
@@ -58,5 +58,7 @@ export function getTradingPairs(): TradingPair[] {
 getTradingPairs();
 
 export function getTradingPairBySymbol(symbol: string): TradingPair | undefined {
-  return getTradingPairs().find(p => p.symbol === symbol);
+  const internalSymbol = symbol.replace('ETH', 'WETH');
+  const pairs = getTradingPairs();
+  return pairs.find(p => p.id === internalSymbol);
 }

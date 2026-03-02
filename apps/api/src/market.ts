@@ -6,7 +6,7 @@ import {
     formatUnits,
     isAddress
 } from 'viem';
-import { base } from 'viem/chains';
+import { baseSepolia } from 'viem/chains';
 import { PANCAKE_QUOTER_V2_ADDRESS, PANCAKE_QUOTER_V2_ABI } from './QuoterV2';
 import type { Token } from './token';
 import { TOKENS } from './token';
@@ -50,12 +50,12 @@ function safeAddress(addr?: string | null): `0x${string}` | null {
 // --- LIVE DATA FETCHING ---
 
 const alchemyRpcUrl = process.env.ALCHEMY_RPC_URL;
-const publicRpcUrl = 'https://mainnet.base.org';
+const publicRpcUrl = 'https://sepolia.base.org';
 
 const primaryTransport = alchemyRpcUrl ? http(alchemyRpcUrl) : http(publicRpcUrl);
-const primaryClient = createPublicClient({ chain: base, transport: primaryTransport });
+const primaryClient = createPublicClient({ chain: baseSepolia, transport: primaryTransport });
 
-const fallbackClient = alchemyRpcUrl ? createPublicClient({ chain: base, transport: http(publicRpcUrl) }) : null;
+const fallbackClient = alchemyRpcUrl ? createPublicClient({ chain: baseSepolia, transport: http(publicRpcUrl) }) : null;
 
 export async function getAMMPrice(tokenIn: { address: string; decimals: number }, tokenOut: { address: string; decimals: number }): Promise<number | null> {
     const safeTokenInAddress = safeAddress(tokenIn.address);

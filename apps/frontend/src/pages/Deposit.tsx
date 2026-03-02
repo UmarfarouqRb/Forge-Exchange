@@ -184,6 +184,10 @@ export default function Deposit() {
           <CardTitle>Deposit</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
+            <p className="font-bold">Reminder</p>
+            <p>Currently Deposits and withdrawals are processed on the Base Sepolia network.</p>
+          </div>
           {message && (
             <div className={`p-4 rounded-md my-4 ${message.type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`}>
               <p>{message.text}</p>

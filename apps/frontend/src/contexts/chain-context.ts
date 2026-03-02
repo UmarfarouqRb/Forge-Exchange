@@ -76,7 +76,7 @@ export const SUPPORTED_CHAINS: Chain[] = [
   },
 ];
 
-type ChainContextType = {
+export type ChainContextType = {
   selectedChain: Chain;
   setSelectedChain: (chain: Chain) => void;
   switchChain: (chainId: string) => Promise<void>;

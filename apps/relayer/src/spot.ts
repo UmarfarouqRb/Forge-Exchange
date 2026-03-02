@@ -3,7 +3,7 @@ import { relayerConfig } from '@forge/common';
 import { saveOrder, updateOrderStatus } from '@forge/db';
 import { createPublicClient, createWalletClient, http, keccak256, parseUnits, formatUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { base } from 'viem/chains';
+import { getChain } from './utils/chain';
 import IntentSpotRouter from '../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
 import { getTokenDecimals } from './utils/tokens';
 
@@ -15,8 +15,10 @@ async function getMarketPrice(tokenIn: string, tokenOut: string, chainId: number
         throw new Error(`Unsupported chainId: ${chainId}`);
     }
 
+    const chain = getChain(chainId);
+
     const publicClient = createPublicClient({
-        chain: base,
+        chain,
         transport: http(network.providerUrl),
     });
 
@@ -57,8 +59,10 @@ export const executeSpotTrade = async (intent: any, signature: `0x${string}`, or
             throw new Error(`Unsupported chainId: ${intent.chainId}`);
         }
 
+        const chain = getChain(intent.chainId);
+
         const publicClient = createPublicClient({
-            chain: base,
+            chain,
             transport: http(network.providerUrl),
         });
 
@@ -66,7 +70,7 @@ export const executeSpotTrade = async (intent: any, signature: `0x${string}`, or
 
         const walletClient = createWalletClient({
             account,
-            chain: base,
+            chain,
             transport: http(network.providerUrl),
         });
 
@@ -117,8 +121,10 @@ export const executeSavedOrder = async (order: any) => {
             throw new Error(`Unsupported chainId: ${intent.chainId}`);
         }
 
+        const chain = getChain(intent.chainId);
+
         const publicClient = createPublicClient({
-            chain: base,
+            chain,
             transport: http(network.providerUrl),
         });
 
@@ -126,7 +132,7 @@ export const executeSavedOrder = async (order: any) => {
 
         const walletClient = createWalletClient({
             account,
-            chain: base,
+            chain,
             transport: http(network.providerUrl),
         });
 
