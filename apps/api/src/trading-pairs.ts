@@ -14,12 +14,12 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
     quote: "USDC",
   },
   {
-    id: "WETHUSDC",
+    id: "ETHUSDC",
     base: "WETH",
     quote: "USDC",
   },
   {
-    id: "USDCWETH",
+    id: "USDCETH",
     base: "USDC",
     quote: "WETH",
   },
