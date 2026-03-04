@@ -1,4 +1,5 @@
 import { Token } from './token';
+import { OrderBook, getOrderBook } from './order-book';
 
 const COINGECKO_ID_MAP: Record<string, string> = {
     'ETH': 'ethereum',
@@ -9,10 +10,12 @@ const COINGECKO_ID_MAP: Record<string, string> = {
 };
 
 export type MarketData24h = {
+    price: number;
     priceChangePercent: number;
     high24h: number;
     low24h: number;
     volume24h: number;
+    orderBook: OrderBook;
 };
 
 const marketDataCache = new Map<string, { timestamp: number; data: MarketData24h }>();
@@ -61,11 +64,16 @@ export async function get24hMarketData(baseToken: Token, quoteToken: Token): Pro
         const closePrice = prices[prices.length - 1][1];
         const priceChangePercent = ((closePrice - openPrice) / openPrice) * 100;
 
+        const pairId = `${baseToken.symbol}${quoteToken.symbol}`;
+        const orderBook = await getOrderBook(closePrice, pairId);
+
         const result: MarketData24h = {
+            price: closePrice,
             priceChangePercent,
             high24h,
             low24h,
             volume24h,
+            orderBook,
         };
 
         marketDataCache.set(cacheKey, { timestamp: Date.now(), data: result });

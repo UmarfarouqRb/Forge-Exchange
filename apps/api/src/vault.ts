@@ -1,14 +1,16 @@
+
 import { TOKENS, Token } from "./token";
 import { createPublicClient, http, erc20Abi } from "viem";
-import { base } from "viem/chains";
+import { baseSepolia } from "viem/chains";
 import { VAULT_SPOT_ADDRESS } from "../../frontend/src/config/contracts";
+import { toDisplayToken } from "./token-display";
 
 const alchemyRpcUrl = process.env.ALCHEMY_RPC_URL;
-const publicRpcUrl = 'https://mainnet.base.org';
+const publicRpcUrl = 'https://sepolia.base.org';
 
 // Prioritize Alchemy RPC if available
 const primaryTransport = alchemyRpcUrl ? http(alchemyRpcUrl) : http(publicRpcUrl);
-const publicClient = createPublicClient({ chain: base, transport: primaryTransport });
+const publicClient = createPublicClient({ chain: baseSepolia, transport: primaryTransport });
 
 export async function getVaultTokens() {
   const tokenValues = Object.values(TOKENS);
@@ -23,8 +25,10 @@ export async function getVaultTokens() {
 
   return tokenValues.map((token: Token, i) => {
     const balance = (results[i].status === 'success' ? results[i].result : 0) || 0;
+    const displayToken = toDisplayToken(token);
     return {
-        ...token,
+        token: token,
+        displayToken: displayToken,
         balance: balance.toString(),
         deposit_enabled: true,
         withdraw_enabled: true,

@@ -35,7 +35,7 @@ export default function InternalTransfer() {
   const params = new URLSearchParams(search);
   const assetSymbolFromUrl = params.get('asset');
 
-  const { tokens: allTokens } = useVault();
+  const { assets: allAssets } = useVault();
   const { writeContractAsync } = useTransaction();
 
   useEffect(() => {
@@ -46,8 +46,11 @@ export default function InternalTransfer() {
 
   const { address } = useAccount();
 
-  const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
-  const tokenAddress = safeAddress(selectedToken?.address);
+  const selectedAsset = allAssets.find(a => a.displayToken.symbol === selectedAssetSymbol);
+  const settlementToken = selectedAsset?.token;
+  const displayToken = selectedAsset?.displayToken;
+
+  const tokenAddress = safeAddress(settlementToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
 
   const { data: vaultBalance, refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
@@ -88,13 +91,13 @@ export default function InternalTransfer() {
       toast.error('Please enter a valid recipient address.');
       return;
     }
-    if (!selectedToken) {
+    if (!selectedAsset || !settlementToken || !displayToken) {
       setMessage({ type: 'error', text: 'Please select a valid asset to transfer.' });
       toast.error('Please select a valid asset to transfer.');
       return;
     }
 
-    const parsedAmount = parseUnits(amount, selectedToken.decimals);
+    const parsedAmount = parseUnits(amount, settlementToken.decimals);
 
     if (typeof vaultBalance !== 'bigint' || vaultBalance < parsedAmount) {
       setMessage({ type: 'error', text: 'Insufficient vault balance for this transfer.' });
@@ -113,8 +116,8 @@ export default function InternalTransfer() {
 
     try {
       const toastId = toast.loading('Initiating internal transfer...');
-      if (!vaultAddress || !tokenAddress || !selectedToken || !finalRecipient) return;
-        const parsedAmount = parseUnits(amount, selectedToken.decimals);
+      if (!vaultAddress || !tokenAddress || !settlementToken || !finalRecipient) return;
+        const parsedAmount = parseUnits(amount, settlementToken.decimals);
 
 
       const transferHash = await writeContractAsync({

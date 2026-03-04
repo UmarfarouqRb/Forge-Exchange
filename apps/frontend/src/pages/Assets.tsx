@@ -9,34 +9,26 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useVault } from '@/contexts/VaultContext';
 import { formatBalance } from '@/lib/format';
-import { useVaultBalance } from '@/hooks/useVaultBalance';
-import type { Token } from '@/types/market-data';
+import { VaultAsset } from '@/types/market-data';
 import { useQueryClient } from '@tanstack/react-query';
-import { safeAddress } from '@/lib/utils';
 
-function AssetRow({ asset }: { asset: Token }) {
-    const { data: balance, isLoading: isBalanceLoading } = useVaultBalance(safeAddress(asset.address));
-
-    const available = balance ? formatBalance(balance, asset.decimals) : '0.000000';
+function AssetRow({ asset }: { asset: VaultAsset }) {
+    const available = formatBalance(BigInt(asset.balance), asset.token.decimals);
     const navigate = useNavigate();
 
     return (
         <div
-            key={asset.symbol}
+            key={asset.token.symbol}
             className="grid grid-cols-1 md:grid-cols-3 gap-y-2 md:gap-4 p-4 items-center hover-elevate"
-            data-testid={`row-asset-${asset.symbol}`}>
+            data-testid={`row-asset-${asset.displayToken.symbol}`}>
             <div className="flex justify-between items-center md:block">
             <span className="text-sm text-muted-foreground md:hidden">Asset</span>
-            <div className="font-medium text-foreground">{asset.symbol}</div>
+            <div className="font-medium text-foreground">{asset.displayToken.symbol}</div>
             </div>
 
             <div className="flex justify-between items-center md:block md:text-right">
                 <span className="text-sm text-muted-foreground md:hidden">Available</span>
-                {isBalanceLoading ? (
-                    <Skeleton className="h-5 w-24" />
-                ) : (
-                    <div className="font-mono">{available}</div>
-                )}
+                <div className="font-mono">{available}</div>
             </div>
 
             <div className="flex justify-between items-center mt-2 md:mt-0 md:block md:text-right">
@@ -45,8 +37,8 @@ function AssetRow({ asset }: { asset: Token }) {
                 <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/assets/deposit?asset=${asset.symbol}`)}
-                data-testid={`button-deposit-${asset.symbol}`}
+                onClick={() => navigate(`/assets/deposit?asset=${asset.displayToken.symbol}`)}
+                data-testid={`button-deposit-${asset.displayToken.symbol}`}
                 disabled={!asset.deposit_enabled}>
                 <FiDownload className="w-3 h-3 mr-1" />
                 Deposit
@@ -54,8 +46,8 @@ function AssetRow({ asset }: { asset: Token }) {
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/assets/transfer?asset=${asset.symbol}`)}
-                    data-testid={`button-transfer-${asset.symbol}`}
+                    onClick={() => navigate(`/assets/transfer?asset=${asset.displayToken.symbol}`)}
+                    data-testid={`button-transfer-${asset.displayToken.symbol}`}
                     disabled={!asset.withdraw_enabled} >
                     <FiSend className="w-3 h-3 mr-1" />
                     Transfer
@@ -63,8 +55,8 @@ function AssetRow({ asset }: { asset: Token }) {
                 <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/assets/withdraw?asset=${asset.symbol}`)}
-                data-testid={`button-withdraw-${asset.symbol}`}
+                onClick={() => navigate(`/assets/withdraw?asset=${asset.displayToken.symbol}`)}
+                data-testid={`button-withdraw-${asset.displayToken.symbol}`}
                 disabled={!asset.withdraw_enabled}>
                 <FiUpload className="w-3 h-3 mr-1" />
                 Withdraw
@@ -82,13 +74,13 @@ export default function Assets() {
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  const { tokens: allTokens, isLoading: tokensLoading } = useVault();
+  const { assets: allAssets, isLoading: assetsLoading } = useVault();
 
   const displayAssets = useMemo(() => {
-    return allTokens.filter(asset => 
-        asset.symbol.toLowerCase().includes(searchQuery.toLowerCase())
+    return allAssets.filter(asset => 
+        asset.displayToken.symbol.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [searchQuery, allTokens]);
+  }, [searchQuery, allAssets]);
 
   const isBaseAssetsPage = location.pathname === '/assets' || location.pathname === '/assets/';
 
@@ -166,7 +158,7 @@ export default function Assets() {
                     <div className="text-right">Actions</div>
                     </div>
                     <div className="divide-y divide-border">
-                    {tokensLoading ? (
+                    {assetsLoading ? (
                         Array.from({ length: 5 }).map((_, i) => (
                         <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 items-center">
                             <div className="flex justify-between items-center md:hidden">
@@ -201,7 +193,7 @@ export default function Assets() {
                         ))
                     ) : displayAssets && displayAssets.length > 0 ? (
                         displayAssets.map((asset) => (
-                            <AssetRow key={asset.symbol} asset={asset} />
+                            <AssetRow key={asset.token.symbol} asset={asset} />
                         ))
                     ) : (
                         <div className="p-12 text-center text-muted-foreground">No assets found</div>

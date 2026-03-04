@@ -14,19 +14,22 @@ interface VaultAssetSelectorProps {
 }
 
 export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelectorProps) {
-  const { tokens, isLoading } = useVault();
+  const { assets, isLoading } = useVault();
   const [open, setOpen] = useState(false);
 
   const filteredAssets = useMemo(() => {
     if (isLoading) return [];
-    return tokens
-      .filter(token => {
-        if (type === 'deposit') return token.deposit_enabled;
-        if (type === 'withdraw') return token.withdraw_enabled;
+    return assets
+      .filter(asset => {
+        if (type === 'deposit') return asset.deposit_enabled;
+        if (type === 'withdraw') return asset.withdraw_enabled;
         return true;
       })
-      .map(token => ({ value: token.symbol.toLowerCase(), label: token.symbol }));
-  }, [tokens, type, isLoading]);
+      .map(asset => ({ 
+        value: asset.displayToken.symbol.toLowerCase(), 
+        label: asset.displayToken.symbol 
+      }));
+  }, [assets, type, isLoading]);
 
   const selectedAssetLabel = asset
     ? filteredAssets.find(a => a.label.toLowerCase() === asset.toLowerCase())?.label

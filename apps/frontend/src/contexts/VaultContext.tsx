@@ -2,21 +2,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { getVaultTokens } from '@/lib/api';
 import { useChainContext } from '@/contexts/chain-context';
-
-interface Token {
-  address: string;
-  symbol: string;
-  name: string;
-  decimals: number;
-  logoURI: string;
-  chainId: number;
-  deposit_enabled: boolean;
-  withdraw_enabled: boolean;
-  balance: string;
-}
+import { VaultAsset } from '@/types/market-data';
 
 interface VaultContextType {
-  tokens: Token[];
+  assets: VaultAsset[];
   isLoading: boolean;
 }
 
@@ -24,18 +13,18 @@ const VaultContext = createContext<VaultContextType | undefined>(undefined);
 
 export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   const { selectedChain } = useChainContext();
-  const [tokens, setTokens] = useState<Token[]>([]);
+  const [assets, setAssets] = useState<VaultAsset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchTokens = async () => {
       try {
         setIsLoading(true);
-        const vaultTokens = await getVaultTokens();
-        setTokens(vaultTokens);
+        const vaultAssets = await getVaultTokens();
+        setAssets(vaultAssets);
 
       } catch (error) {
-        console.error("Failed to fetch vault tokens:", error);
+        console.error("Failed to fetch vault assets:", error);
         // Optionally, handle the error in the UI
       } finally {
         setIsLoading(false);
@@ -46,7 +35,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   }, [selectedChain]);
 
   return (
-    <VaultContext.Provider value={{ tokens, isLoading }}>
+    <VaultContext.Provider value={{ assets, isLoading }}>
       {children}
     </VaultContext.Provider>
   );

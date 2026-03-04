@@ -25,7 +25,7 @@ function TradeHeader({
   const high = market?.high24h ? `$${parseFloat(market.high24h).toFixed(2)}` : '-';
   const low = market?.low24h ? `$${parseFloat(market.low24h).toFixed(2)}` : '-';
   const volume = market?.volume24h ? `${(parseFloat(market.volume24h) / 1e9).toFixed(2)}B` : '-';
-  const quoteAsset = selectedTradingPair?.quoteToken;
+  const quoteAsset = selectedTradingPair?.displayQuote;
 
   return (
     <div className="border-b border-border bg-card px-3 md:px-6 py-2 md:py-3 flex-shrink-0">
@@ -81,7 +81,7 @@ export default function Spot() {
         const data = await getAllPairs();
         setPairsList(data);
         if (data.length > 0) {
-          const defaultPair = data.find((p: TradingPair) => p.symbol === 'BTCUSDC') || data[0];
+          const defaultPair = data.find((p: TradingPair) => p.symbol === 'ETHUSDC') || data[0];
           setSelectedTradingPair(defaultPair);
         }
       } catch (error) {

@@ -1,15 +1,21 @@
 
 export type Token = {
-  id?: number;
-  chainId: number;
+  id: string;
   address: string;
   symbol: string;
   name: string;
   decimals: number;
+  wrapped?: string;
+  logoURI?: string;
+};
+
+export type VaultAsset = {
+  token: Token;
+  displayToken: Token;
   balance: string;
   deposit_enabled: boolean;
   withdraw_enabled: boolean;
-  logoURI: string;
+  vault_spot_supported: boolean;
 };
 
 export type TradingPair = {
@@ -17,6 +23,8 @@ export type TradingPair = {
     symbol: string;
     baseToken: Token;
     quoteToken: Token;
+    displayBase: Token;
+    displayQuote: Token;
     isActive?: boolean;
     status: 'active' | 'inactive';
 }

@@ -32,7 +32,7 @@ export default function Withdraw() {
   const params = new URLSearchParams(search);
   const assetSymbolFromUrl = params.get('asset');
 
-  const { tokens: allTokens } = useVault();
+  const { assets: allAssets } = useVault();
   const { writeContractAsync } = useTransaction();
 
   useEffect(() => {
@@ -43,8 +43,11 @@ export default function Withdraw() {
 
   const { address } = useAccount();
 
-  const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
-  const tokenAddress = safeAddress(selectedToken?.address);
+  const selectedAsset = allAssets.find(a => a.displayToken.symbol === selectedAssetSymbol);
+  const settlementToken = selectedAsset?.token;
+  const displayToken = selectedAsset?.displayToken;
+
+  const tokenAddress = safeAddress(settlementToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
 
   const { data: vaultBalance, refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
@@ -113,13 +116,13 @@ export default function Withdraw() {
         toast.error('Please enter a valid amount.');
         return;
     }
-    if (!selectedToken) {
+    if (!selectedAsset || !settlementToken || !displayToken) {
         setMessage({ type: 'error', text: 'Please select a valid asset to withdraw.' });
         toast.error('Please select a valid asset to withdraw.');
         return;
     }
 
-    const parsedAmount = parseUnits(amount, selectedToken.decimals);
+    const parsedAmount = parseUnits(amount, settlementToken.decimals);
     
     if (typeof vaultBalance !== 'bigint' || vaultBalance < parsedAmount) {
         setMessage({ type: 'error', text: 'Insufficient vault balance for this withdrawal.' });
@@ -130,10 +133,10 @@ export default function Withdraw() {
     setIsWithdrawing(true);
     setAmount('');
 
-    if (selectedAssetSymbol === 'ETH') {
+    if (displayToken.symbol === 'ETH') {
       handleEthWithdraw(parsedAmount);
     } else {
-      handleErc20Withdraw(parsedAmount, selectedToken);
+      handleErc20Withdraw(parsedAmount, settlementToken);
     }
   };
 

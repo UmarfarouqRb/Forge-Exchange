@@ -1,5 +1,5 @@
 
-import { Market, Order, TradingPair, InsertOrder, Token } from "@/types/market-data";
+import { Market, Order, TradingPair, InsertOrder, Token, VaultAsset } from "@/types/market-data";
 
 const API_URL = 'https://forge-exchange-api.onrender.com';
 
@@ -72,9 +72,9 @@ export async function getTokens(chainId: string): Promise<{ [symbol: string]: { 
     return handleResponse<{ [symbol: string]: { address: `0x${string}`; decimals: number } }>(response);
 }
 
-export async function getVaultTokens(): Promise<Token[]> {
+export async function getVaultTokens(): Promise<VaultAsset[]> {
     const response = await fetch(`${API_URL}/api/vault/tokens`);
-    return handleResponse<Token[]>(response);
+    return handleResponse<VaultAsset[]>(response);
 }
 
 // --- Relayer Proxied Routes ---

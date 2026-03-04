@@ -3,7 +3,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { getTradingPairs } from './src/trading-pairs';
 import { TOKENS } from './src/token';
-import { getAMMPrice } from './src/market';
+import { get24hMarketData } from './src/market-data';
 
 let wss: WebSocketServer;
 
@@ -115,10 +115,10 @@ async function broadcastPrices() {
         continue; // Skip this pair if tokens are not found
     }
 
-    const price = await getAMMPrice(baseToken, quoteToken);
-    if (price !== null) {
+    const marketData = await get24hMarketData(baseToken, quoteToken);
+    if (marketData) {
       const topic = `prices:${pair.symbol}`;
-      broadcastToTopic(topic, { topic, price });
+      broadcastToTopic(topic, { topic, price: marketData.price });
     }
   }
 }

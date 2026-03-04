@@ -13,6 +13,7 @@ import { Settings } from "@/pages/Settings";
 import Portfolio from "@/pages/Portfolio";
 import Docs from "@/pages/Docs";
 import Deposit from "@/pages/Deposit";
+import InternalTransfer from "@/pages/InternalTransfer";
 import Withdraw from "@/pages/Withdraw";
 import { VaultProvider } from "./contexts/VaultContext";
 
@@ -40,6 +41,7 @@ function App() {
               <Route path="/futures" element={<Futures />} />
               <Route path="/assets/*" element={<Assets />}>
                 <Route path="deposit" element={<Deposit />} />
+                <Route path="transfer" element={<InternalTransfer />} />
                 <Route path="withdraw" element={<Withdraw />} />
               </Route>
               <Route path="/settings" element={<Settings />} />

@@ -34,7 +34,7 @@ export default function Deposit() {
   const params = new URLSearchParams(search);
   const assetSymbolFromUrl = params.get('asset');
 
-  const { tokens: allTokens } = useVault();
+  const { assets: allAssets } = useVault();
   const { writeContractAsync } = useTransaction();
 
   useEffect(() => {
@@ -45,8 +45,11 @@ export default function Deposit() {
 
   const { address } = useAccount();
 
-  const selectedToken = allTokens.find(t => t.symbol === selectedAssetSymbol);
-  const tokenAddress = safeAddress(selectedToken?.address);
+  const selectedAsset = allAssets.find(a => a.displayToken.symbol === selectedAssetSymbol);
+  const settlementToken = selectedAsset?.token;
+  const displayToken = selectedAsset?.displayToken;
+
+  const tokenAddress = safeAddress(settlementToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
 
   const { refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
@@ -151,14 +154,14 @@ export default function Deposit() {
         toast.error(errorMsg);
         return;
     }
-    if (!selectedToken) {
+    if (!selectedAsset || !settlementToken || !displayToken) {
         const errorMsg = 'Please select a valid asset to deposit.';
         setMessage({ type: 'error', text: errorMsg });
         toast.error(errorMsg);
         return;
     }
 
-    const parsedAmount = parseUnits(amount, selectedToken.decimals);
+    const parsedAmount = parseUnits(amount, settlementToken.decimals);
 
     if (balance == null || balance.value < parsedAmount) {
         const errorMsg = 'Insufficient balance for this deposit.';
@@ -170,10 +173,10 @@ export default function Deposit() {
     setIsDepositing(true);
     setAmount('');
 
-    if (selectedAssetSymbol === 'ETH') {
+    if (displayToken.symbol === 'ETH') {
       handleEthDeposit(parsedAmount);
     } else {
-      handleErc20Deposit(parsedAmount, selectedToken);
+      handleErc20Deposit(parsedAmount, settlementToken);
     }
   };
 

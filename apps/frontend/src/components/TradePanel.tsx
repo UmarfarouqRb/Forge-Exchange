@@ -64,6 +64,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
   const baseToken = pair?.baseToken;
   const quoteToken = pair?.quoteToken;
+  const displayBase = pair?.displayBase;
+  const displayQuote = pair?.displayQuote;
 
   const { data: baseBalance } = useVaultBalance(baseToken?.address as `0x${string}`);
   const { data: quoteBalance } = useVaultBalance(quoteToken?.address as `0x${string}`);
@@ -137,7 +139,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     if (!authenticated) return 'Connect Wallet';
     if (authenticated && !connectedWallet) return 'Creating Wallet...';
     if (!hasSufficientBalance) return 'Insufficient Funds';
-    return side === 'buy' ? `Buy ${baseToken?.symbol || ''}` : `Sell ${baseToken?.symbol || ''}`;
+    return side === 'buy' ? `Buy ${displayBase?.symbol || ''}` : `Sell ${displayBase?.symbol || ''}`;
   }
 
   if (isMobile) {
@@ -162,7 +164,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               className="w-2/3 bg-transparent border-0"
-              placeholder={`Price (${quoteToken?.symbol})`}
+              placeholder={`Price (${displayQuote?.symbol})`}
             />
             <span className="text-xs text-muted-foreground p-2">BBO</span>
           </div>
@@ -175,14 +177,14 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className="w-2/3 bg-transparent border-0"
-            placeholder={`Quantity (${baseToken?.symbol})`}
+            placeholder={`Quantity (${displayBase?.symbol})`}
           />
-          <span className="text-xs text-muted-foreground p-2">{baseToken?.symbol}</span>
+          <span className="text-xs text-muted-foreground p-2">{displayBase?.symbol}</span>
         </div>
         
         <div className="mb-2 p-2 bg-input rounded-md">
           <span className="text-xs text-muted-foreground">Total</span>
-          <span className="text-sm font-mono float-right">{total.toFixed(2)} {quoteToken?.symbol}</span>
+          <span className="text-sm font-mono float-right">{total.toFixed(2)} {displayQuote?.symbol}</span>
         </div>
         
         <div className="mb-2 flex items-center">
@@ -191,7 +193,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
         
         <div className="text-xs text-muted-foreground mb-2">
-          Available: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'} {quoteToken?.symbol}
+          Available: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'} {displayQuote?.symbol}
         </div>
 
         <div className="flex-grow"></div>
@@ -246,7 +248,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           {orderType === 'limit' && (
             <div className="mb-4">
               <Label htmlFor="price">Price</Label>
-              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${quoteToken?.symbol || ''})`} className="bg-white/5 border-0" />
+              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${displayQuote?.symbol || ''})`} className="bg-white/5 border-0" />
             </div>
           )}
 
@@ -257,7 +259,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
           <div className="mb-4">
             <Label>Total: </Label>
-            <span className='text-right'>{total.toFixed(2)} {quoteToken?.symbol || ''}</span>
+            <span className='text-right'>{total.toFixed(2)} {displayQuote?.symbol || ''}</span>
           </div>
 
           <Button
@@ -272,7 +274,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         <div className="mt-8">
           <h3 className="text-base font-semibold">Vault Balance</h3>
           <div className="mt-4">
-            <Label>{quoteToken?.symbol || ''}: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
+            <Label>{displayQuote?.symbol || ''}: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
           </div>
           <div className="mt-2">
             <Button onClick={() => navigate('/assets/deposit')} className="w-full bg-white/10">Deposit</Button>
