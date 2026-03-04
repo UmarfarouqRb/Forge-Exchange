@@ -1,7 +1,7 @@
 
 import { ethers } from "ethers";
 
-type NetworkName = 'base' | 'local';
+type NetworkName = 'base' | 'baseSepolia' | 'local';
 
 type NetworkConfig = {
     chainId: number;
@@ -22,6 +22,12 @@ export const relayerConfig = {
             providerUrl: process.env.BASE_PROVIDER_URL || 'https://mainnet.base.org',
             intentSpotRouterAddress: process.env.BASE_INTENT_SPOT_ROUTER_ADDRESS || '0x0000000000000000000000000000000000000000',
             sessionKeyManagerAddress: process.env.BASE_SESSION_KEY_MANAGER_ADDRESS || '0x0000000000000000000000000000000000000000',
+        },
+        baseSepolia: {
+            chainId: 84532,
+            providerUrl: process.env.BASE_SEPOLIA_PROVIDER_URL || 'https://sepolia.base.org',
+            intentSpotRouterAddress: '0xc00de92c57ed8072b3253bd7c4dda9def86a2cca',
+            sessionKeyManagerAddress: process.env.BASE_SEPOLIA_SESSION_KEY_MANAGER_ADDRESS || '0x0000000000000000000000000000000000000000',
         },
         local: {
             chainId: 31337,

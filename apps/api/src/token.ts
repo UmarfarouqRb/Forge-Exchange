@@ -4,19 +4,16 @@ export type Token = {
   symbol: string;
   name: string;
   decimals: number;
-  native?: boolean;
   wrapped?: string;
 };
 
 export const TOKENS: Record<string, Token> = {
   ETH: {
-    id: "ETH",
-    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-    name: "Ether",
-    symbol: "ETH",
+    id: "WETH",
+    address: "0x4200000000000000000000000000000000000006",
+    name: "Wrapped Ethereum",
+    symbol: "WETH",
     decimals: 18,
-    native: true,
-    wrapped: "0x4200000000000000000000000000000000000006",
   },
   USDC: {
     id: "USDC",

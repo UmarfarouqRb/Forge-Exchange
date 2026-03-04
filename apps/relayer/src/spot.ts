@@ -1,7 +1,7 @@
 
 import { relayerConfig } from '@forge/common';
 import { saveOrder, updateOrderStatus } from '@forge/db';
-import { createPublicClient, createWalletClient, http, keccak256, parseUnits, formatUnits } from 'viem';
+import { createPublicClient, createWalletClient, http, keccak256, parseUnits, formatUnits, getAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { getChain } from './utils/chain';
 import IntentSpotRouter from '../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
@@ -22,7 +22,7 @@ async function getMarketPrice(tokenIn: string, tokenOut: string, chainId: number
         transport: http(network.providerUrl),
     });
 
-    const intentSpotRouterAddress = network.intentSpotRouterAddress as `0x${string}`;
+    const intentSpotRouterAddress = getAddress(network.intentSpotRouterAddress);
 
     try {
         const tokenInDecimals = await getTokenDecimals(tokenIn, chainId);
@@ -38,7 +38,7 @@ async function getMarketPrice(tokenIn: string, tokenOut: string, chainId: number
 
         return parseFloat(formatUnits(amountOut as bigint, tokenOutDecimals));
     } catch (error) {
-        console.error(`Error fetching market price for ${tokenIn}/${tokenOut}:`, error);
+        console.error(`Error fetching market price for ${tokenIn}${tokenOut}:`, error);
         return 0;
     }
 }
@@ -74,7 +74,7 @@ export const executeSpotTrade = async (intent: any, signature: `0x${string}`, or
             transport: http(network.providerUrl),
         });
 
-        const intentSpotRouterAddress = network.intentSpotRouterAddress as `0x${string}`;
+        const intentSpotRouterAddress = getAddress(network.intentSpotRouterAddress);
 
         const price = await getMarketPrice(intent.tokenIn, intent.tokenOut, intent.chainId);
 
@@ -136,7 +136,7 @@ export const executeSavedOrder = async (order: any) => {
             transport: http(network.providerUrl),
         });
 
-        const intentSpotRouterAddress = network.intentSpotRouterAddress as `0x${string}`;
+        const intentSpotRouterAddress = getAddress(network.intentSpotRouterAddress);
 
         if (orderType === 'limit') {
             const { request } = await publicClient.simulateContract({

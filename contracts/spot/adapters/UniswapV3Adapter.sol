@@ -10,8 +10,8 @@ import {IERC20} from "@openzeppelin-contracts/token/ERC20/IERC20.sol";
 contract UniswapV3Adapter is IAdapter {
     using SafeERC20 for IERC20;
 
-    ISwapRouter public constant ROUTER = ISwapRouter(0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4);
-    IQuoterV2 public constant QUOTER = IQuoterV2(0x3d4e44eB1374240Ce5F1b871aB261CD16335154a);
+    ISwapRouter public constant ROUTER = ISwapRouter(0x492E6456D9528771018DeB9E87ef7750EF184104);
+    IQuoterV2 public constant QUOTER = IQuoterV2(0xC5290058841028F1614F3A6F0F5816cAd0df5E27);
 
     uint24[] public feeTiers = [100, 500, 3000, 10000];
 

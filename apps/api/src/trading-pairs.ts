@@ -41,7 +41,7 @@ export function getTradingPairs(): TradingPair[] {
       return null;
     }
 
-    const symbol = p.id.includes('WETH') ? p.id.replace('WETH', 'ETH') : p.id;
+    const symbol = `${p.base}${p.quote}`;
 
     return {
       id: symbol,
@@ -58,7 +58,5 @@ export function getTradingPairs(): TradingPair[] {
 getTradingPairs();
 
 export function getTradingPairBySymbol(symbol: string): TradingPair | undefined {
-  const internalSymbol = symbol.replace('ETH', 'WETH');
-  const pairs = getTradingPairs();
-  return pairs.find(p => p.id === internalSymbol);
+  return getTradingPairs().find(p => p.symbol === symbol);
 }

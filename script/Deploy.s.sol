@@ -22,6 +22,9 @@ contract Deploy is Script {
 
     // --- Chain IDs ---
     uint256 public constant BASE_SEPOLIA_CHAIN_ID = 84532;
+    
+    // --- WETH addresses ---
+    address internal constant WETH_BASE_SEPOLIA = 0x4200000000000000000000000000000000000006;
 
     function run() public {
         if (block.chainid == BASE_SEPOLIA_CHAIN_ID) {
@@ -54,6 +57,7 @@ contract Deploy is Script {
 
         // 6. Configure vault
         vault.setRouter(address(router));
+        vault.setWETH(WETH_BASE_SEPOLIA);
 
         // 7. Transfer Ownership to MULTISIG
         vault.transferOwnership(multisig);
@@ -74,6 +78,7 @@ contract Deploy is Script {
         json = json.serialize("pancakeV3Adapter", address(pancakeV3Adapter));
         json = json.serialize("uniswapV2Adapter", address(uniswapV2Adapter));
         json = json.serialize("aerodromeAdapter", address(aerodromeAdapter));
+        json = json.serialize("weth", WETH_BASE_SEPOLIA);
 
         vm.writeFile(path, json);
     }
