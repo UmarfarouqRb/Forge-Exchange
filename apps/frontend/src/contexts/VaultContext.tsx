@@ -13,7 +13,6 @@ interface Token {
   deposit_enabled: boolean;
   withdraw_enabled: boolean;
   balance: string;
-  native?: boolean;
 }
 
 interface VaultContextType {
@@ -33,21 +32,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         setIsLoading(true);
         const vaultTokens = await getVaultTokens();
-        
-        const wethToken = vaultTokens.find(token => token.symbol === 'WETH');
-
-        if (wethToken) {
-          const ethToken: Token = {
-            ...wethToken,
-            symbol: 'ETH',
-            name: 'Ether',
-            native: true,
-            address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-          };
-          setTokens([ethToken, ...vaultTokens]);
-        } else {
-          setTokens(vaultTokens);
-        }
+        setTokens(vaultTokens);
 
       } catch (error) {
         console.error("Failed to fetch vault tokens:", error);

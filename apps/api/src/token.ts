@@ -9,6 +9,14 @@ export type Token = {
 
 export const TOKENS: Record<string, Token> = {
   ETH: {
+    id: "ETH",
+    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    name: "Ethereum",
+    symbol: "ETH",
+    decimals: 18,
+    wrapped: "WETH",
+  },
+  WETH: {
     id: "WETH",
     address: "0x4200000000000000000000000000000000000006",
     name: "Wrapped Ethereum",
