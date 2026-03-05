@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createOrder } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getDisplaySymbol } from '@/utils/tokenDisplay';
 
 interface TradePanelProps {
   pair: TradingPair;
@@ -64,8 +65,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
   const baseToken = pair?.baseToken;
   const quoteToken = pair?.quoteToken;
-  const displayBase = pair?.displayBase;
-  const displayQuote = pair?.displayQuote;
+  const displayBaseSymbol = baseToken ? getDisplaySymbol(baseToken) : '';
+  const displayQuoteSymbol = quoteToken ? getDisplaySymbol(quoteToken) : '';
 
   const { data: baseBalance } = useVaultBalance(baseToken?.address as `0x${string}`);
   const { data: quoteBalance } = useVaultBalance(quoteToken?.address as `0x${string}`);
@@ -139,7 +140,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     if (!authenticated) return 'Connect Wallet';
     if (authenticated && !connectedWallet) return 'Creating Wallet...';
     if (!hasSufficientBalance) return 'Insufficient Funds';
-    return side === 'buy' ? `Buy ${displayBase?.symbol || ''}` : `Sell ${displayBase?.symbol || ''}`;
+    return side === 'buy' ? `Buy ${displayBaseSymbol}` : `Sell ${displayBaseSymbol}`;
   }
 
   if (isMobile) {
@@ -164,7 +165,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               className="w-2/3 bg-transparent border-0"
-              placeholder={`Price (${displayQuote?.symbol})`}
+              placeholder={`Price (${displayQuoteSymbol})`}
             />
             <span className="text-xs text-muted-foreground p-2">BBO</span>
           </div>
@@ -177,14 +178,14 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             className="w-2/3 bg-transparent border-0"
-            placeholder={`Quantity (${displayBase?.symbol})`}
+            placeholder={`Quantity (${displayBaseSymbol})`}
           />
-          <span className="text-xs text-muted-foreground p-2">{displayBase?.symbol}</span>
+          <span className="text-xs text-muted-foreground p-2">{displayBaseSymbol}</span>
         </div>
         
         <div className="mb-2 p-2 bg-input rounded-md">
           <span className="text-xs text-muted-foreground">Total</span>
-          <span className="text-sm font-mono float-right">{total.toFixed(2)} {displayQuote?.symbol}</span>
+          <span className="text-sm font-mono float-right">{total.toFixed(2)} {displayQuoteSymbol}</span>
         </div>
         
         <div className="mb-2 flex items-center">
@@ -193,7 +194,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
         
         <div className="text-xs text-muted-foreground mb-2">
-          Available: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'} {displayQuote?.symbol}
+          Available: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'} {displayQuoteSymbol}
         </div>
 
         <div className="flex-grow"></div>
@@ -248,7 +249,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           {orderType === 'limit' && (
             <div className="mb-4">
               <Label htmlFor="price">Price</Label>
-              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${displayQuote?.symbol || ''})`} className="bg-white/5 border-0" />
+              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${displayQuoteSymbol})`} className="bg-white/5 border-0" />
             </div>
           )}
 
@@ -259,7 +260,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
           <div className="mb-4">
             <Label>Total: </Label>
-            <span className='text-right'>{total.toFixed(2)} {displayQuote?.symbol || ''}</span>
+            <span className='text-right'>{total.toFixed(2)} {displayQuoteSymbol}</span>
           </div>
 
           <Button
@@ -274,7 +275,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         <div className="mt-8">
           <h3 className="text-base font-semibold">Vault Balance</h3>
           <div className="mt-4">
-            <Label>{displayQuote?.symbol || ''}: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
+            <Label>{displayQuoteSymbol}: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
           </div>
           <div className="mt-2">
             <Button onClick={() => navigate('/assets/deposit')} className="w-full bg-white/10">Deposit</Button>

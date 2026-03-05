@@ -6,6 +6,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getDisplaySymbol } from "@/utils/tokenDisplay";
 
 interface VaultAssetSelectorProps {
   asset: string;
@@ -26,14 +27,13 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
         return true;
       })
       .map(asset => ({ 
-        value: asset.displayToken.symbol.toLowerCase(), 
-        label: asset.displayToken.symbol 
+        value: asset.token.symbol,
+        label: getDisplaySymbol(asset.token)
       }));
   }, [assets, type, isLoading]);
 
-  const selectedAssetLabel = asset
-    ? filteredAssets.find(a => a.label.toLowerCase() === asset.toLowerCase())?.label
-    : "Select asset";
+  const selectedAsset = filteredAssets.find(a => a.value === asset);
+  const selectedAssetLabel = selectedAsset ? selectedAsset.label : "Select asset";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -59,15 +59,15 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
                 key={a.value}
                 value={a.value}
                 onSelect={(currentValue) => {
-                  const selected = filteredAssets.find(f => f.value === currentValue);
-                  setAsset(selected ? selected.label : "");
+                  const selected = filteredAssets.find(f => f.value.toLowerCase() === currentValue);
+                  setAsset(selected ? selected.value : "");
                   setOpen(false);
                 }}
               >
                 <Check
                   className={cn(
                     "mr-2 h-4 w-4",
-                    asset.toLowerCase() === a.value ? "opacity-100" : "opacity-0"
+                    asset === a.value ? "opacity-100" : "opacity-0"
                   )}
                 />
                 {a.label}

@@ -2,8 +2,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { getTradingPairs } from './src/trading-pairs';
-import { TOKENS } from './src/token';
-import { get24hMarketData } from './src/market-data';
+import { getMarket } from './src/market-off-chain';
 
 let wss: WebSocketServer;
 
@@ -107,15 +106,7 @@ export function broadcast(message: any) {
 
 async function broadcastPrices() {
   for (const pair of getTradingPairs()) {
-    const baseToken = TOKENS[pair.base.symbol];
-    const quoteToken = TOKENS[pair.quote.symbol];
-
-    if (!baseToken || !quoteToken) {
-        console.warn(`Could not find tokens for pair ${pair.id}. Base: ${pair.base.symbol}, Quote: ${pair.quote.symbol}`);
-        continue; // Skip this pair if tokens are not found
-    }
-
-    const marketData = await get24hMarketData(baseToken, quoteToken);
+    const marketData = await getMarket(pair.id);
     if (marketData) {
       const topic = `prices:${pair.symbol}`;
       broadcastToTopic(topic, { topic, price: marketData.price });

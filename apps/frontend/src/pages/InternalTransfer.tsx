@@ -20,6 +20,7 @@ import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
 import { TransactionConfirmation } from '@/components/TransactionConfirmation';
+import { getDisplaySymbol } from '@/utils/tokenDisplay';
 
 export default function InternalTransfer() {
   const [amount, setAmount] = useState('');
@@ -40,15 +41,15 @@ export default function InternalTransfer() {
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
-      setSelectedAssetSymbol(assetSymbolFromUrl);
+      const canonicalSymbol = assetSymbolFromUrl === 'ETH' ? 'WETH' : assetSymbolFromUrl;
+      setSelectedAssetSymbol(canonicalSymbol);
     }
   }, [assetSymbolFromUrl]);
 
   const { address } = useAccount();
 
-  const selectedAsset = allAssets.find(a => a.displayToken.symbol === selectedAssetSymbol);
+  const selectedAsset = allAssets.find(a => a.token.symbol === selectedAssetSymbol);
   const settlementToken = selectedAsset?.token;
-  const displayToken = selectedAsset?.displayToken;
 
   const tokenAddress = safeAddress(settlementToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
@@ -91,7 +92,7 @@ export default function InternalTransfer() {
       toast.error('Please enter a valid recipient address.');
       return;
     }
-    if (!selectedAsset || !settlementToken || !displayToken) {
+    if (!selectedAsset || !settlementToken) {
       setMessage({ type: 'error', text: 'Please select a valid asset to transfer.' });
       toast.error('Please select a valid asset to transfer.');
       return;
@@ -208,7 +209,7 @@ export default function InternalTransfer() {
         onClose={() => setConfirmationOpen(false)}
         onConfirm={handleConfirmTransfer}
         title="Confirm Transfer"
-        description={`You are about to transfer ${amount} ${selectedAssetSymbol} to ${recipient}. Are you sure?`}
+        description={`You are about to transfer ${amount} ${settlementToken ? getDisplaySymbol(settlementToken) : ''} to ${recipient}. Are you sure?`}
       />
     </>
   );

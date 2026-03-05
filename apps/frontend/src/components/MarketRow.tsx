@@ -4,6 +4,7 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { PriceChange } from '@/components/PriceChange';
 import { TradingPair, Market } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getDisplaySymbolBySymbol } from '@/utils/tokenDisplay';
 
 type MarketRowProps = {
   pair: TradingPair;
@@ -45,7 +46,7 @@ export function MarketRow({ pair, market }: MarketRowProps) {
 
   return (
     <TableRow onClick={() => handleRowClick(pair.symbol)} className="cursor-pointer hover:bg-muted/50">
-      <TableCell className="font-medium">{pair.symbol}</TableCell>
+      <TableCell className="font-medium">{getDisplaySymbolBySymbol(pair.symbol)}</TableCell>
       <TableCell className="text-right font-mono">{renderValue(market?.lastPrice, '$')}</TableCell>
       <TableCell className="text-right">
         {priceChange24h !== undefined ? <PriceChange value={priceChange24h} /> : <Skeleton className="h-6 w-16" />}

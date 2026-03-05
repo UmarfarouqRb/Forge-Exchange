@@ -1,14 +1,10 @@
-
 import { TOKENS, Token } from "./token";
-import { toDisplayToken } from "./token-display";
 
 export type TradingPair = {
   id: string;
   base: Token;
   quote: Token;
   symbol: string;
-  displayBase: Token;
-  displayQuote: Token;
 };
 
 const rawPairs: { id: string; base: string; quote: string }[] = [
@@ -21,11 +17,6 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
     id: "WETHUSDC",
     base: "WETH",
     quote: "USDC",
-  },
-  {
-    id: "USDCWETH",
-    base: "USDC",
-    quote: "WETH",
   },
 ];
 
@@ -45,16 +36,13 @@ export function getTradingPairs(): TradingPair[] {
       return null;
     }
 
-    const displayBase = toDisplayToken(baseToken);
-    const displayQuote = toDisplayToken(quoteToken);
+    const symbol = `${p.base}${p.quote}`;
 
     return {
-      id: p.id,
+      id: symbol,
       base: baseToken,
       quote: quoteToken,
-      displayBase,
-      displayQuote,
-      symbol: `${displayBase.symbol}${displayQuote.symbol}`,
+      symbol: symbol,
     };
   }).filter((p): p is TradingPair => p !== null);
 

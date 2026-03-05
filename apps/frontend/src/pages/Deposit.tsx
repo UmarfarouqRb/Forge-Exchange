@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,7 @@ import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
+import { getDisplaySymbol } from '@/utils/tokenDisplay';
 
 export default function Deposit() {
   const [amount, setAmount] = useState('');
@@ -39,15 +39,15 @@ export default function Deposit() {
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
-      setSelectedAssetSymbol(assetSymbolFromUrl);
+      const canonicalSymbol = assetSymbolFromUrl === 'ETH' ? 'WETH' : assetSymbolFromUrl;
+      setSelectedAssetSymbol(canonicalSymbol);
     }
   }, [assetSymbolFromUrl]);
 
   const { address } = useAccount();
 
-  const selectedAsset = allAssets.find(a => a.displayToken.symbol === selectedAssetSymbol);
+  const selectedAsset = allAssets.find(a => a.token.symbol === selectedAssetSymbol);
   const settlementToken = selectedAsset?.token;
-  const displayToken = selectedAsset?.displayToken;
 
   const tokenAddress = safeAddress(settlementToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
@@ -56,7 +56,7 @@ export default function Deposit() {
 
   const { data: balance } = useBalance({
     address: address,
-    token: selectedAssetSymbol === 'ETH' ? undefined : tokenAddress,
+    token: settlementToken && getDisplaySymbol(settlementToken) === 'ETH' ? undefined : tokenAddress,
     query: {
       enabled: !!address && !!selectedAssetSymbol,
     },
@@ -68,7 +68,7 @@ export default function Deposit() {
     functionName: 'allowance',
     args: address && vaultAddress ? [address, vaultAddress] : undefined,
     query: {
-      enabled: !!address && !!tokenAddress && !!vaultAddress && selectedAssetSymbol !== 'ETH',
+      enabled: !!address && !!tokenAddress && !!vaultAddress && settlementToken && getDisplaySymbol(settlementToken) !== 'ETH',
     },
   });
 
@@ -154,7 +154,7 @@ export default function Deposit() {
         toast.error(errorMsg);
         return;
     }
-    if (!selectedAsset || !settlementToken || !displayToken) {
+    if (!selectedAsset || !settlementToken) {
         const errorMsg = 'Please select a valid asset to deposit.';
         setMessage({ type: 'error', text: errorMsg });
         toast.error(errorMsg);
@@ -173,7 +173,7 @@ export default function Deposit() {
     setIsDepositing(true);
     setAmount('');
 
-    if (displayToken.symbol === 'ETH') {
+    if (settlementToken && getDisplaySymbol(settlementToken) === 'ETH') {
       handleEthDeposit(parsedAmount);
     } else {
       handleErc20Deposit(parsedAmount, settlementToken);

@@ -19,6 +19,7 @@ import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
+import { getDisplaySymbol } from '@/utils/tokenDisplay';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -37,15 +38,15 @@ export default function Withdraw() {
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
-      setSelectedAssetSymbol(assetSymbolFromUrl);
+      const canonicalSymbol = assetSymbolFromUrl === 'ETH' ? 'WETH' : assetSymbolFromUrl;
+      setSelectedAssetSymbol(canonicalSymbol);
     }
 }, [assetSymbolFromUrl]);
 
   const { address } = useAccount();
 
-  const selectedAsset = allAssets.find(a => a.displayToken.symbol === selectedAssetSymbol);
+  const selectedAsset = allAssets.find(a => a.token.symbol === selectedAssetSymbol);
   const settlementToken = selectedAsset?.token;
-  const displayToken = selectedAsset?.displayToken;
 
   const tokenAddress = safeAddress(settlementToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
@@ -116,7 +117,7 @@ export default function Withdraw() {
         toast.error('Please enter a valid amount.');
         return;
     }
-    if (!selectedAsset || !settlementToken || !displayToken) {
+    if (!selectedAsset || !settlementToken) {
         setMessage({ type: 'error', text: 'Please select a valid asset to withdraw.' });
         toast.error('Please select a valid asset to withdraw.');
         return;
@@ -133,7 +134,7 @@ export default function Withdraw() {
     setIsWithdrawing(true);
     setAmount('');
 
-    if (displayToken.symbol === 'ETH') {
+    if (settlementToken && getDisplaySymbol(settlementToken) === 'ETH') {
       handleEthWithdraw(parsedAmount);
     } else {
       handleErc20Withdraw(parsedAmount, settlementToken);

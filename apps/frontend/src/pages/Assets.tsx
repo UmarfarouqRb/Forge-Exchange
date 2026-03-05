@@ -11,19 +11,21 @@ import { useVault } from '@/contexts/VaultContext';
 import { formatBalance } from '@/lib/format';
 import { VaultAsset } from '@/types/market-data';
 import { useQueryClient } from '@tanstack/react-query';
+import { getDisplaySymbol } from '@/utils/tokenDisplay';
 
 function AssetRow({ asset }: { asset: VaultAsset }) {
     const available = formatBalance(BigInt(asset.balance), asset.token.decimals);
     const navigate = useNavigate();
+    const displaySymbol = getDisplaySymbol(asset.token);
 
     return (
         <div
             key={asset.token.symbol}
             className="grid grid-cols-1 md:grid-cols-3 gap-y-2 md:gap-4 p-4 items-center hover-elevate"
-            data-testid={`row-asset-${asset.displayToken.symbol}`}>
+            data-testid={`row-asset-${asset.token.symbol}`}>
             <div className="flex justify-between items-center md:block">
             <span className="text-sm text-muted-foreground md:hidden">Asset</span>
-            <div className="font-medium text-foreground">{asset.displayToken.symbol}</div>
+            <div className="font-medium text-foreground">{displaySymbol}</div>
             </div>
 
             <div className="flex justify-between items-center md:block md:text-right">
@@ -37,8 +39,8 @@ function AssetRow({ asset }: { asset: VaultAsset }) {
                 <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/assets/deposit?asset=${asset.displayToken.symbol}`)}
-                data-testid={`button-deposit-${asset.displayToken.symbol}`}
+                onClick={() => navigate(`/assets/deposit?asset=${asset.token.symbol}`)}
+                data-testid={`button-deposit-${asset.token.symbol}`}
                 disabled={!asset.deposit_enabled}>
                 <FiDownload className="w-3 h-3 mr-1" />
                 Deposit
@@ -46,8 +48,8 @@ function AssetRow({ asset }: { asset: VaultAsset }) {
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/assets/transfer?asset=${asset.displayToken.symbol}`)}
-                    data-testid={`button-transfer-${asset.displayToken.symbol}`}
+                    onClick={() => navigate(`/assets/transfer?asset=${asset.token.symbol}`)}
+                    data-testid={`button-transfer-${asset.token.symbol}`}
                     disabled={!asset.withdraw_enabled} >
                     <FiSend className="w-3 h-3 mr-1" />
                     Transfer
@@ -55,8 +57,8 @@ function AssetRow({ asset }: { asset: VaultAsset }) {
                 <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/assets/withdraw?asset=${asset.displayToken.symbol}`)}
-                data-testid={`button-withdraw-${asset.displayToken.symbol}`}
+                onClick={() => navigate(`/assets/withdraw?asset=${asset.token.symbol}`)}
+                data-testid={`button-withdraw-${asset.token.symbol}`}
                 disabled={!asset.withdraw_enabled}>
                 <FiUpload className="w-3 h-3 mr-1" />
                 Withdraw
@@ -78,7 +80,7 @@ export default function Assets() {
 
   const displayAssets = useMemo(() => {
     return allAssets.filter(asset => 
-        asset.displayToken.symbol.toLowerCase().includes(searchQuery.toLowerCase())
+        getDisplaySymbol(asset.token).toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [searchQuery, allAssets]);
 
