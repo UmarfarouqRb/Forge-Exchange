@@ -1,4 +1,4 @@
-import { Token } from './token';
+import { Token } from './mainnet-tokens';
 
 const COINGECKO_ID_MAP: Record<string, string> = {
     'ETH': 'ethereum',

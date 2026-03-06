@@ -1,7 +1,7 @@
 import { getOrdersByPairId, Order, getMarketById } from '@forge/db';
 import { isAddress } from 'viem';
-import type { Token } from './token';
-import { TOKENS } from './token';
+import type { Token } from './mainnet-tokens';
+import { MAINNET_TOKENS } from './mainnet-tokens';
 import { getTradingPairs } from './trading-pairs';
 import { get24hMarketData } from './market-data';
 
@@ -65,7 +65,7 @@ async function getOffChainPrice(baseToken: Token): Promise<number | null> {
 // --- SYNTHETIC ORDER BOOK ---
 
 const syntheticPriceOffsets: { [pairId: string]: number } = {};
-const SYNTHETIC_UPDATE_INTERVAL = 3000;
+const SYNTHETIC_UPDATE_INTERVAL = 1000;
 let lastSyntheticUpdate: { [pairId: string]: number } = {};
 let syntheticDepthCache: { [pairId: string]: OrderBook } = {};
 
@@ -157,8 +157,8 @@ export async function getMarket(pairId: string): Promise<MarketState | null> {
             return null;
         }
 
-        const baseToken = TOKENS[pairInfo.base.symbol];
-        const quoteToken = TOKENS[pairInfo.quote.symbol];
+        const baseToken = MAINNET_TOKENS[pairInfo.base.symbol];
+        const quoteToken = MAINNET_TOKENS[pairInfo.quote.symbol];
 
         const [bookResult, marketDataResult, marketData24hResult] = await Promise.allSettled([
             getOrderBook(baseToken, quoteToken, pairId),

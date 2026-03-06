@@ -35,7 +35,7 @@ function AssetRow({ asset }: { asset: VaultAsset }) {
 
             <div className="flex justify-between items-center mt-2 md:mt-0 md:block md:text-right">
                 <span className="text-sm text-muted-foreground md:hidden">Actions</span>
-            <div className="flex gap-2 justify-end">
+            <div className="flex flex-wrap gap-2 justify-end">
                 <Button
                 variant="outline"
                 size="sm"
@@ -119,7 +119,7 @@ export default function Assets() {
 
                 {/* Deposit/Withdraw Card for Mobile */}
                 <Card className="mb-6 md:hidden">
-                <CardContent className="p-4 flex gap-4">
+                <CardContent className="p-4 flex flex-wrap gap-4">
                     <Button className="flex-1" onClick={() => navigate('/assets/deposit')}>
                     <FiDownload className="w-4 h-4 mr-2" />
                     Deposit

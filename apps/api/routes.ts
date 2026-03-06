@@ -10,6 +10,7 @@ import { createOrder, getOrdersByAccount } from "./src/orders";
 import { broadcastToTopic } from "./websocket";
 import { getVaultTokens } from "./src/vault";
 import { getTradingPairs, getTradingPairBySymbol } from "./src/trading-pairs";
+import { getLiquidityPools, getLiquidityPositions, deposit, withdraw } from "./src/liquidity";
 
 // Define the proxy middleware for the relayer service
 const relayerProxy = createProxyMiddleware({
@@ -135,6 +136,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ error: error.message });
     }
   });
+
+  // --- Liquidity Routes ---
+    app.get("/api/liquidity/pools", getLiquidityPools);
+    app.get("/api/liquidity/positions", getLiquidityPositions);
+    app.post("/api/liquidity/deposit", deposit);
+    app.post("/api/liquidity/withdraw", withdraw);
 
   // --- Token Route ---
     app.get("/api/tokens", async (req: Request, res: Response) => {

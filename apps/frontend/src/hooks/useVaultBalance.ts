@@ -1,16 +1,18 @@
-
 import { useReadContract } from 'wagmi';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
-import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { safeAddress } from '@/lib/utils';
 import { useAccount } from 'wagmi';
 import { useChainContext } from '@/contexts/chain-context';
+import { normalizeTokenForVault } from '@/lib/tokenProtocol';
 
 export function useVaultBalance(tokenAddress: `0x${string}` | undefined) {
   const { address } = useAccount();
   const { selectedChain } = useChainContext();
 
-  const safeTokenAddress = safeAddress(tokenAddress);
+  const addressToQuery = normalizeTokenForVault(tokenAddress, WETH_ADDRESS);
+
+  const safeTokenAddress = safeAddress(addressToQuery);
   const safeVaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
 
   return useReadContract({

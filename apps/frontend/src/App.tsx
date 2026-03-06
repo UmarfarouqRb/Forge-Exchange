@@ -11,7 +11,7 @@ import Futures from "@/pages/Futures";
 import Assets from "@/pages/Assets";
 import { Settings } from "@/pages/Settings";
 import Portfolio from "@/pages/Portfolio";
-import Docs from "@/pages/Docs";
+import Staking from "@/pages/Staking";
 import Deposit from "@/pages/Deposit";
 import InternalTransfer from "@/pages/InternalTransfer";
 import Withdraw from "@/pages/Withdraw";
@@ -46,7 +46,7 @@ function App() {
               </Route>
               <Route path="/settings" element={<Settings />} />
               <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/docs" element={<Docs />} />
+              <Route path="/staking" element={<Staking />} />
             </Route>
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
