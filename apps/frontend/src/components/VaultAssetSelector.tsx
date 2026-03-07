@@ -59,8 +59,7 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
                 key={a.value}
                 value={a.value}
                 onSelect={(currentValue) => {
-                  const selected = filteredAssets.find(f => f.value.toLowerCase() === currentValue);
-                  setAsset(selected ? selected.value : "");
+                  setAsset(currentValue);
                   setOpen(false);
                 }}
               >

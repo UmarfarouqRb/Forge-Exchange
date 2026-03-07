@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
+import { VaultAssetSelector } from './VaultAssetSelector';
 
 // Simplified ABIs for the contracts
 const wethAbi = [
@@ -19,6 +20,7 @@ const vaultAbi = [
 ];
 
 export function Withdraw() {
+  const [asset, setAsset] = useState('');
   const [amount, setAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const { wallets } = useWallets();
@@ -53,7 +55,7 @@ export function Withdraw() {
       // Step 1: Withdraw WETH from the Vault
       toast({ title: 'Step 1/2: Withdrawing WETH from Vault' });
       const vaultContract = new ethers.Contract(vaultAddress, vaultAbi, signer);
-      const withdrawTx = await vaultContract.withdraw(wethAddress, withdrawAmount);
+      const withdrawTx = await vaultContract.withdraw(asset, withdrawAmount);
       await withdrawTx.wait();
       toast({ title: 'WETH Withdrawn Successfully' });
 
@@ -83,12 +85,16 @@ export function Withdraw() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Withdraw ETH</CardTitle>
+        <CardTitle>Withdraw</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="withdraw-amount">Amount in ETH</Label>
+            <Label htmlFor="withdraw-asset">Asset</Label>
+            <VaultAssetSelector asset={asset} setAsset={setAsset} type="withdraw" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="withdraw-amount">Amount</Label>
             <Input 
               id="withdraw-amount" 
               type="number" 
@@ -101,7 +107,7 @@ export function Withdraw() {
           <Button 
             className="w-full" 
             onClick={handleWithdraw}
-            disabled={isWithdrawing || !amount}
+            disabled={isWithdrawing || !amount || !asset}
           >
             {isWithdrawing ? 'Withdrawing...' : 'Withdraw'}
           </Button>

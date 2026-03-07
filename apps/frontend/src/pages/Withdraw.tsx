@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
@@ -16,10 +16,8 @@ import { useVault } from '@/contexts/VaultContext';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
-import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
-import { normalizeTokenForVault } from '@/lib/tokenProtocol';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -41,15 +39,15 @@ export default function Withdraw() {
       const canonicalSymbol = assetSymbolFromUrl === 'ETH' ? 'WETH' : assetSymbolFromUrl;
       setSelectedAssetSymbol(canonicalSymbol);
     }
-}, [assetSymbolFromUrl]);
+  }, [assetSymbolFromUrl]);
 
-  const { address } = useAccount();
+  const { address, chainId } = useAccount();
 
   const selectedAsset = allAssets.find(a => a.token.symbol === selectedAssetSymbol);
   const settlementToken = selectedAsset?.token;
 
+  const vaultAddress = chainId ? safeAddress(VAULT_SPOT_ADDRESS[chainId]) : undefined;
   const tokenAddress = safeAddress(settlementToken?.address);
-  const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
 
   const { data: vaultBalance, refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
 
@@ -64,56 +62,16 @@ export default function Withdraw() {
     }
   });
 
-  const handleEthWithdraw = async (parsedAmount: bigint) => {
-    const toastId = toast.loading('Initiating ETH withdrawal...');
-    if (!vaultAddress) return;
-    try {
-      toast.loading('Withdrawing ETH from vault...', { id: toastId });
-      const withdrawHash = await writeContractAsync({
-          address: vaultAddress,
-          abi: VaultSpotAbi,
-          functionName: 'withdrawETH',
-          args: [parsedAmount],
-        });
-      setWithdrawTxHash(withdrawHash);
-    } catch (err: unknown) {
-        const errorMsg = (err as TransactionError).shortMessage || 'An error occurred during the ETH withdrawal.';
-        setMessage({ type: 'error', text: errorMsg });
-        toast.error(errorMsg, { id: toastId });
-        setIsWithdrawing(false);
-    }
-  }
-
-  const handleErc20Withdraw = async (parsedAmount: bigint, token: Token) => {
-    const toastId = toast.loading(`Initiating ${token.symbol} withdrawal...`);
-    const tokenForVault = normalizeTokenForVault(token.address, WETH_ADDRESS);
-    console.log("Token for vault:", tokenForVault);
-    const tokenAddr = safeAddress(tokenForVault as `0x${string}`);
-
-    if (!vaultAddress || !tokenAddr) return;
-
-    try {
-      toast.loading(`Withdrawing ${token.symbol}...`, { id: toastId });
-      const withdrawHash = await writeContractAsync({
-        address: vaultAddress,
-        abi: VaultSpotAbi,
-        functionName: 'withdraw',
-        args: [tokenAddr, parsedAmount]
-      });
-      setWithdrawTxHash(withdrawHash);
-    } catch (err: unknown) {
-        const errorMsg = (err as TransactionError).shortMessage || `An error occurred during the ${token.symbol} withdrawal.`;
-        setMessage({ type: 'error', text: errorMsg });
-        toast.error(errorMsg, { id: toastId });
-        setIsWithdrawing(false);
-    }
-  }
-
   const handleWithdraw = async () => {
     setMessage(null);
     if (!address) {
       setMessage({ type: 'error', text: 'Please connect your wallet first.' });
       toast.error('Please connect your wallet first.');
+      return;
+    }
+    if (!vaultAddress) {
+      setMessage({ type: 'error', text: 'Unsupported network. Please switch to Base Sepolia.' });
+      toast.error('Unsupported network. Please switch to Base Sepolia.');
       return;
     }
     if (!amount || parseFloat(amount) <= 0) {
@@ -135,15 +93,48 @@ export default function Withdraw() {
         return;
     }
 
-    console.log("Withdraw token:", settlementToken);
-    console.log("Parsed amount:", parsedAmount.toString());
+    console.log({
+      token: settlementToken.symbol,
+      address: settlementToken.address,
+      amount: parsedAmount.toString(),
+      vaultAddress: vaultAddress,
+    });
 
     setIsWithdrawing(true);
+    const toastId = toast.loading('Processing withdrawal...');
 
-    if (settlementToken?.symbol === 'WETH') {
-      await handleEthWithdraw(parsedAmount);
-    } else {
-      await handleErc20Withdraw(parsedAmount, settlementToken);
+    try {
+        let txHash;
+
+        if (settlementToken.symbol === "WETH") {
+            toast.loading('Withdrawing ETH...', { id: toastId });
+            txHash = await writeContractAsync({
+                address: vaultAddress,
+                abi: VaultSpotAbi,
+                functionName: "withdrawETH",
+                args: [parsedAmount],
+            });
+        } else {
+            const tokenAddr = safeAddress(settlementToken.address);
+            if (!tokenAddr) {
+              throw new Error('Invalid token address');
+            }
+            toast.loading(`Withdrawing ${settlementToken.symbol}...`, { id: toastId });
+            txHash = await writeContractAsync({
+                address: vaultAddress,
+                abi: VaultSpotAbi,
+                functionName: "withdraw",
+                args: [tokenAddr, parsedAmount],
+            });
+        }
+
+        setWithdrawTxHash(txHash);
+    } catch (err) {
+        console.error("Withdraw error:", err);
+        const errorMsg = (err as TransactionError).shortMessage || 'An error occurred during the withdrawal.';
+        setMessage({ type: 'error', text: errorMsg });
+        toast.error(errorMsg, { id: toastId });
+        setIsWithdrawing(false);
     }
   };
 
