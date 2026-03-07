@@ -13,6 +13,7 @@ import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { FiLoader } from 'react-icons/fi';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useVault } from '@/contexts/VaultContext';
+import { useChainContext } from '@/contexts/chain-context';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
@@ -41,12 +42,14 @@ export default function Withdraw() {
     }
   }, [assetSymbolFromUrl]);
 
-  const { address, chainId } = useAccount();
+  const { address } = useAccount();
+  const { selectedChain } = useChainContext();
+  const chainId = selectedChain?.id;
 
   const selectedAsset = allAssets.find(a => a.token.symbol === selectedAssetSymbol);
   const settlementToken = selectedAsset?.token;
 
-  const vaultAddress = chainId ? safeAddress(VAULT_SPOT_ADDRESS[chainId]) : undefined;
+  const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
   const tokenAddress = safeAddress(settlementToken?.address);
 
   const { data: vaultBalance, refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);

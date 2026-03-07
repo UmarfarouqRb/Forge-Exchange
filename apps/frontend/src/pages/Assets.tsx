@@ -50,7 +50,7 @@ function AssetRow({ asset }: { asset: VaultAsset & { price?: number; balanceUSD?
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/assets/deposit?asset=${asset.token.symbol}`)}
+                        onClick={() => navigate(`/assets/deposit?asset=${displaySymbol}`)}
                         data-testid={`button-deposit-${asset.token.symbol}`}
                         disabled={!asset.deposit_enabled}>
                         <FiDownload className="w-3 h-3 mr-1" />
@@ -59,7 +59,7 @@ function AssetRow({ asset }: { asset: VaultAsset & { price?: number; balanceUSD?
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/assets/transfer?asset=${asset.token.symbol}`)}
+                        onClick={() => navigate(`/assets/transfer?asset=${displaySymbol}`)}
                         data-testid={`button-transfer-${asset.token.symbol}`}
                         disabled={!asset.withdraw_enabled} >
                         <FiSend className="w-3 h-3 mr-1" />
@@ -68,7 +68,7 @@ function AssetRow({ asset }: { asset: VaultAsset & { price?: number; balanceUSD?
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/assets/withdraw?asset=${asset.token.symbol}`)}
+                        onClick={() => navigate(`/assets/withdraw?asset=${displaySymbol}`)}
                         data-testid={`button-withdraw-${asset.token.symbol}`}
                         disabled={!asset.withdraw_enabled}>
                         <FiUpload className="w-3 h-3 mr-1" />

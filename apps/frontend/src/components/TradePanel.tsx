@@ -276,6 +276,10 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         <div className="mt-8">
           <h3 className="text-base font-semibold mb-2">Vault Balance</h3>
           <div className="flex justify-between items-center mt-4">
+            <Label>{displayBaseSymbol}:</Label>
+            <span>{formatFullBalance(baseBalance, baseToken?.decimals)}</span>
+          </div>
+          <div className="flex justify-between items-center mt-4">
             <Label>{displayQuoteSymbol}:</Label>
             <span>{formatFullBalance(quoteBalance, quoteToken?.decimals)}</span>
           </div>
