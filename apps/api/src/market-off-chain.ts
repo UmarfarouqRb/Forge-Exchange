@@ -34,7 +34,7 @@ const COINGECKO_ID_MAP: Record<string, string> = {
     'ETH': 'ethereum',
     'USDC': 'usd-coin',
     'DAI': 'dai',
-    'BTC': 'wrapped-bitcoin',
+    'BTC': 'bitcoin',
 };
 
 async function getOffChainPrice(baseToken: Token): Promise<number | null> {

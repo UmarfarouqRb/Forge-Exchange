@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
@@ -20,6 +20,7 @@ import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
+import { normalizeTokenForVault } from '@/lib/tokenProtocol';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -85,7 +86,9 @@ export default function Withdraw() {
 
   const handleErc20Withdraw = async (parsedAmount: bigint, token: Token) => {
     const toastId = toast.loading(`Initiating ${token.symbol} withdrawal...`);
-    const tokenAddr = safeAddress(token.address);
+    const tokenForVault = normalizeTokenForVault(token.address, WETH_ADDRESS);
+    const tokenAddr = safeAddress(tokenForVault as `0x${string}`);
+
     if (!vaultAddress || !tokenAddr) return;
 
     try {
