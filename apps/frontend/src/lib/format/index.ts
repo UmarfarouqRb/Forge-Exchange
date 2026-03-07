@@ -13,3 +13,12 @@ export const formatBalance = (balance: bigint, decimals: number): string => {
 
     return value.toFixed(6);
 };
+
+const USD_FORMATTER = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+});
+
+export function formatUSD(value: number) {
+    return USD_FORMATTER.format(value);
+}

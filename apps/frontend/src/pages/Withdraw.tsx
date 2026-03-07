@@ -19,7 +19,6 @@ import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
-import { getDisplaySymbol } from '@/utils/tokenDisplay';
 import { normalizeTokenForVault } from '@/lib/tokenProtocol';
 
 export default function Withdraw() {
@@ -61,6 +60,7 @@ export default function Withdraw() {
       setMessage({ type: 'success', text: 'Withdrawal successful! Your balance will update shortly.' });
       toast.success('Withdrawal successful!');
       setIsWithdrawing(false);
+      setAmount('');
     }
   });
 
@@ -87,6 +87,7 @@ export default function Withdraw() {
   const handleErc20Withdraw = async (parsedAmount: bigint, token: Token) => {
     const toastId = toast.loading(`Initiating ${token.symbol} withdrawal...`);
     const tokenForVault = normalizeTokenForVault(token.address, WETH_ADDRESS);
+    console.log("Token for vault:", tokenForVault);
     const tokenAddr = safeAddress(tokenForVault as `0x${string}`);
 
     if (!vaultAddress || !tokenAddr) return;
@@ -134,13 +135,15 @@ export default function Withdraw() {
         return;
     }
 
-    setIsWithdrawing(true);
-    setAmount('');
+    console.log("Withdraw token:", settlementToken);
+    console.log("Parsed amount:", parsedAmount.toString());
 
-    if (settlementToken && getDisplaySymbol(settlementToken) === 'ETH') {
-      handleEthWithdraw(parsedAmount);
+    setIsWithdrawing(true);
+
+    if (settlementToken?.symbol === 'WETH') {
+      await handleEthWithdraw(parsedAmount);
     } else {
-      handleErc20Withdraw(parsedAmount, settlementToken);
+      await handleErc20Withdraw(parsedAmount, settlementToken);
     }
   };
 

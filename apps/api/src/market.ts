@@ -110,7 +110,7 @@ export async function getAMMPrice(tokenIn: { address: string; decimals: number }
 }
 
 const syntheticPriceOffsets: { [pairId: string]: number } = {};
-const SYNTHETIC_UPDATE_INTERVAL = 3000; 
+const SYNTHETIC_UPDATE_INTERVAL = 1000; 
 let lastSyntheticUpdate: { [pairId: string]: number } = {};
 let syntheticDepthCache: { [pairId: string]: OrderBook } = {};
 

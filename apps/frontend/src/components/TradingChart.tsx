@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { getDisplaySymbol } from '@/utils/tokenDisplay';
 
 const timeframes = ['1m', '5m', '15m', '1h', '4h', '1D', '1W'];
 
@@ -109,7 +110,7 @@ export function TradingChart({ symbol }: TradingChartProps) {
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold font-mono" data-testid="text-chart-symbol">
-              {symbol}
+              {getDisplaySymbol({ symbol } as any)}
             </span>
             <span className="text-sm text-muted-foreground">Live Chart</span>
           </div>
