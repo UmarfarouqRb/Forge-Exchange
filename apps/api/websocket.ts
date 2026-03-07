@@ -2,7 +2,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { getTradingPairs } from './src/trading-pairs';
-import { getMarket } from './src/market-off-chain';
+import { getMarket } from './src/market';
 
 let wss: WebSocketServer;
 

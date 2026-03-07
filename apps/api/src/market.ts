@@ -6,12 +6,12 @@ import {
     formatUnits,
     isAddress
 } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { base } from 'viem/chains';
 import { PANCAKE_QUOTER_V2_ADDRESS, PANCAKE_QUOTER_V2_ABI } from './QuoterV2';
-import type { Token } from './token';
-import { TOKENS } from './token';
+import type { Token } from './mainnet-tokens';
+import { MAINNET_TOKENS } from './mainnet-tokens';
 import { getTradingPairs } from './trading-pairs';
-import { get24hMarketData } from './market-data'; // Import the new function
+import { get24hMarketData } from './market-data';
 
 // --- TYPE DEFINITIONS ---
 
@@ -50,12 +50,12 @@ function safeAddress(addr?: string | null): `0x${string}` | null {
 // --- LIVE DATA FETCHING ---
 
 const alchemyRpcUrl = process.env.ALCHEMY_RPC_URL;
-const publicRpcUrl = 'https://sepolia.base.org';
+const publicRpcUrl = 'https://mainnet.base.org';
 
 const primaryTransport = alchemyRpcUrl ? http(alchemyRpcUrl) : http(publicRpcUrl);
-const primaryClient = createPublicClient({ chain: baseSepolia, transport: primaryTransport });
+const primaryClient = createPublicClient({ chain: base, transport: primaryTransport });
 
-const fallbackClient = alchemyRpcUrl ? createPublicClient({ chain: baseSepolia, transport: http(publicRpcUrl) }) : null;
+const fallbackClient = alchemyRpcUrl ? createPublicClient({ chain: base, transport: http(publicRpcUrl) }) : null;
 
 export async function getAMMPrice(tokenIn: { address: string; decimals: number }, tokenOut: { address: string; decimals: number }): Promise<number | null> {
     const safeTokenInAddress = safeAddress(tokenIn.address);
@@ -202,13 +202,13 @@ export async function getMarket(pairId: string): Promise<MarketState | null> {
             return null;
         }
 
-        const baseToken = TOKENS[pairInfo.base.symbol];
-        const quoteToken = TOKENS[pairInfo.quote.symbol];
+        const baseToken = MAINNET_TOKENS[pairInfo.base.symbol];
+        const quoteToken = MAINNET_TOKENS[pairInfo.quote.symbol];
 
         const [bookResult, marketDataResult, marketData24hResult] = await Promise.allSettled([
             getOrderBook(baseToken, quoteToken, pairId),
             getMarketById(pairId),
-            get24hMarketData(baseToken, quoteToken) // Fetch 24h data
+            get24hMarketData(baseToken, quoteToken)
         ]);
 
         const book = bookResult.status === 'fulfilled' ? bookResult.value : { bids: [], asks: [], lastTradePrice: null };

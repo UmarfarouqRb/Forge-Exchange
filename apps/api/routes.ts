@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { getMarket, getMarketBySymbol } from "./src/market-off-chain";
+import { getMarket, getMarketBySymbol } from "./src/market";
 import { health } from "./src/health";
 import { getMarkets } from "./src/markets";
 import { getTokens } from "./src/tokens";
