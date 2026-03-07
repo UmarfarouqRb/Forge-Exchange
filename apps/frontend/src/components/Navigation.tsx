@@ -14,7 +14,7 @@ import {
   FiSettings,
   FiLoader,
   FiCopy,
-  FiStar,
+  FiGitCommit,
   FiKey
 } from 'react-icons/fi';
 import {
@@ -32,7 +32,7 @@ const navItems = [
   { path: '/market', label: 'Market', icon: FiTrendingUp },
   { path: '/spot', label: 'Spot', icon: FiActivity },
   { path: '/futures', label: 'Futures', icon: FiPieChart },
-  { path: '/staking', label: 'Staking', icon: FiStar },
+  { path: '/staking', label: 'Staking', icon: FiGitCommit },
   { path: '/assets', label: 'Assets', icon: FiFolder },
 ];
 

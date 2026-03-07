@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { Market, TradingPair } from '@/types/market-data';
-import { parseUnits, formatUnits } from 'viem';
+import { parseUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { OrderTypeSelector } from './OrderTypeSelector';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -16,6 +16,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createOrder } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
+import { formatFullBalance } from '@/lib/format';
 
 interface TradePanelProps {
   pair: TradingPair;
@@ -194,7 +195,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
         
         <div className="text-xs text-muted-foreground mb-2">
-          Available: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'} {displayQuoteSymbol}
+          Available: {formatFullBalance(quoteBalance, quoteToken?.decimals)} {displayQuoteSymbol}
         </div>
 
         <div className="flex-grow"></div>
@@ -273,15 +274,16 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
 
         <div className="mt-8">
-          <h3 className="text-base font-semibold">Vault Balance</h3>
-          <div className="mt-4">
-            <Label>{displayQuoteSymbol}: {quoteBalance && quoteToken ? formatUnits(quoteBalance, quoteToken.decimals) : '0'}</Label>
+          <h3 className="text-base font-semibold mb-2">Vault Balance</h3>
+          <div className="flex justify-between items-center mt-4">
+            <Label>{displayQuoteSymbol}:</Label>
+            <span>{formatFullBalance(quoteBalance, quoteToken?.decimals)}</span>
           </div>
           <div className="mt-2">
-            <Button onClick={() => navigate('/assets/deposit')} className="w-full bg-white/10">Deposit</Button>
+            <Button onClick={() => navigate('/assets/deposit')} className="w-full">Deposit</Button>
           </div>
           <div className="mt-2">
-            <Button onClick={() => navigate('/assets/withdraw')} className="w-full bg-white/10">Withdraw</Button>
+            <Button onClick={() => navigate('/assets/withdraw')} className="w-full">Withdraw</Button>
           </div>
         </div>
 

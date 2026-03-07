@@ -49,6 +49,8 @@ export function TradingChart({ symbol }: TradingChartProps) {
   const [chartId] = useState(() => `tradingview_chart_${++chartIdCounter}`);
   const widgetRef = useRef<TradingViewWidget | null>(null);
 
+  const chartSymbol = symbol === 'WETHUSDC' ? 'ETHUSDC' : symbol;
+
   useEffect(() => {
     let isMounted = true;
 
@@ -67,7 +69,7 @@ export function TradingChart({ symbol }: TradingChartProps) {
 
         widgetRef.current = new ((window as unknown as { TradingView: TradingView }).TradingView.widget)({
           autosize: true,
-          symbol: `BINANCE:${symbol}`,
+          symbol: `BINANCE:${chartSymbol}`,
           interval: '60',
           timezone: 'Etc/UTC',
           theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
@@ -101,7 +103,7 @@ export function TradingChart({ symbol }: TradingChartProps) {
         widgetRef.current = null;
       }
     };
-  }, [symbol, chartId]);
+  }, [chartSymbol, chartId]);
 
   return (
     <Card className="h-full flex flex-col">
@@ -110,7 +112,7 @@ export function TradingChart({ symbol }: TradingChartProps) {
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-lg font-bold font-mono" data-testid="text-chart-symbol">
-              {getDisplaySymbol({ symbol } as any)}
+              {getDisplaySymbol({ symbol: chartSymbol } as any)}
             </span>
             <span className="text-sm text-muted-foreground">Live Chart</span>
           </div>

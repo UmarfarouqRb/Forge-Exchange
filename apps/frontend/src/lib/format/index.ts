@@ -14,6 +14,13 @@ export const formatBalance = (balance: bigint, decimals: number): string => {
     return value.toFixed(6);
 };
 
+export const formatFullBalance = (balance: bigint | undefined, decimals: number | undefined): string => {
+  if (balance === undefined || decimals === undefined) {
+    return '0.0';
+  }
+  return formatUnits(balance, decimals);
+};
+
 const USD_FORMATTER = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',

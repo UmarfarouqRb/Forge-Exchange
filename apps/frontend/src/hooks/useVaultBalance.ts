@@ -10,7 +10,12 @@ export function useVaultBalance(tokenAddress: `0x${string}` | undefined) {
   const { address } = useAccount();
   const { selectedChain } = useChainContext();
 
-  const addressToQuery = normalizeTokenForVault(tokenAddress, WETH_ADDRESS);
+  const resolvedTokenAddress = tokenAddress ?? WETH_ADDRESS;
+
+  const addressToQuery = normalizeTokenForVault(
+    resolvedTokenAddress,
+    WETH_ADDRESS
+  );
 
   const safeTokenAddress = safeAddress(addressToQuery);
   const safeVaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
