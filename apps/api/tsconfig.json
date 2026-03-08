@@ -9,7 +9,7 @@
     "sourceMap": true,
     "lib": ["es2022", "dom"],
     "types": ["node"],
-    "typeRoots": ["node_modules/@types"]
+    "typeRoots": ["node_modules/@types", "src/types"]
   },
   "include": ["./**/*.ts"],
   "exclude": ["node_modules", "dist"]

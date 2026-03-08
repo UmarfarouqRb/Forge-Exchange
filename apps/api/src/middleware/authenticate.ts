@@ -1,15 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { createClient } from '@supabase/supabase-js';
 
-// Extend the Express Request interface to include a user object
-declare global {
-    namespace Express {
-        interface Request {
-            user?: { userId: string };
-        }
-    }
-}
-
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
@@ -32,11 +23,11 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
             return res.status(401).json({ error: 'Unauthorized: Invalid token' });
         }
 
-        req.user = { userId: user.id };
+        req.user = { sub: user.id };
         next();
 
     } catch (error: any) {
         console.error('Unexpected error in authentication middleware:', error);
-        return res.status(5.0).json({ error: 'Internal Server Error' });
+        return res.status(500).json({ error: 'Internal Server Error' });
     }
 };

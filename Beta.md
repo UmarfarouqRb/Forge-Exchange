@@ -21,11 +21,12 @@ Create a system to generate unique, single-use invite codes. These can be stored
 *   **Point Allocation Rules (Initial Proposal):**
     *   **Sign-up:** +100 Points
     *   **First Deposit:** +200 Points
-    *   **Deposit:** +50 Points (Capped at 1 per day)
-    *   **First Trade:** +150 Points
-    *   **Trade:** +25 Points (Capped at 10 per day)
-    *   **Internal Transfer:** +25 Points (Capped at 5 per day)
-    *   **Withdrawal:** +25 Points (Capped at 1 per day)
+    *   **Deposit:** +100 Points (Capped at 5 per day)
+    *   **First Trade:** +200 Points
+    *   **Trade:** +100 Points (Capped at 2 per day)
+    *   **Internal Transfer:** +25 Points (Capped at 2 per day)
+    *   **Withdrawal:** +50 Points (Capped at 1 per day)
+    *  **staking**: +100 Points (Capped at 2 per day)
     *   **Valuable Feedback:** +100 to 500 Points (Awarded manually by the team for high-quality, actionable feedback).
 *   **Milestone & Badge System:**
     *   **Level 1:** Default (0 Points)

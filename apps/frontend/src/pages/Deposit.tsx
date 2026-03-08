@@ -21,6 +21,7 @@ import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Deposit() {
   const [amount, setAmount] = useState('');
@@ -36,6 +37,7 @@ export default function Deposit() {
 
   const { assets: allAssets, refetchVault } = useVault();
   const { writeContractAsync } = useTransaction();
+  const { token } = useAuth(); // Auth token
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
@@ -70,6 +72,15 @@ export default function Deposit() {
       setMessage({ type: 'success', text: 'Deposit successful! Your balance will update shortly.' });
       toast.success('Deposit successful!');
       setIsDepositing(false);
+      // Award daily deposit bonus
+      if (token) {
+        fetch('/api/v1/points/deposit', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+      }
     },
   });
 
