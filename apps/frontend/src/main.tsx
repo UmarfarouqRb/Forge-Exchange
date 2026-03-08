@@ -17,7 +17,6 @@ import { mainnet, base, bsc, arbitrum, baseSepolia } from 'viem/chains';
 import App from './App';
 import './index.css';
 import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
-import { PointsProvider } from './contexts/PointsContext';
 import { config } from './wagmi';
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
@@ -53,9 +52,7 @@ function Main() {
         <QueryClientProvider client={queryClient}>
           <WagmiProvider config={config}>
             <ChainProvider>
-              <PointsProvider>
-                <App />
-              </PointsProvider>
+              <App />
             </ChainProvider>
           </WagmiProvider>
         </QueryClientProvider>

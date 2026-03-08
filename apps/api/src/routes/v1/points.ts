@@ -39,6 +39,9 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  */
 router.get('/', authenticate, async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized.' });
+    }
     const userId = req.user.sub;
 
     const { data, error } = await supabase
@@ -98,6 +101,9 @@ router.get('/', authenticate, async (req, res) => {
  */
 router.post('/deposit', authenticate, async (req, res) => {
     try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Unauthorized.' });
+        }
         const userId = req.user.sub;
         const today = new Date().toISOString().split('T')[0];
 
