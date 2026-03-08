@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { TOKENS, Token } from '@/config/contracts';
 import { formatUnits } from 'viem';
+import { useVault } from '@/contexts/VaultContext';
 
 interface FuturesTradePanelProps {
   symbol: string;
@@ -23,12 +23,18 @@ export function FuturesTradePanel({ symbol, currentPrice, isMobile = false }: Fu
   const [amount, setAmount] = useState('');
   const [leverage, setLeverage] = useState(10);
   const navigate = useNavigate();
+  const { assets } = useVault();
 
   const baseCurrency = symbol.replace('USDT', '') as Token;
   const quoteCurrency = 'USDT' as Token;
   const quoteToken = TOKENS[quoteCurrency];
 
-  const { data: quoteBalance } = useVaultBalance(quoteToken?.address);
+  const quoteAsset = useMemo(() => {
+    if (!assets) return null;
+    return assets.find(a => a.token.symbol === quoteCurrency);
+  }, [assets, quoteCurrency]);
+
+  const quoteBalance = quoteAsset ? quoteAsset.balance : 0n;
 
   const total = useMemo(() => {
     const priceValue = parseFloat(orderType === 'limit' ? price : currentPrice);

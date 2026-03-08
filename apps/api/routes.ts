@@ -11,6 +11,7 @@ import { broadcastToTopic } from "./websocket";
 import { getVaultTokens } from "./src/vault";
 import { getTradingPairs, getTradingPairBySymbol } from "./src/trading-pairs";
 import { getLiquidityPools, getLiquidityPositions, deposit, withdraw } from "./src/liquidity";
+import pointsRouter from "./src/routes/v1/points";
 
 // Define the proxy middleware for the relayer service
 const relayerProxy = createProxyMiddleware({
@@ -169,6 +170,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             res.status(500).json({ error: error.message });
         }
     });
+    
+    // --- Points Route ---
+    app.use("/api/v1/points", pointsRouter);
 
   const httpServer = createServer(app);
   return httpServer;

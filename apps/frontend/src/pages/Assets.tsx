@@ -12,6 +12,7 @@ import { formatUSD } from '@/lib/format';
 import { VaultAsset } from '@/types/market-data';
 import { useQueryClient } from '@tanstack/react-query';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
+import { UserPoints } from '@/components/UserPoints';
 
 function AssetRow({ asset }: { asset: VaultAsset & { price?: number; balanceUSD?: number } }) {
     const navigate = useNavigate();
@@ -118,7 +119,7 @@ export default function Assets() {
             {isBaseAssetsPage ? (
                 <div className="container mx-auto max-w-7xl">
                     <h1 className="text-3xl font-bold mb-6 text-foreground">Assets</h1>
-
+                    <UserPoints />
                     <Card className="mb-6">
                         <CardHeader>
                             <CardTitle>Total Asset Value</CardTitle>

@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
+import { LevelBadge } from './LevelBadge';
 
 const navItems = [
   { path: '/', label: 'Home', icon: FiHome },
@@ -112,6 +113,7 @@ export function Navigation() {
               Loading...
             </Button>
           ) : authenticated ? (
+            <>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="default" size="sm" className="text-xs md:text-sm font-mono" data-testid="button-wallet-connected">
@@ -160,6 +162,8 @@ export function Navigation() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <LevelBadge />
+            </>
           ) : (
             <Button variant="default" size="sm" onClick={login} className="text-xs md:text-sm px-2 md:px-4" data-testid="button-wallet-connect">
               Connect Wallet
@@ -180,8 +184,7 @@ export function Navigation() {
                   'flex-col h-auto py-2 leading-none',
                   pathname === item.path && 'bg-accent text-accent-foreground'
                 )}
-                data-testid={`link-mobile-${item.label.toLowerCase()}`}
-              >
+                data-testid={`link-mobile-${item.label.toLowerCase()}`}>
                 <Icon className="w-5 h-5 mb-1" />
                 <span className="text-xs">{item.label}</span>
               </NavLink>
