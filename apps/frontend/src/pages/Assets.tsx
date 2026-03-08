@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePrivy } from '@privy-io/react-auth';
 import { FiSearch, FiDownload, FiUpload, FiSend } from 'react-icons/fi';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useVault } from '@/contexts/VaultContext';
-import { formatBalance, formatUSD } from '@/lib/format';
+import { formatUSD } from '@/lib/format';
 import { VaultAsset } from '@/types/market-data';
 import { useQueryClient } from '@tanstack/react-query';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
@@ -16,7 +16,6 @@ import { getDisplaySymbol } from '@/utils/tokenDisplay';
 function AssetRow({ asset }: { asset: VaultAsset & { price?: number; balanceUSD?: number } }) {
     const navigate = useNavigate();
     const displaySymbol = getDisplaySymbol(asset.token);
-    const available = formatBalance(BigInt(asset.balance), asset.token.decimals);
     const availableUSD = asset.balanceUSD ? formatUSD(asset.balanceUSD) : '-';
 
     return (
@@ -31,7 +30,7 @@ function AssetRow({ asset }: { asset: VaultAsset & { price?: number; balanceUSD?
 
             <div className="flex justify-between items-center md:block md:text-right">
                 <span className="text-sm text-muted-foreground md:hidden">Available</span>
-                <div className="font-mono">{available}</div>
+                <div className="font-mono">{asset.balanceFormatted}</div>
             </div>
 
             <div className="flex justify-between items-center md:block md:text-right">
@@ -85,7 +84,6 @@ export default function Assets() {
     const [searchQuery, setSearchQuery] = useState('');
     const navigate = useNavigate();
     const location = useLocation();
-    const queryClient = useQueryClient();
 
     const { assets: allAssets, isLoading: assetsLoading, totalAssetsValue } = useVault();
 
@@ -96,13 +94,6 @@ export default function Assets() {
     }, [searchQuery, allAssets]);
 
     const isBaseAssetsPage = location.pathname === '/assets' || location.pathname === '/assets/';
-
-    useEffect(() => {
-        if (isBaseAssetsPage) {
-            queryClient.invalidateQueries({ queryKey: ['vaultBalance'] });
-        }
-    }, [isBaseAssetsPage, queryClient]);
-
 
     if (!authenticated) {
         return (

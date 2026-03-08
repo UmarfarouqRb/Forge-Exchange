@@ -12,10 +12,13 @@ export type Token = {
 export type VaultAsset = {
   token: Token;
   displayToken: Token;
-  balance: string;
+  balance: bigint;
+  balanceFormatted: string;
   deposit_enabled: boolean;
   withdraw_enabled: boolean;
   vault_spot_supported: boolean;
+  price?: number;
+  balanceUSD?: number;
 };
 
 export type TradingPair = {

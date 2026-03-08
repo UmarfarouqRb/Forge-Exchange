@@ -15,7 +15,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useVault } from '@/contexts/VaultContext';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
-import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
@@ -36,7 +35,7 @@ export default function InternalTransfer() {
   const params = new URLSearchParams(search);
   const assetSymbolFromUrl = params.get('asset');
 
-  const { assets: allAssets } = useVault();
+  const { assets: allAssets, refetchVault } = useVault();
   const { writeContractAsync } = useTransaction();
 
   useEffect(() => {
@@ -54,8 +53,6 @@ export default function InternalTransfer() {
   const tokenAddress = safeAddress(settlementToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
 
-  const { data: vaultBalance, refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
-
     const { data: resolvedAddress, isLoading: isResolvingAddress } = useEnsAddress({
         name: recipient,
         query: {
@@ -66,7 +63,7 @@ export default function InternalTransfer() {
   useTrackedTx({
     hash: transferTxHash,
     onSuccess: () => {
-      refetchVaultBalance();
+      refetchVault();
       setMessage({ type: 'success', text: 'Transfer successful! Your balance will update shortly.' });
       toast.success('Transfer successful!');
       setIsTransferring(false);
@@ -100,7 +97,7 @@ export default function InternalTransfer() {
 
     const parsedAmount = parseUnits(amount, settlementToken.decimals);
 
-    if (typeof vaultBalance !== 'bigint' || vaultBalance < parsedAmount) {
+    if (selectedAsset.balance < parsedAmount) {
       setMessage({ type: 'error', text: 'Insufficient vault balance for this transfer.' });
       toast.error('Insufficient vault balance for this transfer.');
       return;

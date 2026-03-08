@@ -13,12 +13,11 @@ import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { FiLoader } from 'react-icons/fi';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useVault } from '@/contexts/VaultContext';
-import { useChainContext } from '@/contexts/chain-context';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
-import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
+import { getDisplaySymbol } from '@/utils/tokenDisplay';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -32,7 +31,7 @@ export default function Withdraw() {
   const params = new URLSearchParams(search);
   const assetSymbolFromUrl = params.get('asset');
 
-  const { assets: allAssets } = useVault();
+  const { assets: allAssets, refetchVault } = useVault();
   const { writeContractAsync } = useTransaction();
 
   useEffect(() => {
@@ -43,21 +42,16 @@ export default function Withdraw() {
   }, [assetSymbolFromUrl]);
 
   const { address } = useAccount();
-  const { selectedChain } = useChainContext();
-  const chainId = selectedChain?.id;
 
   const selectedAsset = allAssets.find(a => a.token.symbol === selectedAssetSymbol);
   const settlementToken = selectedAsset?.token;
 
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
-  const tokenAddress = safeAddress(settlementToken?.address);
-
-  const { data: vaultBalance, refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
 
   useTrackedTx({
     hash: withdrawTxHash,
     onSuccess: () => {
-      refetchVaultBalance();
+      refetchVault();
       setMessage({ type: 'success', text: 'Withdrawal successful! Your balance will update shortly.' });
       toast.success('Withdrawal successful!');
       setIsWithdrawing(false);
@@ -90,18 +84,11 @@ export default function Withdraw() {
 
     const parsedAmount = parseUnits(amount, settlementToken.decimals);
     
-    if (typeof vaultBalance !== 'bigint' || vaultBalance < parsedAmount) {
+    if (selectedAsset.balance < parsedAmount) {
         setMessage({ type: 'error', text: 'Insufficient vault balance for this withdrawal.' });
         toast.error('Insufficient vault balance for this withdrawal.');
         return;
     }
-
-    console.log({
-      token: settlementToken.symbol,
-      address: settlementToken.address,
-      amount: parsedAmount.toString(),
-      vaultAddress: vaultAddress,
-    });
 
     setIsWithdrawing(true);
     const toastId = toast.loading('Processing withdrawal...');
@@ -109,7 +96,7 @@ export default function Withdraw() {
     try {
         let txHash;
 
-        if (settlementToken.symbol === "WETH") {
+        if (getDisplaySymbol(settlementToken) === "ETH") {
             toast.loading('Withdrawing ETH...', { id: toastId });
             txHash = await writeContractAsync({
                 address: vaultAddress,

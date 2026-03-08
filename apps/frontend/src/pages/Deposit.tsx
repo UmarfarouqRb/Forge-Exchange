@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { toast } from 'sonner';
 import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { parseUnits, erc20Abi } from 'viem';
-import { useAccount, useBalance, useReadContract } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { config } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
@@ -16,7 +17,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useVault } from '@/contexts/VaultContext';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
-import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
@@ -34,7 +34,7 @@ export default function Deposit() {
   const params = new URLSearchParams(search);
   const assetSymbolFromUrl = params.get('asset');
 
-  const { assets: allAssets } = useVault();
+  const { assets: allAssets, refetchVault } = useVault();
   const { writeContractAsync } = useTransaction();
 
   useEffect(() => {
@@ -52,16 +52,6 @@ export default function Deposit() {
   const tokenAddress = safeAddress(settlementToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
 
-  const { refetch: refetchVaultBalance } = useVaultBalance(tokenAddress);
-
-  const { data: balance } = useBalance({
-    address: address,
-    token: settlementToken && getDisplaySymbol(settlementToken) === 'ETH' ? undefined : tokenAddress,
-    query: {
-      enabled: !!address && !!selectedAssetSymbol,
-    },
-  });
-
   const { data: allowance, refetch } = useReadContract({
     address: tokenAddress,
     abi: erc20Abi,
@@ -76,7 +66,7 @@ export default function Deposit() {
     hash: depositTxHash,
     onSuccess: () => {
       refetch();
-      refetchVaultBalance();
+      refetchVault();
       setMessage({ type: 'success', text: 'Deposit successful! Your balance will update shortly.' });
       toast.success('Deposit successful!');
       setIsDepositing(false);
@@ -163,7 +153,7 @@ export default function Deposit() {
 
     const parsedAmount = parseUnits(amount, settlementToken.decimals);
 
-    if (balance == null || balance.value < parsedAmount) {
+    if (selectedAsset.balance < parsedAmount) {
         const errorMsg = 'Insufficient balance for this deposit.';
         setMessage({ type: 'error', text: errorMsg });
         toast.error(errorMsg);

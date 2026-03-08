@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { useVaultBalance } from '@/hooks/useVaultBalance';
 import { Market, TradingPair } from '@/types/market-data';
 import { parseUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
@@ -17,6 +16,7 @@ import { createOrder } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
 import { formatFullBalance } from '@/lib/format';
+import { useVault } from '@/contexts/VaultContext';
 
 interface TradePanelProps {
   pair: TradingPair;
@@ -50,6 +50,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const { wallets } = useWallets();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { assets, refetchVault } = useVault();
 
   const addLog = (log: string) => {
     setLogs(prevLogs => [`[${new Date().toLocaleTimeString()}] ${log}`, ...prevLogs]);
@@ -69,8 +70,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const displayBaseSymbol = baseToken ? getDisplaySymbol(baseToken) : '';
   const displayQuoteSymbol = quoteToken ? getDisplaySymbol(quoteToken) : '';
 
-  const { data: baseBalance } = useVaultBalance(baseToken?.address as `0x${string}`);
-  const { data: quoteBalance } = useVaultBalance(quoteToken?.address as `0x${string}`);
+  const baseAsset = useMemo(() => assets.find(a => a.token.address.toLowerCase() === baseToken?.address.toLowerCase()), [assets, baseToken]);
+  const quoteAsset = useMemo(() => assets.find(a => a.token.address.toLowerCase() === quoteToken?.address.toLowerCase()), [assets, quoteToken]);
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 
@@ -78,24 +79,21 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     if (!amount) return true;
 
     if (side === 'buy') {
-      if (!quoteBalance || !quoteToken) return false;
+      if (!quoteAsset || !quoteToken) return false;
       const totalAmount = parseUnits(total.toString(), quoteToken.decimals);
-      return quoteBalance >= totalAmount;
+      return quoteAsset.balance >= totalAmount;
     } else {
-      if (!baseBalance || !baseToken) return false;
+      if (!baseAsset || !baseToken) return false;
       const orderAmount = parseUnits(amount, baseToken.decimals);
-      return baseBalance >= orderAmount;
+      return baseAsset.balance >= orderAmount;
     }
-  }, [amount, side, baseBalance, quoteBalance, baseToken, quoteToken, total]);
+  }, [amount, side, baseAsset, quoteAsset, baseToken, quoteToken, total]);
 
   const { mutate: submitOrder, isPending: isSubmitting } = useMutation({
     mutationFn: createOrder,
     onSuccess: () => {
       addLog('Order placed successfully');
-      queryClient.invalidateQueries({ queryKey: ['user-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['vaultBalance', user?.wallet?.address, baseToken?.address] });
-      queryClient.invalidateQueries({ queryKey: ['vaultBalance', user?.wallet?.address, quoteToken?.address] });
-      queryClient.invalidateQueries({ queryKey: ['nativeBalance', user?.wallet?.address] });
+      refetchVault();
       setIsConfirming(false);
       setAmount('');
     },
@@ -195,7 +193,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
         
         <div className="text-xs text-muted-foreground mb-2">
-          Available: {formatFullBalance(quoteBalance, quoteToken?.decimals)} {displayQuoteSymbol}
+          Available: {quoteAsset ? formatFullBalance(quoteAsset.balance, quoteToken?.decimals) : '0'} {displayQuoteSymbol}
         </div>
 
         <div className="flex-grow"></div>
@@ -277,11 +275,11 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           <h3 className="text-base font-semibold mb-2">Vault Balance</h3>
           <div className="flex justify-between items-center mt-4">
             <Label>{displayBaseSymbol}:</Label>
-            <span>{formatFullBalance(baseBalance, baseToken?.decimals)}</span>
+            <span>{baseAsset ? formatFullBalance(baseAsset.balance, baseToken?.decimals) : '0'}</span>
           </div>
           <div className="flex justify-between items-center mt-4">
             <Label>{displayQuoteSymbol}:</Label>
-            <span>{formatFullBalance(quoteBalance, quoteToken?.decimals)}</span>
+            <span>{quoteAsset ? formatFullBalance(quoteAsset.balance, quoteToken?.decimals) : '0'}</span>
           </div>
           <div className="mt-2">
             <Button onClick={() => navigate('/assets/deposit')} className="w-full">Deposit</Button>
