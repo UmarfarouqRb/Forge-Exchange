@@ -1,5 +1,4 @@
-
-import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useCallback, useMemo } from 'react';
 import { getVaultTokens, getMarkets } from '@/lib/api';
 import { useChainContext } from '@/contexts/chain-context';
 import { VaultAsset, Market, Token } from '@/types/market-data';
@@ -25,10 +24,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   const { address } = useAccount();
   const queryClient = useQueryClient();
 
-  const [assets, setAssets] = useState<VaultAsset[]>([]);
-  const [totalAssetsValue, setTotalAssetsValue] = useState(0);
-
-  const { data: vaultAssetsResponse, isLoading: tokensLoading } = useQuery<VaultAsset[]>({
+  const { data: vaultAssetsResponse, isLoading: tokensLoading } = useQuery<VaultAsset[]> ({
     queryKey: ['vaultTokensStatic'],
     queryFn: getVaultTokens,
   });
@@ -44,66 +40,65 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
+  
   const balanceContracts = useMemo(() => {
-    if (!vaultTokens || !address) return [];
+    if (!vaultTokens.length || !address) return [];
+    
     return vaultTokens.map((token: Token) => ({
       address: vaultAddress,
       abi: VaultSpotAbi,
       functionName: 'balances',
       args: [address, token.address as `0x${string}`],
-      chainId: selectedChain?.id as any,
+      chainId: selectedChain.id,
     }));
   }, [vaultTokens, address, vaultAddress, selectedChain]);
 
   const { data: balanceResults, refetch: refetchBalances, isLoading: balancesLoading } = useReadContracts({
     contracts: balanceContracts,
     query: {
-      enabled: !!address && vaultTokens.length > 0 && !!selectedChain,
+      enabled: Boolean(address && selectedChain?.id && vaultTokens.length > 0),
     }
   });
 
-  useEffect(() => {
-    if (vaultAssetsResponse && balanceResults && markets) {
-
-      const marketMap = new Map(
-        markets.map(m => [m.symbol.split('-')[0], m])
-      );
-      
-      const stablecoins = ['USDC', 'DAI', 'USDT'];
-      let totalValue = 0;
-
-      const assetsWithPrices: VaultAsset[] = vaultAssetsResponse.map((asset: VaultAsset, i: number) => {
-        const token = asset.token;
-        const balanceResult = balanceResults[i];
-        const balance = balanceResult.status === 'success' ? (balanceResult.result as bigint) : BigInt(0);
-
-        let price = 0;
-        if (stablecoins.includes(token.symbol)) {
-          price = 1;
-        } else {
-          const market = marketMap.get(token.symbol);
-          if (market && market.lastPrice) {
-            price = parseFloat(market.lastPrice);
-          }
-        }
-        
-        const balanceFormatted = formatBalance(balance, token.decimals);
-        const balanceFloat = parseFloat(balanceFormatted);
-        const balanceUSD = balanceFloat * price;
-        totalValue += balanceUSD;
-
-        return {
-          ...asset,
-          balance,
-          balanceFormatted,
-          price,
-          balanceUSD,
-        };
-      });
-      
-      setAssets(assetsWithPrices);
-      setTotalAssetsValue(totalValue);
+  const [assets, totalAssetsValue] = useMemo(() => {
+    if (!vaultAssetsResponse || !balanceResults || !markets) {
+      return [[], 0];
     }
+
+    const marketMap = new Map(markets.map(m => [m.symbol.split('-')[0], m]));
+    const stablecoins = ['USDC', 'DAI', 'USDT'];
+    let totalValue = 0;
+
+    const assetsWithPrices: VaultAsset[] = vaultAssetsResponse.map((asset: VaultAsset, i: number) => {
+      const token = asset.token;
+      const balanceResult = balanceResults[i];
+      const balance = balanceResult?.status === 'success' ? (balanceResult.result as bigint) : BigInt(0);
+
+      let price = 0;
+      if (stablecoins.includes(token.symbol)) {
+        price = 1;
+      } else {
+        const market = marketMap.get(token.symbol);
+        if (market && market.lastPrice) {
+          price = parseFloat(market.lastPrice);
+        }
+      }
+      
+      const balanceFormatted = formatBalance(balance, token.decimals);
+      const balanceFloat = parseFloat(balanceFormatted);
+      const balanceUSD = balanceFloat * price;
+      totalValue += balanceUSD;
+
+      return {
+        ...asset,
+        balance,
+        balanceFormatted,
+        price,
+        balanceUSD,
+      };
+    });
+    
+    return [assetsWithPrices, totalValue];
   }, [vaultAssetsResponse, balanceResults, markets]);
   
   const isLoading = tokensLoading || marketsLoading || balancesLoading;
@@ -117,15 +112,13 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     address: vaultAddress,
     abi: VaultSpotAbi,
     eventName: 'Deposit',
-    chainId: selectedChain?.id as any,
+    chainId: selectedChain.id,
     args: {
         user: address,
     },
     onLogs: () => {
-      if (selectedChain) {
         console.log('Deposit event detected, refetching vault data');
         refetchVault();
-      }
     },
   });
 
@@ -133,15 +126,13 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     address: vaultAddress,
     abi: VaultSpotAbi,
     eventName: 'Withdraw',
-    chainId: selectedChain?.id as any,
+    chainId: selectedChain.id,
     args: {
         user: address,
     },
     onLogs: () => {
-      if (selectedChain) {
         console.log('Withdraw event detected, refetching vault data');
         refetchVault();
-      }
     },
   });
 
@@ -149,15 +140,13 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     address: vaultAddress,
     abi: VaultSpotAbi,
     eventName: 'InternalTransfer',
-    chainId: selectedChain?.id as any,
+    chainId: selectedChain.id,
     args: {
         user: address,
     },
     onLogs: () => {
-      if (selectedChain) {
         console.log('InternalTransfer event detected, refetching vault data');
         refetchVault();
-      }
     },
   });
 

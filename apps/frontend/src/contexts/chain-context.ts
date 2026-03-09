@@ -1,87 +1,16 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext } from 'react';
+import { base, baseSepolia, arbitrum, bsc } from 'viem/chains';
 
-export type Chain = {
-  id: string;
-  name: string;
-  chainId: number;
-  rpcUrl: string;
-  nativeCurrency: {
-    name: string;
-    symbol: string;
-    decimals: number;
-  };
-  blockExplorerUrl: string;
-};
+export const SUPPORTED_CHAINS = [base, baseSepolia, arbitrum, bsc] as const;
 
-export const SUPPORTED_CHAINS: Chain[] = [
-  {
-   id: "base sepolia",
-   name: "Base sepolia",
-   chainId: 84532,
-   rpcUrl: "https://sepolia.base.org",
-   nativeCurrency: {
-    name: "Ethereum",
-    symbol: "ETH",
-    decimals: 18, 
-   },
-   blockExplorerUrl: "https://sepolia.base.org", 
-  },
-  {
-    id: "base",
-    name: "Base",
-    chainId: 8453,
-    rpcUrl: "https://mainnet.base.org",
-    nativeCurrency: {
-      name: "Ethereum",
-      symbol: "ETH",
-      decimals: 18,
-    },
-    blockExplorerUrl: "https://basescan.org",
-  },
-  {
-    id: "bnb",
-    name: "BNB Chain",
-    chainId: 56,
-    rpcUrl: "https://bsc-dataseed.binance.org",
-    nativeCurrency: {
-      name: "BNB",
-      symbol: "BNB",
-      decimals: 18,
-    },
-    blockExplorerUrl: "https://bscscan.com",
-  },
-  {
-    id: "arb",
-    name: "Arbitrum",
-    chainId: 42161,
-    rpcUrl: "https://arb1.arbitrum.io/rpc",
-    nativeCurrency: {
-      name: "Ethereum",
-      symbol: "ETH",
-      decimals: 18,
-    },
-    blockExplorerUrl: "https://arbiscan.io",
-  },
-  {
-    id: "SOL",
-    name: "SOL (Coming Soon)",
-    chainId: 101,
-    rpcUrl: "https://fullnode.mainnet.sui.io",
-    nativeCurrency: {
-      name: "SOL",
-      symbol: "SOL",
-      decimals: 9,
-    },
-    blockExplorerUrl: "https://explorer.sui.io",
-  },
-];
+export type SupportedChain = typeof SUPPORTED_CHAINS[number];
+export type SupportedChainId = SupportedChain['id'];
 
-export type ChainContextType = {
-  selectedChain: Chain;
-  setSelectedChain: (chain: Chain) => void;
-  switchChain: (chainId: string) => Promise<void>;
-};
-
+export interface ChainContextType {
+  chains: readonly SupportedChain[];
+  selectedChain: SupportedChain;
+  switchChain: (chainId: SupportedChainId) => void;
+}
 
 export const ChainContext = createContext<ChainContextType | undefined>(undefined);
 
@@ -91,4 +20,4 @@ export const useChainContext = () => {
     throw new Error("useChainContext must be used within a ChainProvider");
   }
   return context;
-}
+};

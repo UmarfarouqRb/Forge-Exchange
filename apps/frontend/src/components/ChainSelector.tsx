@@ -1,70 +1,21 @@
-import { useChain } from "@/hooks/use-chain";
-import { SUPPORTED_CHAINS } from "@/contexts/chain-context";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { useChainContext, SupportedChainId } from '@/contexts/chain-context';
 
-export function ChainSelector() {
-  const { selectedChain, switchChain, setSelectedChain } = useChain();
-  const { toast } = useToast();
-
-  const handleChainChange = async (chainId: string) => {
-    const chain = SUPPORTED_CHAINS.find(c => c.id === chainId);
-    
-    if (chainId === 'SOL') {
-      setSelectedChain(chain!);
-      toast({
-        title: "Coming Soon",
-        description: "SOL network support is coming soon. Currently only EVM-compatible chains are supported.",
-        variant: "default",
-      });
-      return;
-    }
-
-    try {
-      await switchChain(chainId);
-      toast({
-        title: "Chain Switched",
-        description: `Switched to ${chain?.name}`,
-      });
-    } catch (error) {
-      let description = "Could not switch to the selected chain";
-      if (error instanceof Error) {
-        description = error.message;
-      }
-      toast({
-        title: "Failed to Switch Chain",
-        description,
-        variant: "destructive",
-      });
-    }
-  };
+export const ChainSelector = () => {
+  const { chains, selectedChain, switchChain } = useChainContext();
 
   return (
-    <Select value={selectedChain.id} onValueChange={handleChainChange}>
-      <SelectTrigger 
-        className="w-[100px] sm:w-[120px] md:w-[140px] bg-card border-border hover:bg-accent text-xs sm:text-sm" 
-        data-testid="select-chain"
+    <div className="flex items-center space-x-2">
+      <select
+        value={selectedChain.id}
+        onChange={(e) => switchChain(parseInt(e.target.value) as SupportedChainId)}
+        className="p-2 border rounded"
       >
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent className="max-w-[200px]">
-        {SUPPORTED_CHAINS.map((chain) => (
-          <SelectItem 
-            key={chain.id} 
-            value={chain.id}
-            data-testid={`select-chain-${chain.id}`}
-            className="text-xs sm:text-sm"
-          >
+        {chains.map((chain) => (
+          <option key={chain.id} value={chain.id}>
             {chain.name}
-          </SelectItem>
+          </option>
         ))}
-      </SelectContent>
-    </Select>
+      </select>
+    </div>
   );
-}
+};
