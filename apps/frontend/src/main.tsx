@@ -18,6 +18,8 @@ import App from './App';
 import './index.css';
 import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
 import { config } from './wagmi';
+import { VaultProvider } from './contexts/VaultContext';
+import { PointsProvider } from './contexts/PointsContext';
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
 
@@ -52,7 +54,11 @@ function Main() {
         <QueryClientProvider client={queryClient}>
           <WagmiProvider config={config}>
             <ChainProvider>
-              <App />
+              <VaultProvider>
+                <PointsProvider>
+                  <App />
+                </PointsProvider>
+              </VaultProvider>
             </ChainProvider>
           </WagmiProvider>
         </QueryClientProvider>

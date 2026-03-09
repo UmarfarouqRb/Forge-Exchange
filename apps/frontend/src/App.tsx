@@ -15,8 +15,6 @@ import Staking from "@/pages/Staking";
 import Deposit from "@/pages/Deposit";
 import InternalTransfer from "@/pages/InternalTransfer";
 import Withdraw from "@/pages/Withdraw";
-import { VaultProvider } from "./contexts/VaultContext";
-import { PointsProvider } from "./contexts/PointsContext";
 
 function AppLayout() {
   return (
@@ -31,31 +29,27 @@ function AppLayout() {
 
 function App() {
   return (
-      <VaultProvider>
-        <TooltipProvider>
-          <PointsProvider>
-            <Routes>
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/market" element={<Market />} />
-                <Route path="/spot" element={<Spot />} />
-                <Route path="/spot/:pairId" element={<Spot />} />
-                <Route path="/futures" element={<Futures />} />
-                <Route path="/assets/*" element={<Assets />}>
-                  <Route path="deposit" element={<Deposit />} />
-                  <Route path="transfer" element={<InternalTransfer />} />
-                  <Route path="withdraw" element={<Withdraw />} />
-                </Route>
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/portfolio" element={<Portfolio />} />
-                <Route path="/staking" element={<Staking />} />
-              </Route>
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-            <Toaster />
-          </PointsProvider>
-        </TooltipProvider>
-      </VaultProvider>
+      <TooltipProvider>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/market" element={<Market />} />
+            <Route path="/spot" element={<Spot />} />
+            <Route path="/spot/:pairId" element={<Spot />} />
+            <Route path="/futures" element={<Futures />} />
+            <Route path="/assets/*" element={<Assets />}>
+              <Route path="deposit" element={<Deposit />} />
+              <Route path="transfer" element={<InternalTransfer />} />
+              <Route path="withdraw" element={<Withdraw />} />
+            </Route>
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/portfolio" element={<Portfolio />} />
+            <Route path="/staking" element={<Staking />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+        <Toaster />
+      </TooltipProvider>
   );
 }
 

@@ -58,7 +58,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   const { data: balanceResults, refetch: refetchBalances, isLoading: balancesLoading } = useReadContracts({
     contracts: balanceContracts,
     query: {
-      enabled: !!address && vaultTokens.length > 0,
+      enabled: !!address && vaultTokens.length > 0 && !!selectedChain,
     }
   });
 
@@ -122,8 +122,10 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
         user: address,
     },
     onLogs: () => {
+      if (selectedChain) {
         console.log('Deposit event detected, refetching vault data');
         refetchVault();
+      }
     },
   });
 
@@ -136,8 +138,10 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
         user: address,
     },
     onLogs: () => {
+      if (selectedChain) {
         console.log('Withdraw event detected, refetching vault data');
         refetchVault();
+      }
     },
   });
 
@@ -150,8 +154,10 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
         user: address,
     },
     onLogs: () => {
+      if (selectedChain) {
         console.log('InternalTransfer event detected, refetching vault data');
         refetchVault();
+      }
     },
   });
 

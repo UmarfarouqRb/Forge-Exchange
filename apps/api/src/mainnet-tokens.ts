@@ -20,7 +20,7 @@ export const MAINNET_TOKENS: Record<string, Token> = {
     id: "WETH",
     address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     name: "Wrapped Ethereum",
-    symbol: "ETH",
+    symbol: "WETH",
     decimals: 18,
   },
   USDC: {
