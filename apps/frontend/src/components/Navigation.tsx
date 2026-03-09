@@ -106,7 +106,7 @@ export function Navigation() {
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
-          <ChainSelector />
+          
           {!ready ? (
             <Button variant="outline" size="sm" disabled className="text-xs md:text-sm">
               <FiLoader className="w-4 h-4 mr-2 animate-spin" />
@@ -114,6 +114,8 @@ export function Navigation() {
             </Button>
           ) : authenticated ? (
             <>
+            <LevelBadge />
+            <ChainSelector />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="default" size="sm" className="text-xs md:text-sm font-mono" data-testid="button-wallet-connected">
@@ -162,7 +164,6 @@ export function Navigation() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <LevelBadge />
             </>
           ) : (
             <Button variant="default" size="sm" onClick={login} className="text-xs md:text-sm px-2 md:px-4" data-testid="button-wallet-connect">

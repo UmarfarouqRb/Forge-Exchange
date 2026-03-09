@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, User } from '@supabase/supabase-js';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL!;
@@ -21,6 +21,31 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         if (error || !user) {
             console.error('Authentication error:', error?.message);
             return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+        }
+
+        // Check if user exists in our public.users table
+        const { data: publicUser, error: publicUserError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', user.id)
+            .single();
+
+        if (publicUserError && publicUserError.code !== 'PGRST116') { // PGRST116 = no rows found
+            console.error('Error fetching public user:', publicUserError);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+
+        // If user does not exist, create them
+        if (!publicUser) {
+            const walletAddress = user.user_metadata.wallet_address; // Correctly access wallet_address
+            const { error: insertError } = await supabase
+                .from('users')
+                .insert({ id: user.id, wallet_address: walletAddress });
+
+            if (insertError) {
+                console.error('Error creating public user:', insertError);
+                return res.status(500).json({ error: 'Internal Server Error' });
+            }
         }
 
         req.user = { sub: user.id };

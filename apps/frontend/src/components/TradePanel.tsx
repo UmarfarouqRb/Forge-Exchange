@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,8 +69,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const displayBaseSymbol = baseToken ? getDisplaySymbol(baseToken) : '';
   const displayQuoteSymbol = quoteToken ? getDisplaySymbol(quoteToken) : '';
 
-  const baseAsset = useMemo(() => assets.find(a => a.token.address.toLowerCase() === baseToken?.address.toLowerCase()), [assets, baseToken]);
-  const quoteAsset = useMemo(() => assets.find(a => a.token.address.toLowerCase() === quoteToken?.address.toLowerCase()), [assets, quoteToken]);
+  const baseAsset = useMemo(() => assets.find(a => getDisplaySymbol(a.token) === displayBaseSymbol), [assets, displayBaseSymbol]);
+  const quoteAsset = useMemo(() => assets.find(a => getDisplaySymbol(a.token) === displayQuoteSymbol), [assets, displayQuoteSymbol]);
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 

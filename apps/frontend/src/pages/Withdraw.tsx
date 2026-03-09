@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ export default function Withdraw() {
   const [amount, setAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
-  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>( '');
+  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>('');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   const { search } = useLocation();
@@ -36,17 +35,20 @@ export default function Withdraw() {
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
-      const canonicalSymbol = assetSymbolFromUrl === 'ETH' ? 'WETH' : assetSymbolFromUrl;
-      setSelectedAssetSymbol(canonicalSymbol);
+      setSelectedAssetSymbol(assetSymbolFromUrl);
     }
   }, [assetSymbolFromUrl]);
 
   const { address } = useAccount();
 
-  const selectedAsset = allAssets.find(a => a.token.symbol === selectedAssetSymbol);
+  const selectedAsset = allAssets.find(a => getDisplaySymbol(a.token) === selectedAssetSymbol);
   const settlementToken = selectedAsset?.token;
 
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
+
+  useEffect(() => {
+    setAmount('');
+  }, [selectedAssetSymbol]);
 
   useTrackedTx({
     hash: withdrawTxHash,

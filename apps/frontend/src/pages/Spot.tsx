@@ -8,6 +8,7 @@ import { NewAssetSelector } from "@/components/NewAssetSelector";
 import Trade from './Trade';
 import { subscribe, unsubscribe } from '@/lib/ws/market';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getDisplaySymbol } from '@/utils/tokenDisplay';
 
 function TradeHeader({ 
     market, 
@@ -59,7 +60,7 @@ function TradeHeader({
             </div>
             <div>
               <div className="text-muted-foreground text-xs">24h Volume</div>
-              <div className="font-mono font-medium">{volume} {quoteAsset?.symbol}</div>
+              <div className="font-mono font-medium">{volume} {quoteAsset ? getDisplaySymbol(quoteAsset) : ''}</div>
             </div>
           </div>
         </div>

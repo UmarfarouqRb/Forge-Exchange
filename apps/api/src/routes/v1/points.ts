@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createClient } from '@supabase/supabase-js';
-import { authenticate } from '../../middleware/authenticate'; // Assuming you have an authentication middleware
+import { authenticate } from '../../middleware/authenticate';
 
 const router = Router();
 
@@ -21,17 +21,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  *     responses:
  *       200:
  *         description: Successfully retrieved user points.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 total_points:
- *                   type: integer
- *                   example: 1250
- *                 level:
- *                   type: integer
- *                   example: 2
  *       401:
  *         description: Unauthorized.
  *       500:
@@ -54,25 +43,9 @@ router.get('/', authenticate, async (req, res) => {
       throw error;
     }
 
-    if (!data) {
-        // If no record exists, create one
-        const { data: newUserPoint, error: newUserPointError } = await supabase
-            .from('points')
-            .insert({ user_id: userId, total_points: 0, level: 1 })
-            .select()
-            .single();
-
-        if (newUserPointError) throw newUserPointError;
-
-        return res.status(200).json({
-            total_points: newUserPoint.total_points,
-            level: newUserPoint.level,
-        });
-    }
-
     res.status(200).json({
-        total_points: data.total_points,
-        level: data.level,
+        total_points: data?.total_points || 0,
+        level: data?.level || 1,
     });
   } catch (error) {
     console.error('Error fetching points:', error);
@@ -121,34 +94,15 @@ router.post('/deposit', authenticate, async (req, res) => {
         if (dailyDeposit && dailyDeposit.last_deposit_date === today) {
             return res.status(204).send(); // No content, bonus already awarded
         }
-        
-        // Upsert points and add 100
-        const { data: pointData, error: pointsError } = await supabase
-            .from('points')
-            .select('total_points')
-            .eq('user_id', userId)
-            .single();
-        
-        if (pointsError && pointsError.code !== 'PGRST116') {
-            throw pointsError;
-        }
-        
-        if (!pointData) {
-            // Create a new record if it doesn't exist
-            const { error: newPointError } = await supabase
-                .from('points')
-                .insert({ user_id: userId, total_points: 100, level: 1 });
-            
-            if (newPointError) throw newPointError;
-        } else {
-            // Update existing record
-            const newTotalPoints = pointData.total_points + 100;
-            const { error: updateError } = await supabase
-                .from('points')
-                .update({ total_points: newTotalPoints })
-                .eq('user_id', userId);
 
-            if (updateError) throw updateError;
+        // Upsert points and add 100
+        const { error: pointsError } = await supabase.rpc('add_points', {
+            user_id_in: userId,
+            points_to_add: 100
+        });
+
+        if (pointsError) {
+            throw pointsError;
         }
 
         // Record the deposit

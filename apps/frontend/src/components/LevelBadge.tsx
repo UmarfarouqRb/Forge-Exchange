@@ -9,8 +9,8 @@ export const LevelBadge = () => {
   }
 
   return (
-    <Badge variant="secondary">
-      Level {level}
+    <Badge variant="default" className="bg-blue-400 text-white">
+      lvl {level}
     </Badge>
   );
 };
