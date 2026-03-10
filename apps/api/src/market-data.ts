@@ -1,4 +1,4 @@
-import { Token } from './mainnet-tokens';
+import { Token, MAINNET_TOKENS } from './mainnet-tokens';
 
 const COINGECKO_ID_MAP: Record<string, string> = {
     'ETH': 'ethereum',
@@ -18,17 +18,25 @@ export type MarketData24h = {
 const marketDataCache = new Map<string, { timestamp: number; data: MarketData24h }>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+const getDisplayToken = (token: Token): Token => {
+    if (token.symbol === 'WETH') {
+        return MAINNET_TOKENS['ETH'];
+    }
+    return token;
+};
+
 export async function get24hMarketData(baseToken: Token, quoteToken: Token): Promise<MarketData24h | null> {
-    const cacheKey = `${baseToken.symbol}-${quoteToken.symbol}`;
+    const displayBaseToken = getDisplayToken(baseToken);
+    const cacheKey = `${displayBaseToken.symbol}-${quoteToken.symbol}`;
     const cached = marketDataCache.get(cacheKey);
 
     if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
         return cached.data;
     }
 
-    const baseId = COINGECKO_ID_MAP[baseToken.symbol];
+    const baseId = COINGECKO_ID_MAP[displayBaseToken.symbol];
     if (!baseId) {
-        console.warn(`No CoinGecko ID for symbol ${baseToken.symbol}`);
+        console.warn(`No CoinGecko ID for symbol ${displayBaseToken.symbol}`);
         return null;
     }
 
@@ -48,7 +56,7 @@ export async function get24hMarketData(baseToken: Token, quoteToken: Token): Pro
         const volumes = chartData.total_volumes as [number, number][];
 
         if (!prices || prices.length < 2) {
-            console.warn(`Not enough price data for ${baseToken.symbol}`);
+            console.warn(`Not enough price data for ${displayBaseToken.symbol}`);
             return null;
         }
         
@@ -72,7 +80,7 @@ export async function get24hMarketData(baseToken: Token, quoteToken: Token): Pro
 
         return result;
     } catch (error) {
-        console.error(`Error fetching 24h market data for ${baseToken.symbol}:`, error);
+        console.error(`Error fetching 24h market data for ${displayBaseToken.symbol}:`, error);
         return null;
     }
 }

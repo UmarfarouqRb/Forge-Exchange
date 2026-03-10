@@ -47,6 +47,13 @@ function safeAddress(addr?: string | null): `0x${string}` | null {
     return addr.toLowerCase() as `0x${string}`;
 }
 
+const getDisplayToken = (token: Token): Token => {
+    if (token.symbol === 'WETH') {
+        return MAINNET_TOKENS['ETH'];
+    }
+    return token;
+};
+
 // --- LIVE DATA FETCHING ---
 
 const alchemyRpcUrl = process.env.ALCHEMY_RPC_URL;
@@ -202,8 +209,8 @@ export async function getMarket(pairId: string): Promise<MarketState | null> {
             return null;
         }
 
-        const baseToken = MAINNET_TOKENS[pairInfo.base.symbol];
-        const quoteToken = MAINNET_TOKENS[pairInfo.quote.symbol];
+        const baseToken = getDisplayToken(MAINNET_TOKENS[pairInfo.base.symbol]);
+        const quoteToken = getDisplayToken(MAINNET_TOKENS[pairInfo.quote.symbol]);
 
         const [bookResult, marketDataResult, marketData24hResult] = await Promise.allSettled([
             getOrderBook(baseToken, quoteToken, pairId),

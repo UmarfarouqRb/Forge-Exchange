@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,7 +42,7 @@ export default function Withdraw() {
 
   const { address } = useAccount();
 
-  const selectedAsset = allAssets.find(a => getDisplaySymbol(a.token) === selectedAssetSymbol);
+  const selectedAsset = allAssets.find(a => getDisplaySymbol(a.token) === selectedAssetSymbol || a.token.symbol === selectedAssetSymbol);
   const settlementToken = selectedAsset?.token;
 
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);

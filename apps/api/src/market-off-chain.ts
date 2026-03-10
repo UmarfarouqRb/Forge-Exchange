@@ -30,33 +30,25 @@ export type MarketState = {
 
 // --- OFF-CHAIN PRICE FETCHING ---
 
-const COINGECKO_ID_MAP: Record<string, string> = {
-    'ETH': 'ethereum',
-    'USDC': 'usd-coin',
-    'DAI': 'dai',
-    'BTC': 'bitcoin',
-};
-
 async function getOffChainPrice(baseToken: Token): Promise<number | null> {
-    const baseId = COINGECKO_ID_MAP[baseToken.symbol];
-    if (!baseId) {
-        console.warn(`No CoinGecko ID for symbol ${baseToken.symbol}`);
-        return null;
-    }
-
     try {
-        const url = `https://api.coingecko.com/api/v3/simple/price?ids=${baseId}&vs_currencies=usd`;
+        const address = baseToken.address.toLowerCase();
+        const url =
+            `https://api.coingecko.com/api/v3/simple/token_price/base` + // Changed from ethereum to base
+            `?contract_addresses=${address}&vs_currencies=usd`;
+
         const response = await fetch(url);
         if (!response.ok) {
             console.error(`CoinGecko API request failed: ${response.status} ${response.statusText}`);
             return null;
         }
-        const data = await response.json();
-        const price = data[baseId]?.usd;
-        return price ? Number(price) : null;
 
-    } catch (error) {
-        console.error(`Error fetching off-chain price for ${baseToken.symbol}:`, error);
+        const data = await response.json();
+        const price = data[address]?.usd;
+
+        return price ? Number(price) : null;
+    } catch (err) {
+        console.error("CoinGecko price fetch error", err);
         return null;
     }
 }

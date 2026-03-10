@@ -192,7 +192,10 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
         
         <div className="text-xs text-muted-foreground mb-2">
-          Available: {quoteAsset ? formatFullBalance(quoteAsset.balance, quoteToken?.decimals) : '0'} {displayQuoteSymbol}
+            Available: {side === 'buy'
+                ? `${quoteAsset ? formatFullBalance(quoteAsset.balance, quoteToken?.decimals) : '0'} ${displayQuoteSymbol}`
+                : `${baseAsset ? formatFullBalance(baseAsset.balance, baseToken?.decimals) : '0'} ${displayBaseSymbol}`
+            }
         </div>
 
         <div className="flex-grow"></div>
@@ -252,13 +255,26 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           )}
 
           <div className="mb-4">
-            <Label htmlFor="amount">Amount</Label>
-            <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount`} className="bg-white/5 border-0" />
+            <div className="flex justify-between items-center mb-1">
+                <Label htmlFor="amount">Amount</Label>
+                <span className="text-xs text-muted-foreground">Balance: {baseAsset ? formatFullBalance(baseAsset.balance, baseToken?.decimals) : '0'}</span>
+            </div>
+            <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount (${displayBaseSymbol})`} className="bg-white/5 border-0" />
           </div>
 
           <div className="mb-4">
-            <Label>Total: </Label>
-            <span className='text-right'>{total.toFixed(2)} {displayQuoteSymbol}</span>
+            <div className="flex justify-between items-center mb-1">
+                <Label>Total</Label>
+                <span className="text-xs text-muted-foreground">Balance: {quoteAsset ? formatFullBalance(quoteAsset.balance, quoteToken?.decimals) : '0'}</span>
+            </div>
+            <div className="p-2 bg-white/5 rounded-md text-right font-mono">
+                {total.toFixed(2)} {displayQuoteSymbol}
+            </div>
+          </div>
+          
+          <div className="flex gap-2 mt-4 mb-4">
+            <Button onClick={() => navigate('/assets/deposit')} variant="outline" size="sm" className="w-full">Deposit</Button>
+            <Button onClick={() => navigate('/assets/withdraw')} variant="outline" size="sm" className="w-full">Withdraw</Button>
           </div>
 
           <Button
@@ -268,24 +284,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           >
             {getButtonText()}
           </Button>
-        </div>
-
-        <div className="mt-8">
-          <h3 className="text-base font-semibold mb-2">Vault Balance</h3>
-          <div className="flex justify-between items-center mt-4">
-            <Label>{displayBaseSymbol}:</Label>
-            <span>{baseAsset ? formatFullBalance(baseAsset.balance, baseToken?.decimals) : '0'}</span>
-          </div>
-          <div className="flex justify-between items-center mt-4">
-            <Label>{displayQuoteSymbol}:</Label>
-            <span>{quoteAsset ? formatFullBalance(quoteAsset.balance, quoteToken?.decimals) : '0'}</span>
-          </div>
-          <div className="mt-2">
-            <Button onClick={() => navigate('/assets/deposit')} className="w-full">Deposit</Button>
-          </div>
-          <div className="mt-2">
-            <Button onClick={() => navigate('/assets/withdraw')} className="w-full">Withdraw</Button>
-          </div>
         </div>
 
         <OrderConfirmationDialog
