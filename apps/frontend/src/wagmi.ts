@@ -10,7 +10,7 @@ export const config = createConfig({
     [base.id]: http(),
     [bsc.id]: http(),
     [arbitrum.id]: http(),
-    [baseSepolia.id]: http(),
+    [baseSepolia.id]: http('https://sepolia.base.org'),
   },
 });
 

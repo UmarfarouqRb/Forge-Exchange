@@ -69,8 +69,9 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const displayBaseSymbol = baseToken ? getDisplaySymbol(baseToken) : '';
   const displayQuoteSymbol = quoteToken ? getDisplaySymbol(quoteToken) : '';
 
-  const baseAsset = useMemo(() => assets.find(a => getDisplaySymbol(a.token) === displayBaseSymbol), [assets, displayBaseSymbol]);
-  const quoteAsset = useMemo(() => assets.find(a => getDisplaySymbol(a.token) === displayQuoteSymbol), [assets, displayQuoteSymbol]);
+  const baseAsset = useMemo(() => assets.find(a => a.token.address === baseToken?.address), [assets, baseToken]);
+  const quoteAsset = useMemo(() => assets.find(a => a.token.address === quoteToken?.address), [assets, quoteToken]);
+
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 
@@ -250,7 +251,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           {orderType === 'limit' && (
             <div className="mb-4">
               <Label htmlFor="price">Price</Label>
-              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${displayQuoteSymbol})`} className="bg-white/5 border-0" />
+              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${displayQuoteSymbol})`} className="bg-white/5 border" />
             </div>
           )}
 
@@ -259,7 +260,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
                 <Label htmlFor="amount">Amount</Label>
                 <span className="text-xs text-muted-foreground">Balance: {baseAsset ? formatFullBalance(baseAsset.balance, baseToken?.decimals) : '0'}</span>
             </div>
-            <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount (${displayBaseSymbol})`} className="bg-white/5 border-0" />
+            <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="bg-white/5 border" />
           </div>
 
           <div className="mb-4">

@@ -48,9 +48,6 @@ function safeAddress(addr?: string | null): `0x${string}` | null {
 }
 
 const getDisplayToken = (token: Token): Token => {
-    if (token.symbol === 'WETH') {
-        return MAINNET_TOKENS['ETH'];
-    }
     return token;
 };
 
