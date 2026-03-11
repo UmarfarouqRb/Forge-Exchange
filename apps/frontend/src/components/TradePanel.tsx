@@ -14,7 +14,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createOrder } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
-import { formatFullBalance } from '@/lib/format';
+import { formatBalance } from '@/lib/format';
 import { useVault } from '@/contexts/VaultContext';
 
 interface TradePanelProps {
@@ -194,8 +194,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         
         <div className="text-xs text-muted-foreground mb-2">
             Available: {side === 'buy'
-                ? `${quoteAsset ? formatFullBalance(quoteAsset.balance, quoteToken?.decimals) : '0'} ${displayQuoteSymbol}`
-                : `${baseAsset ? formatFullBalance(baseAsset.balance, baseToken?.decimals) : '0'} ${displayBaseSymbol}`
+                ? `${quoteAsset && quoteToken ? formatBalance(quoteAsset.balance, quoteToken.decimals) : '0.00'} ${displayQuoteSymbol}`
+                : `${baseAsset && baseToken ? formatBalance(baseAsset.balance, baseToken.decimals) : '0.00'} ${displayBaseSymbol}`
             }
         </div>
 
@@ -258,7 +258,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           <div className="mb-4">
             <div className="flex justify-between items-center mb-1">
                 <Label htmlFor="amount">Amount</Label>
-                <span className="text-xs text-muted-foreground">Balance: {baseAsset ? formatFullBalance(baseAsset.balance, baseToken?.decimals) : '0'}</span>
+                <span className="text-xs text-muted-foreground">Balance: {baseAsset && baseToken ? formatBalance(baseAsset.balance, baseToken.decimals) : '0.00'}</span>
             </div>
             <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="bg-white/5 border" />
           </div>
@@ -266,7 +266,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           <div className="mb-4">
             <div className="flex justify-between items-center mb-1">
                 <Label>Total</Label>
-                <span className="text-xs text-muted-foreground">Balance: {quoteAsset ? formatFullBalance(quoteAsset.balance, quoteToken?.decimals) : '0'}</span>
+                <span className="text-xs text-muted-foreground">Balance: {quoteAsset && quoteToken ? formatBalance(quoteAsset.balance, quoteToken.decimals) : '0.00'}</span>
             </div>
             <div className="p-2 bg-white/5 rounded-md text-right font-mono">
                 {total.toFixed(2)} {displayQuoteSymbol}

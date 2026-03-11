@@ -114,7 +114,6 @@ export function Navigation() {
             </Button>
           ) : authenticated ? (
             <>
-            <LevelBadge />
             <ChainSelector />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
