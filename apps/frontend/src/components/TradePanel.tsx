@@ -49,7 +49,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const { wallets } = useWallets();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { assets, refetchVault } = useVault();
+  const { assets } = useVault();
 
   const addLog = (log: string) => {
     setLogs(prevLogs => [`[${new Date().toLocaleTimeString()}] ${log}`, ...prevLogs]);
@@ -69,8 +69,15 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const displayBaseSymbol = baseToken ? getDisplaySymbol(baseToken) : '';
   const displayQuoteSymbol = quoteToken ? getDisplaySymbol(quoteToken) : '';
 
-  const baseAsset = useMemo(() => assets.find(a => a.token.address === baseToken?.address), [assets, baseToken]);
-  const quoteAsset = useMemo(() => assets.find(a => a.token.address === quoteToken?.address), [assets, quoteToken]);
+  const baseAsset = useMemo(() => {
+    if (!baseToken) return undefined;
+    return assets.find(a => a.token.address.toLowerCase() === baseToken.address.toLowerCase());
+  }, [assets, baseToken]);
+
+  const quoteAsset = useMemo(() => {
+    if (!quoteToken) return undefined;
+    return assets.find(a => a.token.address.toLowerCase() === quoteToken.address.toLowerCase());
+  }, [assets, quoteToken]);
 
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
@@ -93,7 +100,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     mutationFn: createOrder,
     onSuccess: () => {
       addLog('Order placed successfully');
-      refetchVault();
       setIsConfirming(false);
       setAmount('');
     },
