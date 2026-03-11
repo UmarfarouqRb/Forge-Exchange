@@ -1,10 +1,11 @@
+
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { Market, TradingPair } from '@/types/market-data';
+import { Market, TradingPair, VaultAsset } from '@/types/market-data';
 import { parseUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { OrderTypeSelector } from './OrderTypeSelector';
@@ -49,7 +50,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const { wallets } = useWallets();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { assets } = useVault();
+  const { assets, refetchVault, isLoading } = useVault();
 
   const addLog = (log: string) => {
     setLogs(prevLogs => [`[${new Date().toLocaleTimeString()}] ${log}`, ...prevLogs]);
@@ -69,21 +70,24 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const displayBaseSymbol = baseToken ? getDisplaySymbol(baseToken) : '';
   const displayQuoteSymbol = quoteToken ? getDisplaySymbol(quoteToken) : '';
 
-  const baseAsset = useMemo(() => {
-    if (!baseToken?.address) return undefined;
-    return assets.find(a => a.token.address.toLowerCase() === baseToken.address.toLowerCase());
-  }, [assets, baseToken]);
+  const assetMap = useMemo(() => {
+    const map: Record<string, VaultAsset> = {};
+    if (!assets) return map;
+    assets.forEach(a => {
+      if (a.token.address) {
+        map[a.token.address.toLowerCase()] = a;
+      }
+    });
+    return map;
+  }, [assets]);
 
-  const quoteAsset = useMemo(() => {
-    if (!quoteToken?.address) return undefined;
-    return assets.find(a => a.token.address.toLowerCase() === quoteToken.address.toLowerCase());
-  }, [assets, quoteToken]);
-
+  const baseAsset = baseToken?.address ? assetMap[baseToken.address.toLowerCase()] : undefined;
+  const quoteAsset = quoteToken?.address ? assetMap[quoteToken.address.toLowerCase()] : undefined;
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 
   const hasSufficientBalance = useMemo(() => {
-    if (!amount) return true;
+    if (!amount || parseFloat(amount) <= 0) return true;
 
     if (side === 'buy') {
       if (!quoteAsset || !quoteToken) return false;
@@ -102,6 +106,9 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       addLog('Order placed successfully');
       setIsConfirming(false);
       setAmount('');
+      refetchVault();
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['tradeHistory'] });
     },
     onError: (error) => {
       addLog(`Error: ${error.message}`);
@@ -146,6 +153,24 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     if (authenticated && !connectedWallet) return 'Creating Wallet...';
     if (!hasSufficientBalance) return 'Insufficient Funds';
     return side === 'buy' ? `Buy ${displayBaseSymbol}` : `Sell ${displayBaseSymbol}`;
+  }
+
+  const { availableBalance, availableSymbol } = useMemo(() => {
+    if (side === 'buy') {
+      return {
+        availableBalance: quoteAsset && quoteToken ? formatBalance(quoteAsset.balance, quoteToken.decimals) : '0.00',
+        availableSymbol: displayQuoteSymbol
+      };
+    } else { // sell
+      return {
+        availableBalance: baseAsset && baseToken ? formatBalance(baseAsset.balance, baseToken.decimals) : '0.00',
+        availableSymbol: displayBaseSymbol
+      };
+    }
+  }, [side, baseAsset, quoteAsset, baseToken, quoteToken, displayBaseSymbol, displayQuoteSymbol]);
+
+  if (isLoading && assets.length === 0) {
+    return <SkeletonTradePanel />;
   }
 
   if (isMobile) {
@@ -199,10 +224,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
         
         <div className="text-xs text-muted-foreground mb-2">
-            Available: {side === 'buy'
-                ? `${quoteAsset && quoteToken ? formatBalance(quoteAsset.balance, quoteToken.decimals) : '0.00'} ${displayQuoteSymbol}`
-                : `${baseAsset && baseToken ? formatBalance(baseAsset.balance, baseToken.decimals) : '0.00'} ${displayBaseSymbol}`
-            }
+            Available: {availableBalance} {availableSymbol}
         </div>
 
         <div className="flex-grow"></div>
@@ -262,9 +284,9 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           )}
 
           <div className="mb-4">
-            <div className="flex justify-.D’s-between items-center mb-1">
+            <div className="flex justify-between items-center mb-1">
                 <Label htmlFor="amount">Amount</Label>
-                <span className="text-xs text-muted-foreground">Balance: {baseAsset && baseToken ? formatBalance(baseAsset.balance, baseToken.decimals) : '0.00'}</span>
+                <span className="text-xs text-muted-foreground">Available: {availableBalance} {availableSymbol}</span>
             </div>
             <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="bg-white/5 border" />
           </div>
@@ -272,10 +294,9 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           <div className="mb-4">
             <div className="flex justify-between items-center mb-1">
                 <Label>Total</Label>
-                <span className="text-xs text-muted-foreground">Balance: {quoteAsset && quoteToken ? formatBalance(quoteAsset.balance, quoteToken.decimals) : '0.00'}</span>
             </div>
             <div className="p-2 bg-white/5 rounded-md text-right font-mono">
-                {total.toFixed(2)} {displayQuoteSymbol}
+                {total.toFixed(4)} {displayQuoteSymbol}
             </div>
           </div>
           
@@ -287,7 +308,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           <Button
             className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
             onClick={handlePlaceOrder}
-            disabled={disabled || isSubmitting || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance}
+            disabled={disabled || isSubmitting || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance || !amount}
           >
             {getButtonText()}
           </Button>

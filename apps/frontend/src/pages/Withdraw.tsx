@@ -54,7 +54,7 @@ export default function Withdraw() {
 
   useEffect(() => {
     const getGasEstimate = async () => {
-        if (!amount || !selectedAsset || !settlementToken || !address) {
+        if (!amount || !selectedAsset || !settlementToken || !address || parseFloat(amount) <= 0) {
             setGasEstimate(null);
             return;
         }
@@ -68,6 +68,7 @@ export default function Withdraw() {
                 abi: VaultSpotAbi,
                 functionName: 'withdrawETH',
                 args: [parsedAmount],
+                value: 0n, // Explicitly set value to 0 for non-payable function
             };
         } else {
             const tokenAddr = safeAddress(settlementToken.address);
@@ -141,6 +142,7 @@ export default function Withdraw() {
                 abi: VaultSpotAbi,
                 functionName: "withdrawETH",
                 args: [parsedAmount],
+                value: 0n, // Explicitly set value to 0 for non-payable function
             });
         } else {
             const tokenAddr = safeAddress(settlementToken.address);
