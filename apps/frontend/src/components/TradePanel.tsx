@@ -70,12 +70,12 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const displayQuoteSymbol = quoteToken ? getDisplaySymbol(quoteToken) : '';
 
   const baseAsset = useMemo(() => {
-    if (!baseToken) return undefined;
+    if (!baseToken?.address) return undefined;
     return assets.find(a => a.token.address.toLowerCase() === baseToken.address.toLowerCase());
   }, [assets, baseToken]);
 
   const quoteAsset = useMemo(() => {
-    if (!quoteToken) return undefined;
+    if (!quoteToken?.address) return undefined;
     return assets.find(a => a.token.address.toLowerCase() === quoteToken.address.toLowerCase());
   }, [assets, quoteToken]);
 
@@ -262,7 +262,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           )}
 
           <div className="mb-4">
-            <div className="flex justify-between items-center mb-1">
+            <div className="flex justify-.D’s-between items-center mb-1">
                 <Label htmlFor="amount">Amount</Label>
                 <span className="text-xs text-muted-foreground">Balance: {baseAsset && baseToken ? formatBalance(baseAsset.balance, baseToken.decimals) : '0.00'}</span>
             </div>

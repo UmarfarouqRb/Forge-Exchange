@@ -29,6 +29,7 @@ export default function Deposit() {
   const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | undefined>();
   const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>( '');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const [gasEstimate, setGasEstimate] = useState<string | null>(null);
 
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ export default function Deposit() {
   const assetSymbolFromUrl = params.get('asset');
 
   const { assets: allAssets, refetchVault } = useVault();
-  const { writeContractAsync } = useTransaction();
+  const { writeContractAsync, estimateGas } = useTransaction();
   const { token } = useAuth(); // Auth token
 
   useEffect(() => {
@@ -63,6 +64,51 @@ export default function Deposit() {
       enabled: !!address && !!tokenAddress && !!vaultAddress && settlementToken && getDisplaySymbol(settlementToken) !== 'ETH',
     },
   });
+
+  useEffect(() => {
+    const getGasEstimate = async () => {
+      if (!amount || !selectedAsset || !settlementToken || !address) {
+          setGasEstimate(null);
+          return;
+      }
+
+      const parsedAmount = parseUnits(amount, settlementToken.decimals);
+      let args: any;
+
+      if (getDisplaySymbol(settlementToken) === 'ETH') {
+          args = {
+              address: vaultAddress,
+              abi: VaultSpotAbi,
+              functionName: 'depositETH',
+              value: parsedAmount,
+          };
+      } else {
+          const tokenAddr = safeAddress(settlementToken.address);
+          if (!tokenAddr || !vaultAddress) return;
+          const needsApproval = allowance == null || allowance < parsedAmount;
+          if (needsApproval) {
+              args = {
+                  address: tokenAddr,
+                  abi: erc20Abi,
+                  functionName: 'approve',
+                  args: [vaultAddress, parsedAmount],
+              };
+          } else {
+              args = {
+                  address: vaultAddress,
+                  abi: VaultSpotAbi,
+                  functionName: 'deposit',
+                  args: [tokenAddr, parsedAmount],
+              };
+          }
+      }
+      const newGasEstimate = await estimateGas(args);
+      setGasEstimate(newGasEstimate);
+  };
+
+  getGasEstimate();
+}, [amount, selectedAsset, settlementToken, address, allowance, estimateGas, vaultAddress]);
+
 
   useTrackedTx({
     hash: depositTxHash,
@@ -218,6 +264,11 @@ export default function Deposit() {
                 disabled={isDepositing || !selectedAssetSymbol}
               />
             </div>
+            {gasEstimate && (
+              <div className="text-xs text-muted-foreground">
+                  Estimated Gas: {gasEstimate} ETH
+              </div>
+            )}
 
             <Button
               onClick={handleDeposit}

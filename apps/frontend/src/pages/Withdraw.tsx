@@ -25,6 +25,7 @@ export default function Withdraw() {
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
   const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>('');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const [gasEstimate, setGasEstimate] = useState<string | null>(null);
 
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function Withdraw() {
   const assetSymbolFromUrl = params.get('asset');
 
   const { assets: allAssets, refetchVault } = useVault();
-  const { writeContractAsync } = useTransaction();
+  const { writeContractAsync, estimateGas } = useTransaction();
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
@@ -50,6 +51,40 @@ export default function Withdraw() {
   useEffect(() => {
     setAmount('');
   }, [selectedAssetSymbol]);
+
+  useEffect(() => {
+    const getGasEstimate = async () => {
+        if (!amount || !selectedAsset || !settlementToken || !address) {
+            setGasEstimate(null);
+            return;
+        }
+
+        const parsedAmount = parseUnits(amount, settlementToken.decimals);
+        let args: any;
+
+        if (getDisplaySymbol(settlementToken) === 'ETH') {
+            args = {
+                address: vaultAddress,
+                abi: VaultSpotAbi,
+                functionName: 'withdrawETH',
+                args: [parsedAmount],
+            };
+        } else {
+            const tokenAddr = safeAddress(settlementToken.address);
+            if (!tokenAddr) return;
+            args = {
+                address: vaultAddress,
+                abi: VaultSpotAbi,
+                functionName: 'withdraw',
+                args: [tokenAddr, parsedAmount],
+            };
+        }
+        const newGasEstimate = await estimateGas(args);
+        setGasEstimate(newGasEstimate);
+    };
+
+    getGasEstimate();
+  }, [amount, selectedAsset, settlementToken, address, estimateGas, vaultAddress]);
 
   useTrackedTx({
     hash: withdrawTxHash,
@@ -167,6 +202,11 @@ export default function Withdraw() {
                         disabled={isWithdrawing || !selectedAssetSymbol}
                         />
                     </div>
+                    {gasEstimate && (
+                        <div className="text-xs text-muted-foreground">
+                            Estimated Gas: {gasEstimate} ETH
+                        </div>
+                    )}
 
                     <Button
                         onClick={handleWithdraw}
