@@ -68,6 +68,11 @@ contract VaultSpotInvariantTest is StdInvariant, Test {
         }
     }
 
+    /// STATE INVARIANT (SI-2): The vault should not hold any native ETH between transactions.
+    function invariant_noNativeEth() public view {
+        assertEq(address(vault).balance, 0, "SI-2 Violated: Vault holds native ETH");
+    }
+
     // --- Fuzzable Actions ---
 
     function deposit(address user, uint tokenIndex, uint256 amount) public {
@@ -91,6 +96,22 @@ contract VaultSpotInvariantTest is StdInvariant, Test {
         }
     }
 
+    function depositETH(address user, uint96 amount) public {
+        amount = uint96(bound(amount, 1, 10 ether));
+        vm.deal(user, user.balance + amount);
+        
+        if (vault.emergencyMode()) {
+            vm.expectRevert("Vault: Action disabled in emergency mode");
+        }
+        
+        vm.prank(user);
+        vault.depositETH{value: amount}();
+
+        if (!vault.emergencyMode()) {
+            ghostBalances[user][address(weth)] += amount;
+        }
+    }
+
     function withdraw(address user, uint tokenIndex, uint256 amount) public {
         address token = _getToken(tokenIndex);
         uint256 userBalance = ghostBalances[user][token];
@@ -108,6 +129,29 @@ contract VaultSpotInvariantTest is StdInvariant, Test {
         vault.withdraw(token, amount);
 
         // Update ghost state on success
+        if (!vault.emergencyMode() && amount > 0 && amount <= userBalance) {
+            ghostBalances[user][token] -= amount;
+        }
+    }
+
+    function withdrawETH(address user, uint256 amount) public {
+        address token = address(weth); // ETH is tracked as WETH in the vault
+        uint256 userBalance = ghostBalances[user][token];
+
+        // Bound amount to test both success and failure cases.
+        amount = bound(amount, 1, userBalance + 1 ether); 
+
+        if (vault.emergencyMode()) {
+            vm.expectRevert("Vault: Action disabled in emergency mode");
+        } else if (amount == 0) {
+            vm.expectRevert("Vault: Withdraw amount must be positive");
+        } else if (amount > userBalance) {
+            vm.expectRevert("Vault: Insufficient balance");
+        }
+
+        vm.prank(user);
+        vault.withdrawETH(amount);
+
         if (!vault.emergencyMode() && amount > 0 && amount <= userBalance) {
             ghostBalances[user][token] -= amount;
         }

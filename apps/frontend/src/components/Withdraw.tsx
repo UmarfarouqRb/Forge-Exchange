@@ -11,12 +11,9 @@ import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultAssetSelector } from './VaultAssetSelector';
 
 // Simplified ABIs for the contracts
-const wethAbi = [
-  'function withdraw(uint256 amount)',
-];
-
 const vaultAbi = [
   'function withdraw(address token, uint256 amount)',
+  'function withdrawETH(uint256 amount)',
 ];
 
 export function Withdraw() {
@@ -34,7 +31,9 @@ export function Withdraw() {
 
     setIsWithdrawing(true);
     const connectedWallet = wallets[0];
+    await connectedWallet.switchChain(84532);
     const chainId = parseInt(connectedWallet.chainId.split(':')[1]);
+    
 
     const vaultAddress = VAULT_SPOT_ADDRESS[chainId];
     const wethAddress = WETH_ADDRESS[chainId];
@@ -50,22 +49,24 @@ export function Withdraw() {
     const signer = await provider.getSigner();
 
     try {
+      // Assuming 18 decimals for simplicity, as per original code.
+      // A robust solution would get decimals from the selected asset object.
       const withdrawAmount = ethers.parseEther(amount);
 
-      // Step 1: Withdraw WETH from the Vault
-      toast({ title: 'Step 1/2: Withdrawing WETH from Vault' });
       const vaultContract = new ethers.Contract(vaultAddress, vaultAbi, signer);
-      const withdrawTx = await vaultContract.withdraw(asset, withdrawAmount);
+      let withdrawTx;
+
+      if (asset.toLowerCase() === wethAddress.toLowerCase()) {
+        toast({ title: 'Withdrawing ETH' });
+        withdrawTx = await vaultContract.withdrawETH(withdrawAmount);
+      } else {
+        toast({ title: `Withdrawing token` });
+        withdrawTx = await vaultContract.withdraw(asset, withdrawAmount);
+      }
+      
       await withdrawTx.wait();
-      toast({ title: 'WETH Withdrawn Successfully' });
 
-      // Step 2: Unwrap WETH to ETH
-      toast({ title: 'Step 2/2: Unwrapping WETH to ETH' });
-      const wethContract = new ethers.Contract(wethAddress, wethAbi, signer);
-      const unwrapTx = await wethContract.withdraw(withdrawAmount);
-      await unwrapTx.wait();
-
-      toast({ title: 'Withdrawal Successful', description: `You have successfully withdrawn ${amount} ETH.` });
+      toast({ title: 'Withdrawal Successful', description: `Successfully withdrawn ${amount}.` });
       setAmount('');
 
     } catch (error: unknown) { 
@@ -74,6 +75,7 @@ export function Withdraw() {
         if (error instanceof Error) {
             errorMessage = error.message;
         } else if (typeof error === 'object' && error !== null && 'reason' in error) {
+            // Handle ethers error object
             errorMessage = (error as { reason: string }).reason;
         }
         toast({ title: 'Withdrawal Failed', description: errorMessage, variant: 'destructive' });

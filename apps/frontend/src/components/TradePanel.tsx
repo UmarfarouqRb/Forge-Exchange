@@ -158,16 +158,16 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const { availableBalance, availableSymbol } = useMemo(() => {
     if (side === 'buy') {
       return {
-        availableBalance: quoteAsset && quoteToken ? formatBalance(quoteAsset.balance, quoteToken.decimals) : '0.00',
+        availableBalance: quoteAsset?.balanceFormatted || '0.00',
         availableSymbol: displayQuoteSymbol
       };
     } else { // sell
       return {
-        availableBalance: baseAsset && baseToken ? formatBalance(baseAsset.balance, baseToken.decimals) : '0.00',
+        availableBalance: baseAsset?.balanceFormatted || '0.00',
         availableSymbol: displayBaseSymbol
       };
     }
-  }, [side, baseAsset, quoteAsset, baseToken, quoteToken, displayBaseSymbol, displayQuoteSymbol]);
+  }, [side, baseAsset, quoteAsset, displayBaseSymbol, displayQuoteSymbol]);
 
   if (isLoading && assets.length === 0) {
     return <SkeletonTradePanel />;
