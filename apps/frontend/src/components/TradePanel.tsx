@@ -74,13 +74,17 @@ export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled
     const map: Record<string, VaultAsset> = {};
     if (!vaultAssets) return map;
     vaultAssets.forEach(a => {
-      map[a.token.symbol] = a;
+      map[a.token.symbol] = a; // The key here is the canonical symbol, e.g., 'WETH'
     });
     return map;
   }, [vaultAssets]);
 
-  const baseAsset = baseToken?.symbol ? assetMap[baseToken.symbol] : undefined;
-  const quoteAsset = quoteToken?.symbol ? assetMap[quoteToken.symbol] : undefined;
+  const baseAssetSymbol = baseToken?.symbol === 'ETH' ? 'WETH' : baseToken?.symbol;
+  const quoteAssetSymbol = quoteToken?.symbol === 'ETH' ? 'WETH' : quoteToken?.symbol;
+
+  const baseAsset = baseAssetSymbol ? assetMap[baseAssetSymbol] : undefined;
+  const quoteAsset = quoteAssetSymbol ? assetMap[quoteAssetSymbol] : undefined;
+
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 

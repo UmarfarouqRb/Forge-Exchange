@@ -32,19 +32,21 @@ export default function Withdraw() {
   const params = new URLSearchParams(search);
   const assetSymbolFromUrl = params.get('asset');
 
-  const { assets: allAssets, refetchVault } = useVault();
+  const { assets: allAssets, refetchVault, isLoading: isAssetsLoading } = useVault();
   const { writeContractAsync, estimateGas } = useTransaction();
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
-      setSelectedAssetSymbol(assetSymbolFromUrl);
+      const canonicalSymbol = assetSymbolFromUrl === 'ETH' ? 'WETH' : assetSymbolFromUrl;
+      setSelectedAssetSymbol(canonicalSymbol);
     }
   }, [assetSymbolFromUrl]);
 
   const { address } = useAccount();
 
   const selectedAsset = useMemo(() => {
-    return allAssets.find(a => getDisplaySymbol(a.token) === selectedAssetSymbol);
+    if (!selectedAssetSymbol) return undefined;
+    return allAssets.find(a => a.token.symbol === selectedAssetSymbol);
   }, [allAssets, selectedAssetSymbol]);
   
   const settlementToken = selectedAsset?.token;
@@ -87,7 +89,7 @@ export default function Withdraw() {
     };
 
     getGasEstimate();
-  }, [amount, selectedAsset, settlementToken, address, estimateGas, vaultAddress, getDisplaySymbol]);
+  }, [amount, selectedAsset, settlementToken, address, estimateGas, vaultAddress]);
 
   useTrackedTx({
     hash: withdrawTxHash,
@@ -137,7 +139,7 @@ export default function Withdraw() {
     try {
         let txHash;
 
-        if (getDisplaySymbol(settlementToken) === "ETH") {
+        if (selectedAssetSymbol === "WETH") {
             toast.loading('Withdrawing ETH...', { id: toastId });
             txHash = await writeContractAsync({
                 address: vaultAddress,
@@ -213,15 +215,15 @@ export default function Withdraw() {
 
                     <Button
                         onClick={handleWithdraw}
-                        disabled={!amount || isWithdrawing || !selectedAssetSymbol}
+                        disabled={!amount || isWithdrawing || !selectedAssetSymbol || isAssetsLoading}
                         className="w-full"
                         variant="destructive"
                         data-testid="button-confirm-withdraw"
                     >
-                        {isWithdrawing ? (
+                        {isWithdrawing || isAssetsLoading ? (
                         <>
                             <FiLoader className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
+                            { isAssetsLoading ? 'Loading...' : 'Processing...' }
                         </>
                         ) : (
                         'Confirm Withdrawal'

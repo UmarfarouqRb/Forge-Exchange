@@ -1,16 +1,23 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TradingChart } from '@/components/TradingChart';
 import { PriceChange } from '@/components/PriceChange';
 import { getAllPairs, getMarketBySymbol } from '@/lib/api';
-import type { Market, TradingPair } from '@/types/market-data';
+import type { Market, Token, TradingPair } from '@/types/market-data';
 import { NewAssetSelector } from "@/components/NewAssetSelector";
 import Trade from './Trade';
 import { subscribe, unsubscribe } from '@/lib/ws/market';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
 import { useVault } from '@/contexts/VaultContext';
+
+const normalizeTokenForDisplay = (token: Token): Token => {
+  if (token.symbol === 'WETH') {
+    return { ...token, symbol: 'ETH' };
+  }
+  return token;
+};
 
 function TradeHeader({ 
     market, 
@@ -72,8 +79,9 @@ function TradeHeader({
 }
 
 export default function Spot() {
-  const [pairsList, setPairsList] = useState<TradingPair[]>([]);
-  const [selectedTradingPair, setSelectedTradingPair] = useState<TradingPair | undefined>();
+  const [rawPairsList, setRawPairsList] = useState<TradingPair[]>([]);
+  const [displayPairsList, setDisplayPairsList] = useState<TradingPair[]>([]);
+  const [selectedDisplayPair, setSelectedDisplayPair] = useState<TradingPair | undefined>();
   const [market, setMarket] = useState<Market | undefined>();
   const [isErrorPairs, setIsErrorPairs] = useState<boolean>(false);
   const { assets, isLoading: isVaultLoading } = useVault();
@@ -82,11 +90,19 @@ export default function Spot() {
     const fetchTradingPairs = async () => {
       setIsErrorPairs(false);
       try {
-        const data = await getAllPairs();
-        setPairsList(data);
-        if (data.length > 0) {
-          const defaultPair = data.find((p: TradingPair) => p.symbol === 'BTCUSDC') || data[0];
-          setSelectedTradingPair(defaultPair);
+        const rawPairs = await getAllPairs();
+        setRawPairsList(rawPairs);
+        
+        const displayPairs = rawPairs.map(pair => ({
+          ...pair,
+          baseToken: normalizeTokenForDisplay(pair.baseToken),
+          quoteToken: normalizeTokenForDisplay(pair.quoteToken),
+        }));
+        setDisplayPairsList(displayPairs);
+
+        if (displayPairs.length > 0) {
+          const defaultPair = displayPairs.find((p: TradingPair) => p.symbol === 'ETHUSDC') || displayPairs[0];
+          setSelectedDisplayPair(defaultPair);
         }
       } catch (error) {
         console.error("Failed to fetch trading pairs:", error);
@@ -96,22 +112,22 @@ export default function Spot() {
     fetchTradingPairs();
   }, []);
 
-  useEffect(() => {
-    if (!selectedTradingPair) return;
+  const internalTradingPair = useMemo(() => {
+    if (!selectedDisplayPair) return undefined;
+    return rawPairsList.find(p => p.id === selectedDisplayPair.id);
+  }, [selectedDisplayPair, rawPairsList]);
 
-    const topic = `prices:${selectedTradingPair.symbol}`;
+  useEffect(() => {
+    if (!internalTradingPair) return;
+
+    const topic = `prices:${internalTradingPair.symbol}`;
     const handleUpdate = (update: { price: number }) => {
-        setMarket(prevMarket => {
-            if (prevMarket) {
-                return { ...prevMarket, currentPrice: String(update.price) };
-            }
-            return undefined; // Let the fetchMarket handle the initial state
-        });
+        setMarket(prevMarket => prevMarket ? { ...prevMarket, currentPrice: String(update.price) } : undefined);
     };
     
     const fetchMarket = async () => {
         try {
-            const data = await getMarketBySymbol(selectedTradingPair.symbol);
+            const data = await getMarketBySymbol(internalTradingPair.symbol);
             setMarket(data);
         } catch (error) {
             console.error("Failed to fetch market data:", error);
@@ -120,13 +136,10 @@ export default function Spot() {
     };
 
     fetchMarket();
-
     subscribe(topic, handleUpdate);
 
-    return () => {
-      unsubscribe(topic);
-    };
-  }, [selectedTradingPair]);
+    return () => unsubscribe(topic);
+  }, [internalTradingPair]);
 
   if (isErrorPairs) {
     return <div className="h-[calc(100vh-4rem)] flex items-center justify-center text-lg text-red-500">Error loading trading pairs. Please try again later.</div>;
@@ -136,9 +149,9 @@ export default function Spot() {
     <div className="h-[calc(100vh-4rem)] bg-background flex flex-col text-xs">
       <TradeHeader 
         market={market} 
-        selectedTradingPair={selectedTradingPair} 
-        pairsList={pairsList} 
-        setSelectedTradingPair={setSelectedTradingPair} 
+        selectedTradingPair={selectedDisplayPair} 
+        pairsList={displayPairsList} 
+        setSelectedTradingPair={setSelectedDisplayPair} 
       />
       <Tabs defaultValue="chart" className="flex-1 flex flex-col overflow-hidden">
         <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-border">
@@ -146,15 +159,15 @@ export default function Spot() {
           <TabsTrigger value="trade">Trade</TabsTrigger>
         </TabsList>
         <TabsContent value="chart" className="flex-1 overflow-hidden">
-          {selectedTradingPair ? (
-            <TradingChart symbol={selectedTradingPair.symbol} />
+          {selectedDisplayPair ? (
+            <TradingChart symbol={selectedDisplayPair.symbol} />
           ) : (
             <div className="flex items-center justify-center h-full text-lg">Select a market to view the chart.</div>
           )}
         </TabsContent>
         <TabsContent value="trade" className="flex-1 overflow-auto p-2 flex flex-col h-full">
-          {selectedTradingPair ? (
-            <Trade pair={selectedTradingPair} market={market} pairsList={pairsList} vaultAssets={assets} isVaultLoading={isVaultLoading} />
+          {selectedDisplayPair ? (
+            <Trade pair={selectedDisplayPair} market={market} pairsList={displayPairsList} vaultAssets={assets} isVaultLoading={isVaultLoading} />
           ) : (
             <div className="flex items-center justify-center h-full text-lg">Select a market to trade.</div>
           )}
