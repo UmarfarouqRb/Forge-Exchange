@@ -27,13 +27,12 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
         return true;
       })
       .map(asset => ({ 
-        value: asset.token.symbol,
+        value: getDisplaySymbol(asset.token),
         label: getDisplaySymbol(asset.token)
       }));
   }, [assets, type, isLoading]);
 
-  const selectedAsset = filteredAssets.find(a => a.value === asset);
-  const selectedAssetLabel = selectedAsset ? selectedAsset.label : "Select asset";
+  const selectedAssetLabel = asset || "Select asset";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -59,7 +58,7 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
                 key={a.value}
                 value={a.value}
                 onSelect={(currentValue) => {
-                  setAsset(currentValue);
+                  setAsset(currentValue === asset ? "" : currentValue);
                   setOpen(false);
                 }}
               >

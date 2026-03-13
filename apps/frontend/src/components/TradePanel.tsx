@@ -74,15 +74,13 @@ export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled
     const map: Record<string, VaultAsset> = {};
     if (!vaultAssets) return map;
     vaultAssets.forEach(a => {
-      if (a.token.address) {
-        map[a.token.address.toLowerCase()] = a;
-      }
+      map[a.token.symbol] = a;
     });
     return map;
   }, [vaultAssets]);
 
-  const baseAsset = baseToken?.address ? assetMap[baseToken.address.toLowerCase()] : undefined;
-  const quoteAsset = quoteToken?.address ? assetMap[quoteToken.address.toLowerCase()] : undefined;
+  const baseAsset = baseToken?.symbol ? assetMap[baseToken.symbol] : undefined;
+  const quoteAsset = quoteToken?.symbol ? assetMap[quoteToken.symbol] : undefined;
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 
@@ -158,16 +156,16 @@ export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled
   const { availableBalance, availableSymbol } = useMemo(() => {
     if (side === 'buy') {
       return {
-        availableBalance: quoteAsset?.balanceFormatted || '0.00',
+        availableBalance: quoteAsset ? formatBalance(quoteAsset.balance, quoteToken?.decimals) : '0.00',
         availableSymbol: displayQuoteSymbol
       };
     } else { // sell
       return {
-        availableBalance: baseAsset?.balanceFormatted || '0.00',
+        availableBalance: baseAsset ? formatBalance(baseAsset.balance, baseToken?.decimals) : '0.00',
         availableSymbol: displayBaseSymbol
       };
     }
-  }, [side, baseAsset, quoteAsset, displayBaseSymbol, displayQuoteSymbol]);
+  }, [side, baseAsset, quoteAsset, displayBaseSymbol, displayQuoteSymbol, baseToken, quoteToken]);
 
   if (isVaultLoading && vaultAssets.length === 0) {
     return <SkeletonTradePanel />;

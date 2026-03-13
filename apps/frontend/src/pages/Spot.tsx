@@ -85,7 +85,7 @@ export default function Spot() {
         const data = await getAllPairs();
         setPairsList(data);
         if (data.length > 0) {
-          const defaultPair = data.find((p: TradingPair) => p.symbol === 'ETHUSDC') || data[0];
+          const defaultPair = data.find((p: TradingPair) => p.symbol === 'BTCUSDC') || data[0];
           setSelectedTradingPair(defaultPair);
         }
       } catch (error) {
