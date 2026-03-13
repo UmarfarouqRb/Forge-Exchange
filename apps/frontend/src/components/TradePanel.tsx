@@ -14,7 +14,6 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createOrder } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getDisplaySymbol } from '@/utils/tokenDisplay';
 import { formatBalance } from '@/lib/format';
 
 interface TradePanelProps {
@@ -67,8 +66,8 @@ export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled
 
   const baseToken = pair?.baseToken;
   const quoteToken = pair?.quoteToken;
-  const displayBaseSymbol = baseToken ? getDisplaySymbol(baseToken) : '';
-  const displayQuoteSymbol = quoteToken ? getDisplaySymbol(quoteToken) : '';
+  const displayBaseSymbol = baseToken ? baseToken.symbol : '';
+  const displayQuoteSymbol = quoteToken ? quoteToken.symbol : '';
 
   const assetMap = useMemo(() => {
     const map: Record<string, VaultAsset> = {};
@@ -323,7 +322,7 @@ export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled
           order={{
             side,
             amount,
-            symbol: pair.baseToken ? getDisplaySymbol(pair.baseToken) : '',
+            symbol: pair.baseToken ? pair.baseToken.symbol : '',
             price,
             orderType,
             total

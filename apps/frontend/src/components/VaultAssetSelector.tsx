@@ -6,7 +6,6 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getDisplaySymbol } from "@/utils/tokenDisplay";
 
 interface VaultAssetSelectorProps {
   asset: string;
@@ -22,13 +21,14 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
     if (isLoading) return [];
     return assets
       .filter(asset => {
+        if (!asset || !asset.token) return false;
         if (type === 'deposit') return asset.deposit_enabled;
         if (type === 'withdraw') return asset.withdraw_enabled;
         return true;
       })
       .map(asset => ({ 
-        value: getDisplaySymbol(asset.token),
-        label: getDisplaySymbol(asset.token)
+        value: asset.token.symbol,
+        label: asset.token.symbol
       }));
   }, [assets, type, isLoading]);
 

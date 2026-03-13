@@ -17,7 +17,6 @@ import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
-import { getDisplaySymbol } from '@/utils/tokenDisplay';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -46,7 +45,7 @@ export default function Withdraw() {
 
   const selectedAsset = useMemo(() => {
     if (!selectedAssetSymbol) return undefined;
-    return allAssets.find(a => a.token.symbol === selectedAssetSymbol);
+    return allAssets.find(a => a && a.token && a.token.symbol === selectedAssetSymbol);
   }, [allAssets, selectedAssetSymbol]);
   
   const settlementToken = selectedAsset?.token;
@@ -67,7 +66,7 @@ export default function Withdraw() {
         const parsedAmount = parseUnits(amount, settlementToken.decimals);
         let args: any;
 
-        if (getDisplaySymbol(settlementToken) === 'ETH') {
+        if (settlementToken.symbol === 'WETH') {
             args = {
                 address: vaultAddress,
                 abi: VaultSpotAbi,
@@ -196,7 +195,7 @@ export default function Withdraw() {
                             type="withdraw"
                         />
                     </div>
-                    <div className="space-y-2">
+                    <div className="spacey-2">
                         <Label htmlFor="withdraw-amount">Amount</Label>
                         <Input
                         id="withdraw-amount"

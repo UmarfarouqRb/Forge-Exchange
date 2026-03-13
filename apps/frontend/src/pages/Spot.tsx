@@ -9,11 +9,10 @@ import { NewAssetSelector } from "@/components/NewAssetSelector";
 import Trade from './Trade';
 import { subscribe, unsubscribe } from '@/lib/ws/market';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getDisplaySymbol } from '@/utils/tokenDisplay';
 import { useVault } from '@/contexts/VaultContext';
 
 const normalizeTokenForDisplay = (token: Token): Token => {
-  if (token.symbol === 'WETH') {
+  if (token && token.symbol === 'WETH') {
     return { ...token, symbol: 'ETH' };
   }
   return token;
@@ -69,7 +68,7 @@ function TradeHeader({
             </div>
             <div>
               <div className="text-muted-foreground text-xs">24h Volume</div>
-              <div className="font-mono font-medium">{volume} {quoteAsset ? getDisplaySymbol(quoteAsset) : ''}</div>
+              <div className="font-mono font-medium">{volume} {quoteAsset ? quoteAsset.symbol : ''}</div>
             </div>
           </div>
         </div>
