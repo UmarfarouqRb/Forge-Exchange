@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +43,10 @@ export default function Withdraw() {
 
   const { address } = useAccount();
 
-  const selectedAsset = allAssets.find(a => getDisplaySymbol(a.token) === selectedAssetSymbol || a.token.symbol === selectedAssetSymbol);
+  const selectedAsset = useMemo(() => {
+    return allAssets.find(a => getDisplaySymbol(a.token) === selectedAssetSymbol);
+  }, [allAssets, selectedAssetSymbol]);
+  
   const settlementToken = selectedAsset?.token;
 
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
@@ -68,7 +71,6 @@ export default function Withdraw() {
                 abi: VaultSpotAbi,
                 functionName: 'withdrawETH',
                 args: [parsedAmount],
-                value: 0n, // Explicitly set value to 0 for non-payable function
             };
         } else {
             const tokenAddr = safeAddress(settlementToken.address);
@@ -85,7 +87,7 @@ export default function Withdraw() {
     };
 
     getGasEstimate();
-  }, [amount, selectedAsset, settlementToken, address, estimateGas, vaultAddress]);
+  }, [amount, selectedAsset, settlementToken, address, estimateGas, vaultAddress, getDisplaySymbol]);
 
   useTrackedTx({
     hash: withdrawTxHash,
@@ -142,7 +144,6 @@ export default function Withdraw() {
                 abi: VaultSpotAbi,
                 functionName: "withdrawETH",
                 args: [parsedAmount],
-                value: 0n, // Explicitly set value to 0 for non-payable function
             });
         } else {
             const tokenAddr = safeAddress(settlementToken.address);

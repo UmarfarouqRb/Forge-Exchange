@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { parseUnits, erc20Abi } from 'viem';
-import { useAccount, useReadContract } from 'wagmi';
+import { useAccount, useReadContract, useBalance } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
 import { config } from '@/wagmi';
 import { waitForTransactionReceipt } from 'wagmi/actions';
@@ -55,7 +55,7 @@ export default function Deposit() {
   const tokenAddress = safeAddress(settlementToken?.address);
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
 
-  const { data: allowance, refetch } = useReadContract({
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: tokenAddress,
     abi: erc20Abi,
     functionName: 'allowance',
@@ -63,6 +63,23 @@ export default function Deposit() {
     query: {
       enabled: !!address && !!tokenAddress && !!vaultAddress && settlementToken && getDisplaySymbol(settlementToken) !== 'ETH',
     },
+  });
+
+  const { data: walletBalance, refetch: refetchWalletBalance } = useReadContract({
+    address: tokenAddress,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: {
+        enabled: !!address && !!tokenAddress && !!settlementToken && getDisplaySymbol(settlementToken) !== 'ETH',
+    },
+  });
+
+  const { data: ethBalance, refetch: refetchEthBalance } = useBalance({
+      address,
+      query: {
+          enabled: !!address && !!settlementToken && getDisplaySymbol(settlementToken) === 'ETH',
+      }
   });
 
   useEffect(() => {
@@ -113,8 +130,10 @@ export default function Deposit() {
   useTrackedTx({
     hash: depositTxHash,
     onSuccess: () => {
-      refetch();
+      refetchAllowance();
       refetchVault();
+      refetchWalletBalance();
+      refetchEthBalance();
       setMessage({ type: 'success', text: 'Deposit successful! Your balance will update shortly.' });
       toast.success('Deposit successful!');
       setIsDepositing(false);
@@ -167,7 +186,7 @@ export default function Deposit() {
             });
             await waitForTransactionReceipt(config, { hash: approvalHash });
             toast.success('Approval successful!');
-            refetch();
+            refetchAllowance();
         }
 
         toast.loading(`Depositing ${token.symbol}...`, { id: toastId });
@@ -210,7 +229,12 @@ export default function Deposit() {
 
     const parsedAmount = parseUnits(amount, settlementToken.decimals);
 
-    if (selectedAsset.balance < parsedAmount) {
+    const isEth = settlementToken && getDisplaySymbol(settlementToken) === 'ETH';
+    const hasSufficientWalletBalance = isEth
+        ? ethBalance && ethBalance.value >= parsedAmount
+        : walletBalance !== undefined && walletBalance >= parsedAmount;
+
+    if (!hasSufficientWalletBalance) {
         const errorMsg = 'Insufficient balance for this deposit.';
         setMessage({ type: 'error', text: errorMsg });
         toast.error(errorMsg);

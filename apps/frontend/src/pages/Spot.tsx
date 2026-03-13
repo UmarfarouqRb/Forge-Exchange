@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TradingChart } from '@/components/TradingChart';
@@ -9,6 +10,7 @@ import Trade from './Trade';
 import { subscribe, unsubscribe } from '@/lib/ws/market';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
+import { useVault } from '@/contexts/VaultContext';
 
 function TradeHeader({ 
     market, 
@@ -26,7 +28,7 @@ function TradeHeader({
   const high = market?.high24h ? `$${parseFloat(market.high24h).toFixed(2)}` : '-';
   const low = market?.low24h ? `$${parseFloat(market.low24h).toFixed(2)}` : '-';
   const volume = market?.volume24h ? `${(parseFloat(market.volume24h) / 1e9).toFixed(2)}B` : '-';
-  const quoteAsset = selectedTradingPair?.displayQuote;
+  const quoteAsset = selectedTradingPair?.quoteToken;
 
   return (
     <div className="border-b border-border bg-card px-3 md:px-6 py-2 md:py-3 flex-shrink-0">
@@ -74,6 +76,7 @@ export default function Spot() {
   const [selectedTradingPair, setSelectedTradingPair] = useState<TradingPair | undefined>();
   const [market, setMarket] = useState<Market | undefined>();
   const [isErrorPairs, setIsErrorPairs] = useState<boolean>(false);
+  const { assets, isLoading: isVaultLoading } = useVault();
 
   useEffect(() => {
     const fetchTradingPairs = async () => {
@@ -151,7 +154,7 @@ export default function Spot() {
         </TabsContent>
         <TabsContent value="trade" className="flex-1 overflow-auto p-2 flex flex-col h-full">
           {selectedTradingPair ? (
-            <Trade pair={selectedTradingPair} market={market} pairsList={pairsList} />
+            <Trade pair={selectedTradingPair} market={market} pairsList={pairsList} vaultAssets={assets} isVaultLoading={isVaultLoading} />
           ) : (
             <div className="flex items-center justify-center h-full text-lg">Select a market to trade.</div>
           )}

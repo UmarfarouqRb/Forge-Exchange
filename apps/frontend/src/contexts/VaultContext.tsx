@@ -1,7 +1,8 @@
+
 import { createContext, useContext, useCallback, useMemo } from 'react';
 import { getVaultTokens, getMarkets } from '@/lib/api';
 import { useChainContext } from '@/contexts/chain-context';
-import { VaultAsset, Market, Token } from '@/types/market-data';
+import { VaultToken, VaultAsset, Market, Token } from '@/types/market-data';
 import { formatBalance } from '@/lib/format';
 import { useAccount, useReadContracts } from 'wagmi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -24,15 +25,15 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   const { address } = useAccount();
   const queryClient = useQueryClient();
 
-  const { data: vaultAssetsResponse, isLoading: tokensLoading } = useQuery<VaultAsset[]> ({
+  const { data: vaultTokensStatic, isLoading: tokensLoading } = useQuery<VaultToken[]> ({
     queryKey: ['vaultTokensStatic'],
     queryFn: getVaultTokens,
   });
 
   const vaultTokens = useMemo(() => {
-    if (!vaultAssetsResponse) return [];
-    return vaultAssetsResponse.map(asset => asset.token);
-  }, [vaultAssetsResponse]);
+    if (!vaultTokensStatic) return [];
+    return vaultTokensStatic.map(asset => asset.token);
+  }, [vaultTokensStatic]);
 
   const { data: markets, isLoading: marketsLoading } = useQuery<Market[]> ({
     queryKey: ['markets'],
@@ -51,7 +52,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
       args: [address, token.address as `0x${string}`],
       chainId: selectedChain.id,
     }));
-  }, [vaultTokens, address, vaultAddress, selectedChain]);
+  }, [vaultTokens, address, vaultAddress, selectedChain, VAULT_SPOT_ADDRESS]);
 
   const { data: balanceResults, refetch: refetchBalances, isLoading: balancesLoading } = useReadContracts({
     contracts: balanceContracts,
@@ -61,7 +62,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   const [assets, totalAssetsValue] = useMemo(() => {
-    if (!vaultAssetsResponse || !balanceResults || !markets) {
+    if (!vaultTokensStatic || !balanceResults || !markets) {
       return [[], 0];
     }
 
@@ -69,7 +70,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     const stablecoins = ['USDC', 'DAI', 'USDT'];
     let totalValue = 0;
 
-    const assetsWithPrices: VaultAsset[] = vaultAssetsResponse.map((asset: VaultAsset, i: number) => {
+    const assetsWithPrices: VaultAsset[] = vaultTokensStatic.map((asset: VaultToken, i: number) => {
       const token = asset.token;
       const balanceResult = balanceResults[i];
       const balance = balanceResult?.status === 'success' ? (balanceResult.result as bigint) : BigInt(0);
@@ -99,7 +100,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     });
     
     return [assetsWithPrices, totalValue];
-  }, [vaultAssetsResponse, balanceResults, markets]);
+  }, [vaultTokensStatic, balanceResults, markets]);
   
   const isLoading = tokensLoading || marketsLoading || balancesLoading;
 

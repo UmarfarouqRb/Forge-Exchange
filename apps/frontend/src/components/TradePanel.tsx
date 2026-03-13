@@ -16,11 +16,12 @@ import { createOrder } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
 import { formatBalance } from '@/lib/format';
-import { useVault } from '@/contexts/VaultContext';
 
 interface TradePanelProps {
   pair: TradingPair;
   market?: Market;
+  vaultAssets: VaultAsset[];
+  isVaultLoading: boolean;
   disabled?: boolean;
   isMobile?: boolean;
 }
@@ -39,7 +40,7 @@ export function SkeletonTradePanel() {
   );
 }
 
-export function TradePanel({ pair, market, disabled = false, isMobile = false }: TradePanelProps) {
+export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled = false, isMobile = false }: TradePanelProps) {
   const [orderType, setOrderType] = useState<'limit' | 'market'>('market');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(market?.lastPrice || '');
@@ -50,7 +51,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const { wallets } = useWallets();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { assets, refetchVault, isLoading } = useVault();
 
   const addLog = (log: string) => {
     setLogs(prevLogs => [`[${new Date().toLocaleTimeString()}] ${log}`, ...prevLogs]);
@@ -72,14 +72,14 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
   const assetMap = useMemo(() => {
     const map: Record<string, VaultAsset> = {};
-    if (!assets) return map;
-    assets.forEach(a => {
+    if (!vaultAssets) return map;
+    vaultAssets.forEach(a => {
       if (a.token.address) {
         map[a.token.address.toLowerCase()] = a;
       }
     });
     return map;
-  }, [assets]);
+  }, [vaultAssets]);
 
   const baseAsset = baseToken?.address ? assetMap[baseToken.address.toLowerCase()] : undefined;
   const quoteAsset = quoteToken?.address ? assetMap[quoteToken.address.toLowerCase()] : undefined;
@@ -106,7 +106,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       addLog('Order placed successfully');
       setIsConfirming(false);
       setAmount('');
-      refetchVault();
+      queryClient.invalidateQueries({ queryKey: ['vaultTokens'] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['tradeHistory'] });
     },
@@ -169,7 +169,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     }
   }, [side, baseAsset, quoteAsset, displayBaseSymbol, displayQuoteSymbol]);
 
-  if (isLoading && assets.length === 0) {
+  if (isVaultLoading && vaultAssets.length === 0) {
     return <SkeletonTradePanel />;
   }
 
@@ -321,7 +321,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           order={{
             side,
             amount,
-            symbol: pair.symbol,
+            symbol: pair.baseToken ? getDisplaySymbol(pair.baseToken) : '',
             price,
             orderType,
             total

@@ -8,7 +8,7 @@ export function useGasEstimation(args: any) {
   const [gasEstimate, setGasEstimate] = useState<string | null>(null);
 
   useEffect(() => {
-    if (data) {
+    if (data && data.request.gas) {
       const formattedGas = formatGwei(data.request.gas);
       setGasEstimate(formattedGas);
     }

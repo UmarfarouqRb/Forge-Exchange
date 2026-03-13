@@ -9,14 +9,17 @@ export type Token = {
   logoURI?: string;
 };
 
-export type VaultAsset = {
+export type VaultToken = {
   token: Token;
   displayToken: Token;
-  balance: bigint;
-  balanceFormatted: string;
   deposit_enabled: boolean;
   withdraw_enabled: boolean;
   vault_spot_supported: boolean;
+};
+
+export type VaultAsset = VaultToken & {
+  balance: bigint;
+  balanceFormatted: string;
   price?: number;
   balanceUSD?: number;
 };

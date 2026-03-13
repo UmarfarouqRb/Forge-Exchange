@@ -15,7 +15,7 @@ import { getDisplaySymbol } from '@/utils/tokenDisplay';
 import { UserPoints } from '@/components/UserPoints';
 import { LevelBadge } from '@/components/LevelBadge';
 
-function AssetRow({ asset }: { asset: VaultAsset & { price?: number; balanceUSD?: number } }) {
+function AssetRow({ asset }: { asset: VaultAsset }) {
     const navigate = useNavigate();
     const displaySymbol = getDisplaySymbol(asset.token);
     const availableUSD = asset.balanceUSD ? formatUSD(asset.balanceUSD) : '-';
