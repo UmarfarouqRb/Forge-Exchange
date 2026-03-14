@@ -64,8 +64,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     }
   }, [currentPrice, orderType]);
 
-  const baseToken = pair?.baseToken;
-  const quoteToken = pair?.quoteToken;
+  const baseToken = pair?.base;
+  const quoteToken = pair?.quote;
   const displayBaseSymbol = baseToken ? (baseToken.symbol === 'WETH' ? 'ETH' : baseToken.symbol) : '';
   const displayQuoteSymbol = quoteToken ? (quoteToken.symbol === 'WETH' ? 'ETH' : quoteToken.symbol) : '';
 
@@ -309,7 +309,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           order={{
             side,
             amount,
-            symbol: pair.baseToken ? pair.baseToken.symbol : '',
+            symbol: pair.base ? pair.base.symbol : '',
             price,
             orderType,
             total

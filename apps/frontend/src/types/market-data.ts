@@ -27,10 +27,8 @@ export type VaultAsset = VaultToken & {
 export type TradingPair = {
     id: string;
     symbol: string;
-    baseToken: Token;
-    quoteToken: Token;
-    displayBase: Token;
-    displayQuote: Token;
+    base: Token;
+    quote: Token;
     isActive?: boolean;
     status: 'active' | 'inactive';
 }

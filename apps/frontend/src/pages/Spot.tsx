@@ -33,7 +33,7 @@ function TradeHeader({
   const high = market?.high24h ? `$${parseFloat(market.high24h).toFixed(2)}` : '-';
   const low = market?.low24h ? `$${parseFloat(market.low24h).toFixed(2)}` : '-';
   const volume = market?.volume24h ? `${(parseFloat(market.volume24h) / 1e9).toFixed(2)}B` : '-';
-  const quoteAsset = selectedTradingPair?.quoteToken;
+  const quoteAsset = selectedTradingPair?.quote;
 
   return (
     <div className="border-b border-border bg-card px-3 md:px-6 py-2 md:py-3 flex-shrink-0">
@@ -77,9 +77,8 @@ function TradeHeader({
 }
 
 export default function Spot() {
-  const [rawPairsList, setRawPairsList] = useState<TradingPair[]>([]);
-  const [displayPairsList, setDisplayPairsList] = useState<TradingPair[]>([]);
-  const [selectedDisplayPair, setSelectedDisplayPair] = useState<TradingPair | undefined>();
+  const [pairsList, setPairsList] = useState<TradingPair[]>([]);
+  const [selectedPair, setSelectedPair] = useState<TradingPair | undefined>();
   const [market, setMarket] = useState<Market | undefined>();
   const [isErrorPairs, setIsErrorPairs] = useState<boolean>(false);
 
@@ -87,19 +86,12 @@ export default function Spot() {
     const fetchTradingPairs = async () => {
       setIsErrorPairs(false);
       try {
-        const rawPairs = await getAllPairs();
-        setRawPairsList(rawPairs);
-        
-        const displayPairs = rawPairs.map(pair => ({
-          ...pair,
-          baseToken: normalizeTokenForDisplay(pair.baseToken),
-          quoteToken: normalizeTokenForDisplay(pair.quoteToken),
-        }));
-        setDisplayPairsList(displayPairs);
+        const pairs = await getAllPairs();
+        setPairsList(pairs);
 
-        if (displayPairs.length > 0) {
-          const defaultPair = displayPairs.find((p: TradingPair) => p.symbol === 'ETHUSDC') || displayPairs[0];
-          setSelectedDisplayPair(defaultPair);
+        if (pairs.length > 0) {
+          const defaultPair = pairs.find((p: TradingPair) => p.symbol === 'ETHUSDC') || pairs[0];
+          setSelectedPair(defaultPair);
         }
       } catch (error) {
         console.error("Failed to fetch trading pairs:", error);
@@ -109,22 +101,17 @@ export default function Spot() {
     fetchTradingPairs();
   }, []);
 
-  const internalTradingPair = useMemo(() => {
-    if (!selectedDisplayPair) return undefined;
-    return rawPairsList.find(p => p.id === selectedDisplayPair.id);
-  }, [selectedDisplayPair, rawPairsList]);
-
   useEffect(() => {
-    if (!internalTradingPair) return;
+    if (!selectedPair) return;
 
-    const topic = `prices:${internalTradingPair.symbol}`;
+    const topic = `prices:${selectedPair.symbol}`;
     const handleUpdate = (update: { price: number }) => {
         setMarket(prevMarket => prevMarket ? { ...prevMarket, currentPrice: String(update.price) } : undefined);
     };
     
     const fetchMarket = async () => {
         try {
-            const data = await getMarketBySymbol(internalTradingPair.symbol);
+            const data = await getMarketBySymbol(selectedPair.symbol);
             setMarket(data);
         } catch (error) {
             console.error("Failed to fetch market data:", error);
@@ -136,11 +123,29 @@ export default function Spot() {
     subscribe(topic, handleUpdate);
 
     return () => unsubscribe(topic);
-  }, [internalTradingPair]);
+  }, [selectedPair]);
 
   if (isErrorPairs) {
     return <div className="h-[calc(100vh-4rem)] flex items-center justify-center text-lg text-red-500">Error loading trading pairs. Please try again later.</div>;
   }
+
+  const displayPairsList = useMemo(() => {
+    return pairsList.map(p => ({
+        ...p,
+        base: normalizeTokenForDisplay(p.base),
+        quote: normalizeTokenForDisplay(p.quote),
+    }))
+  }, [pairsList]);
+
+  const selectedDisplayPair = useMemo(() => {
+    if (!selectedPair) return undefined;
+    return {
+        ...selectedPair,
+        base: normalizeTokenForDisplay(selectedPair.base),
+        quote: normalizeTokenForDisplay(selectedPair.quote),
+    }
+  }, [selectedPair]);
+
 
   return (
     <div className="h-[calc(100vh-4rem)] bg-background flex flex-col text-xs">
@@ -148,7 +153,7 @@ export default function Spot() {
         market={market} 
         selectedTradingPair={selectedDisplayPair} 
         pairsList={displayPairsList} 
-        setSelectedTradingPair={setSelectedDisplayPair} 
+        setSelectedTradingPair={setSelectedPair} 
       />
       <Tabs defaultValue="chart" className="flex-1 flex flex-col overflow-hidden">
         <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-border">

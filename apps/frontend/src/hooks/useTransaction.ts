@@ -29,8 +29,8 @@ export function useTransaction() {
                 ...args,
                 account,
             });
-            // Add a 20% buffer to the estimated gas amount.
-            const bufferedGas = (estimatedGas * 120n) / 100n;
+            // Add a 50% buffer to the estimated gas amount.
+            const bufferedGas = (estimatedGas * 150n) / 100n;
             return bufferedGas;
         } catch (err) {
             console.error("Gas estimation failed:", err);
