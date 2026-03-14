@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
+import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { parseUnits } from 'viem';
 import { useAccount } from 'wagmi';
@@ -52,6 +52,10 @@ export default function Withdraw() {
 
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
 
+  const isWeth = useMemo(() => {
+    return settlementToken?.address.toLowerCase() === WETH_ADDRESS.toLowerCase();
+  }, [settlementToken]);
+
   useEffect(() => {
     setAmount('');
   }, [selectedAssetSymbol]);
@@ -66,7 +70,7 @@ export default function Withdraw() {
         const parsedAmount = parseUnits(amount, settlementToken.decimals);
         let args: any;
 
-        if (settlementToken.symbol === 'WETH') {
+        if (isWeth) {
             args = {
                 address: vaultAddress,
                 abi: VaultSpotAbi,
@@ -88,7 +92,7 @@ export default function Withdraw() {
     };
 
     getGasEstimate();
-  }, [amount, selectedAsset, settlementToken, address, estimateGas, vaultAddress]);
+  }, [amount, selectedAsset, settlementToken, address, estimateGas, vaultAddress, isWeth]);
 
   useTrackedTx({
     hash: withdrawTxHash,
@@ -138,7 +142,7 @@ export default function Withdraw() {
     try {
         let txHash;
 
-        if (selectedAssetSymbol === "WETH") {
+        if (isWeth) {
             toast.loading('Withdrawing ETH...', { id: toastId });
             txHash = await writeContractAsync({
                 address: vaultAddress,

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { Market, TradingPair, VaultAsset } from '@/types/market-data';
+import { Market, TradingPair } from '@/types/market-data';
 import { parseUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { OrderTypeSelector } from './OrderTypeSelector';
@@ -15,12 +15,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createOrder } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatBalance } from '@/lib/format';
+import { useVault } from '@/contexts/VaultContext';
 
 interface TradePanelProps {
   pair: TradingPair;
   market?: Market;
-  vaultAssets: VaultAsset[];
-  isVaultLoading: boolean;
   disabled?: boolean;
   isMobile?: boolean;
 }
@@ -39,7 +38,7 @@ export function SkeletonTradePanel() {
   );
 }
 
-export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled = false, isMobile = false }: TradePanelProps) {
+export function TradePanel({ pair, market, disabled = false, isMobile = false }: TradePanelProps) {
   const [orderType, setOrderType] = useState<'limit' | 'market'>('market');
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(market?.lastPrice || '');
@@ -50,6 +49,7 @@ export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled
   const { wallets } = useWallets();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { getVaultBalance, isLoading: isVaultLoading } = useVault();
 
   const addLog = (log: string) => {
     setLogs(prevLogs => [`[${new Date().toLocaleTimeString()}] ${log}`, ...prevLogs]);
@@ -66,24 +66,11 @@ export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled
 
   const baseToken = pair?.baseToken;
   const quoteToken = pair?.quoteToken;
-  const displayBaseSymbol = baseToken ? baseToken.symbol : '';
-  const displayQuoteSymbol = quoteToken ? quoteToken.symbol : '';
+  const displayBaseSymbol = baseToken ? (baseToken.symbol === 'WETH' ? 'ETH' : baseToken.symbol) : '';
+  const displayQuoteSymbol = quoteToken ? (quoteToken.symbol === 'WETH' ? 'ETH' : quoteToken.symbol) : '';
 
-  const assetMap = useMemo(() => {
-    const map: Record<string, VaultAsset> = {};
-    if (!vaultAssets) return map;
-    vaultAssets.forEach(a => {
-      map[a.token.symbol] = a; // The key here is the canonical symbol, e.g., 'WETH'
-    });
-    return map;
-  }, [vaultAssets]);
-
-  const baseAssetSymbol = baseToken?.symbol === 'ETH' ? 'WETH' : baseToken?.symbol;
-  const quoteAssetSymbol = quoteToken?.symbol === 'ETH' ? 'WETH' : quoteToken?.symbol;
-
-  const baseAsset = baseAssetSymbol ? assetMap[baseAssetSymbol] : undefined;
-  const quoteAsset = quoteAssetSymbol ? assetMap[quoteAssetSymbol] : undefined;
-
+  const baseBalance = baseToken ? getVaultBalance(baseToken.address) : 0n;
+  const quoteBalance = quoteToken ? getVaultBalance(quoteToken.address) : 0n;
 
   const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
 
@@ -91,15 +78,15 @@ export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled
     if (!amount || parseFloat(amount) <= 0) return true;
 
     if (side === 'buy') {
-      if (!quoteAsset || !quoteToken) return false;
+      if (!quoteToken) return false;
       const totalAmount = parseUnits(total.toString(), quoteToken.decimals);
-      return quoteAsset.balance >= totalAmount;
+      return quoteBalance >= totalAmount;
     } else {
-      if (!baseAsset || !baseToken) return false;
+      if (!baseToken) return false;
       const orderAmount = parseUnits(amount, baseToken.decimals);
-      return baseAsset.balance >= orderAmount;
+      return baseBalance >= orderAmount;
     }
-  }, [amount, side, baseAsset, quoteAsset, baseToken, quoteToken, total]);
+  }, [amount, side, baseBalance, quoteBalance, baseToken, quoteToken, total]);
 
   const { mutate: submitOrder, isPending: isSubmitting } = useMutation({
     mutationFn: createOrder,
@@ -159,18 +146,18 @@ export function TradePanel({ pair, market, vaultAssets, isVaultLoading, disabled
   const { availableBalance, availableSymbol } = useMemo(() => {
     if (side === 'buy') {
       return {
-        availableBalance: quoteAsset ? formatBalance(quoteAsset.balance, quoteToken?.decimals) : '0.00',
+        availableBalance: formatBalance(quoteBalance, quoteToken?.decimals),
         availableSymbol: displayQuoteSymbol
       };
     } else { // sell
       return {
-        availableBalance: baseAsset ? formatBalance(baseAsset.balance, baseToken?.decimals) : '0.00',
+        availableBalance: formatBalance(baseBalance, baseToken?.decimals),
         availableSymbol: displayBaseSymbol
       };
     }
-  }, [side, baseAsset, quoteAsset, displayBaseSymbol, displayQuoteSymbol, baseToken, quoteToken]);
+  }, [side, baseBalance, quoteBalance, displayBaseSymbol, displayQuoteSymbol, baseToken, quoteToken]);
 
-  if (isVaultLoading && vaultAssets.length === 0) {
+  if (isVaultLoading) {
     return <SkeletonTradePanel />;
   }
 

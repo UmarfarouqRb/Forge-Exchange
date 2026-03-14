@@ -1,7 +1,7 @@
 
 import { OrderBook } from '@/components/OrderBook';
 import { TradePanel } from '@/components/TradePanel';
-import { TradingPair, Market, Order, VaultAsset } from '@/types/market-data';
+import { TradingPair, Market, Order } from '@/types/market-data';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
@@ -15,11 +15,9 @@ interface TradeProps {
   pair: TradingPair;
   market: Market | undefined;
   pairsList: TradingPair[];
-  vaultAssets: VaultAsset[];
-  isVaultLoading: boolean;
 }
 
-export default function Trade({ pair, market, pairsList, vaultAssets, isVaultLoading }: TradeProps) {
+export default function Trade({ pair, market, pairsList }: TradeProps) {
   const { user, authenticated } = usePrivy();
   const wallet = user?.wallet;
 
@@ -112,7 +110,7 @@ export default function Trade({ pair, market, pairsList, vaultAssets, isVaultLoa
     <div className="flex flex-col h-full bg-background text-xs">
       <div className="grid grid-cols-2 gap-2 p-2 flex-1">
         <div className="col-span-1">
-          <TradePanel pair={pair} market={market} vaultAssets={vaultAssets} isVaultLoading={isVaultLoading} />
+          <TradePanel pair={pair} market={market} />
         </div>
         <div className="col-span-1">
           <OrderBook pair={pair} book={market} />

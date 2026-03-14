@@ -16,6 +16,7 @@ interface VaultContextType {
   isLoading: boolean;
   totalAssetsValue: number;
   refetchVault: () => void;
+  getVaultBalance: (tokenAddress: string) => bigint;
 }
 
 const VaultContext = createContext<VaultContextType | undefined>(undefined);
@@ -109,6 +110,13 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     queryClient.invalidateQueries({ queryKey: ['markets'] });
   }, [refetchBalances, queryClient]);
 
+  const getVaultBalance = useCallback((tokenAddress: string) => {
+    const asset = assets.find(
+      (a: VaultAsset) => a.token.address.toLowerCase() === tokenAddress.toLowerCase()
+    );
+    return asset?.balance ?? 0n;
+  }, [assets]);
+
   useWatchContractEvent({
     address: vaultAddress,
     abi: VaultSpotAbi,
@@ -152,7 +160,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   return (
-    <VaultContext.Provider value={{ assets, isLoading, totalAssetsValue, refetchVault }}>
+    <VaultContext.Provider value={{ assets, isLoading, totalAssetsValue, refetchVault, getVaultBalance }}>
       {children}
     </VaultContext.Provider>
   );
