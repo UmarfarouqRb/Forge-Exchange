@@ -1,6 +1,6 @@
 
 import { relayerConfig } from '@forge/common';
-import { saveOrder, updateOrderStatus } from '@forge/db';
+import { updateOrderStatus } from '@forge/db';
 import { createPublicClient, createWalletClient, http, keccak256, parseUnits, formatUnits, getAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { getChain } from './utils/chain';
@@ -52,8 +52,6 @@ export const executeSpotTrade = async (intent: any, signature: `0x${string}`, or
     const orderId = keccak256(signature);
 
     try {
-        await saveOrder({ ...intent, id: orderId, status: 'open' });
-
         const network = relayerConfig.getNetworkByChainId(intent.chainId);
         if (!network) {
             throw new Error(`Unsupported chainId: ${intent.chainId}`);

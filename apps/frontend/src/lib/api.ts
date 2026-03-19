@@ -56,6 +56,8 @@ export async function getOrders(walletAddress: string): Promise<Order[]> {
   return handleResponse<Order[]>(response);
 }
 
+export type CreateOrderRequest = InsertOrder;
+
 export async function createOrder(order: InsertOrder): Promise<Order> {
   const response = await fetch(`${API_URL}/api/orders`, {
     method: 'POST',

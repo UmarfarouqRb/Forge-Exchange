@@ -104,6 +104,10 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
     mapping(bytes32 => bool) public whitelistedAdapters;
     /// @notice Mapping from adapter address to adapter ID.
     mapping(address => bytes32) public adapterAddressToId;
+    /// @notice Array of all adapter IDs for iteration.
+    bytes32[] public allAdapters;
+    /// @notice Mapping from adapter ID to its index in the allAdapters array.
+    mapping(bytes32 => uint256) public adapterIdToIndex;
 
     /**
      * @dev Sets up the contract with a vault, fee controller, and EIP-712 domain details.
@@ -113,7 +117,7 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
      * @param _version The EIP-712 domain version.
      */
     constructor(
-        address _vault,
+        address payable _vault,
         address _feeController,
         string memory _name,
         string memory _version
@@ -136,6 +140,8 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
         adapters[id] = IAdapter(adapter);
         adapterAddressToId[adapter] = id;
         whitelistedAdapters[id] = true;
+        adapterIdToIndex[id] = allAdapters.length;
+        allAdapters.push(id);
         emit AdapterAdded(id, adapter);
     }
 
@@ -147,9 +153,20 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
     function removeAdapter(bytes32 id) external onlyOwner {
         require(address(adapters[id]) != address(0), "Adapter does not exist");
         address adapterAddress = address(adapters[id]);
+        
+        uint256 indexToRemove = adapterIdToIndex[id];
+        bytes32 lastAdapterId = allAdapters[allAdapters.length - 1];
+        
+        allAdapters[indexToRemove] = lastAdapterId;
+        adapterIdToIndex[lastAdapterId] = indexToRemove;
+        
+        allAdapters.pop();
+        
+        delete adapterIdToIndex[id];
         delete adapterAddressToId[adapterAddress];
         delete adapters[id];
         delete whitelistedAdapters[id];
+        
         emit AdapterRemoved(id);
     }
 
@@ -196,11 +213,7 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
         address signer = ECDSA.recover(digest, signature);
 
         require(signer == user, "SpotRouter: Invalid signature");
-
-        address adapterAddress = intent.adapter;
-        bytes32 adapterId = adapterAddressToId[adapterAddress];
-        require(whitelistedAdapters[adapterId], "Adapter not whitelisted");
-
+        
         uint256 relayerFee = intent.relayerFee;
         uint256 amountInAfterRelayerFee = amountIn - relayerFee;
 
@@ -209,7 +222,7 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
             intent.tokenIn,
             intent.tokenOut,
             amountInAfterRelayerFee,
-            adapterAddress
+            intent.adapter // Pass intent.adapter, which is address(0) for auto
         );
         
         uint256 totalFee = relayerFee + protocolFee;
@@ -227,16 +240,24 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
             IERC20(tokenIn).safeTransfer(feeRecipient, protocolFee);
         }
 
-        IAdapter adapter = IAdapter(adapterAddress);
-        IERC20(tokenIn).approve(address(adapter), amountInAfterAllFees);
+        if (intent.adapter != address(0)) {
+            address adapterAddress = intent.adapter;
+            bytes32 adapterId = adapterAddressToId[adapterAddress];
+            require(whitelistedAdapters[adapterId], "Adapter not whitelisted");
 
-        try adapter.swap(tokenIn, intent.tokenOut, amountInAfterAllFees, abi.encode(user)) returns (uint256 returnedAmount) {
-            amountOut = returnedAmount;
-        } catch (bytes memory reason) {
-            emit IntentFailed(intentHash, user, string(reason));
-            revert("Swap failed");
+            IAdapter adapter = IAdapter(adapterAddress);
+            IERC20(tokenIn).approve(address(adapter), amountInAfterAllFees);
+
+            try adapter.swap(tokenIn, intent.tokenOut, amountInAfterAllFees, abi.encode(user)) returns (uint256 returnedAmount) {
+                amountOut = returnedAmount;
+            } catch (bytes memory reason) {
+                emit IntentFailed(intentHash, user, string(reason));
+                revert("Swap failed");
+            }
+        } else {
+            amountOut = _executeSwap(tokenIn, intent.tokenOut, amountInAfterAllFees, allAdapters, abi.encode(user));
         }
-
+        
         require(amountOut >= intent.minAmountOut, "SpotRouter: Slippage check failed");
 
         address tokenOut = intent.tokenOut;
@@ -310,8 +331,8 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
-        bytes32[] calldata adapterIds,
-        bytes calldata data
+        bytes32[] memory adapterIds,
+        bytes memory data
     ) internal returns (uint256) {
         uint256 bestAmountOut = 0;
         IAdapter bestAdapter;

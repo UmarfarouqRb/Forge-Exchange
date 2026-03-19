@@ -7,7 +7,6 @@ import "../contracts/spot/VaultSpot.sol";
 import "../contracts/spot/IntentSpotRouter.sol";
 import "../contracts/spot/FeeController.sol";
 import "../contracts/spot/adapters/PancakeV3Adapter.sol";
-import "../contracts/spot/adapters/UniswapV2Adapter.sol";
 import "../contracts/spot/adapters/AerodromeAdapter.sol";
 import "../lib/universal-router/lib/solmate/src/tokens/WETH.sol";
 
@@ -43,16 +42,14 @@ contract Deploy is Script {
         FeeController feeController = new FeeController(deployerAddress, multisig, 20, 100);
 
         // 3. Deploy IntentSpotRouter
-        IntentSpotRouter router = new IntentSpotRouter(address(vault), address(feeController), "IntentSpotRouter", "1.0");
+        IntentSpotRouter router = new IntentSpotRouter(payable(address(vault)), address(feeController), "IntentSpotRouter", "1.0");
 
         // 4. Deploy Adapters
         PancakeV3Adapter pancakeV3Adapter = new PancakeV3Adapter();
-        UniswapV2Adapter uniswapV2Adapter = new UniswapV2Adapter();
         AerodromeAdapter aerodromeAdapter = new AerodromeAdapter();
 
         // 5. Configure router with adapters
         router.addAdapter(keccak256("pancakev3"), address(pancakeV3Adapter));
-        router.addAdapter(keccak256("uniswapv2"), address(uniswapV2Adapter));
         router.addAdapter(keccak256("aerodrome"), address(aerodromeAdapter));
 
         // 6. Configure vault
@@ -76,7 +73,6 @@ contract Deploy is Script {
         json = json.serialize("router", address(router));
         json = json.serialize("feeController", address(feeController));
         json = json.serialize("pancakeV3Adapter", address(pancakeV3Adapter));
-        json = json.serialize("uniswapV2Adapter", address(uniswapV2Adapter));
         json = json.serialize("aerodromeAdapter", address(aerodromeAdapter));
         json = json.serialize("weth", WETH_BASE_SEPOLIA);
 

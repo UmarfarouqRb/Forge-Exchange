@@ -37,7 +37,7 @@ contract AerodromeAdapterTest is Test {
         adapter = new AerodromeAdapter();
         vault = new VaultSpot();
         feeController = new FeeController(address(this), treasury, 0, 1000);
-        router = new IntentSpotRouter(address(vault), address(feeController), "IntentSpotRouter", "1.0");
+        router = new IntentSpotRouter(payable(address(vault)), address(feeController), "IntentSpotRouter", "1.0");
         
         vault.setRouter(address(router));
         bytes32 adapterId = keccak256(bytes("aerodrome"));

@@ -1,9 +1,6 @@
-{
-  "vault": "0xe7b5f485f2f2734c5887af5e90d9b37bc06d47e1",
-  "router": "0xc00de92c57ed8072b3253bd7c4dda9def86a2cca",
-  "feeController": "0x47275c1df3b887a7bc47d4c13db953b821eeccaa",
-  "pancakeV3Adapter": "0xade6ca4f0d731d605079a2b2cb513b441600c80c",
-  "uniswapV2Adapter": "0x2ab598472218e4d0a789d4b5338b28ddedbbce1d",
-  "aerodromeAdapter": "0x39c40276c242d7324ae9c4d71252cf6cfcf2cb16",
-  "weth": "0x4200000000000000000000000000000000000006"
-}
+{"vault":"0x738D9455f38266F35fB241C0e3EEbdc2EFa6D5cD",
+"router":"0x35862484c5533d6df708Bc53D254d35f70d764D2",
+"feeController":"0x97e011A5145146da9Ecfe4D07a547A640e1343c2",
+"pancakeV3Adapter":"0x4D6358da99893A6262cc09b4aCC9373A45F56025",
+"aerodromeAdapter":"0x08dEE5c4c4C492D6F9942a854dD333eDdF81aAB6",
+"weth":"0x4200000000000000000000000000000000000006"}

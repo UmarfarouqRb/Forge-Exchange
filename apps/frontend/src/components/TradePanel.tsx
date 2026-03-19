@@ -6,16 +6,44 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { Market, TradingPair } from '@/types/market-data';
-import { parseUnits } from 'viem';
+import { parseUnits, getAddress } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { OrderTypeSelector } from './OrderTypeSelector';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createOrder } from '@/lib/api';
+import { createOrder, CreateOrderRequest } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatBalance } from '@/lib/format';
 import { useVault } from '@/contexts/VaultContext';
+import { INTENT_SPOT_ROUTER_ADDRESS } from '@/config/contracts';
+import { toast } from 'sonner';
+
+const chainId = 84532; // Base Sepolia
+
+// EIP-712 Domain
+const domain = {
+  name: 'IntentSpotRouter',
+  version: '1',
+  chainId: chainId,
+  verifyingContract: getAddress(INTENT_SPOT_ROUTER_ADDRESS[chainId]),
+} as const;
+
+// EIP-712 Types for the intent
+const types = {
+  SwapIntent: [
+    { name: 'user', type: 'address' },
+    { name: 'tokenIn', type: 'address' },
+    { name: 'tokenOut', type: 'address' },
+    { name: 'amountIn', type: 'uint256' },
+    { name: 'minAmountOut', type: 'uint256' },
+    { name: 'deadline', type: 'uint256' },
+    { name: 'nonce', type: 'uint256' },
+    { name: 'adapter', type: 'address' },
+    { name: 'relayerFee', type: 'uint256' },
+  ],
+} as const;
+
 
 interface TradePanelProps {
   pair: TradingPair;
@@ -44,7 +72,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const [price, setPrice] = useState(market?.lastPrice || '');
   const [amount, setAmount] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
+  
   const { ready, authenticated, user, login } = usePrivy();
   const { wallets } = useWallets();
   const navigate = useNavigate();
@@ -52,7 +80,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const { getVaultBalance, isLoading: isVaultLoading } = useVault();
 
   const addLog = (log: string) => {
-    setLogs(prevLogs => [`[${new Date().toLocaleTimeString()}] ${log}`, ...prevLogs]);
+    // Replace with toast notification
+    toast.info(log);
   }
 
   const connectedWallet = wallets[0];
@@ -90,16 +119,18 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
   const { mutate: submitOrder, isPending: isSubmitting } = useMutation({
     mutationFn: createOrder,
-    onSuccess: () => {
-      addLog('Order placed successfully');
+    onSuccess: (data) => {
+      addLog(`Order placed successfully! Order ID: ${data.id}`);
+      toast.success('Order placed successfully!');
       setIsConfirming(false);
       setAmount('');
       queryClient.invalidateQueries({ queryKey: ['vaultTokens'] });
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['tradeHistory'] });
+      queryClient.invalidateQueries({ queryKey: ['orders', user?.wallet?.address] });
+      queryClient.invalidateQueries({ queryKey: ['tradeHistory', user?.wallet?.address] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       addLog(`Error: ${error.message}`);
+      toast.error(error.message);
       console.error('Failed to create order:', error);
       setIsConfirming(false);
     }
@@ -114,23 +145,64 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     }
     if (!hasSufficientBalance) {
       addLog('Insufficient funds');
+      toast.error('Insufficient funds');
       return;
     }
     setIsConfirming(true);
   };
 
-  const handleConfirmOrder = () => {
-    if (!user?.wallet?.address) return;
+  const handleConfirmOrder = async () => {
+    if (!user?.wallet?.address || !baseToken || !quoteToken || !connectedWallet) {
+        toast.error("Wallet not connected or tokens not defined.");
+        return;
+    }
 
-    addLog('Submitting order...');
-    submitOrder({
-      tradingPairId: pair.id,
-      side,
-      type: orderType,
-      quantity: amount,
-      price: orderType === 'limit' ? price : undefined,
-      userAddress: user.wallet.address,
-    });
+    addLog('Constructing and signing order...');
+    
+    const isBuy = side === 'buy';
+    const tokenIn = isBuy ? quoteToken : baseToken;
+    const tokenOut = isBuy ? baseToken : quoteToken;
+    
+    const amountIn = isBuy ? parseUnits(total.toString(), tokenIn.decimals) : parseUnits(amount, tokenIn.decimals);
+    const amountOutMin = isBuy ? parseUnits(amount, tokenOut.decimals) : parseUnits(total.toString(), tokenOut.decimals); // Simplified for this example, should use slippage
+
+    const intent = {
+        user: getAddress(user.wallet.address),
+        tokenIn: getAddress(tokenIn.address),
+        tokenOut: getAddress(tokenOut.address),
+        amountIn: amountIn.toString(),
+        minAmountOut: amountOutMin.toString(), // Users should have a way to set slippage
+        deadline: (Math.floor(Date.now() / 1000) + 300).toString(), // 5 minutes from now
+        nonce: (Date.now() * 1000).toString(), // Unique nonce using timestamp
+        adapter: '0x0000000000000000000000000000000000000000',
+        relayerFee: '0'
+    };
+
+    try {
+
+        // @ts-ignore TODO: Privy wallet does not have updated signTypedData method from viem
+        const signature = await connectedWallet.signTypedData(domain, types, intent);
+
+        addLog('Signature received, submitting order...');
+
+      const orderToSubmit: CreateOrderRequest = {
+        ...intent,
+        signature,
+        orderType,
+        side,
+        tradingPairId: pair.id,
+        quantity: amount,
+        price: orderType === 'limit' ? price : undefined,
+      };
+
+      submitOrder(orderToSubmit);
+
+    } catch (e) {
+        const error = e as Error;
+        console.error("Signing error:", error);
+        toast.error(`Signing failed: ${error.message}`);
+        setIsConfirming(false);
+    }
   };
 
   const getButtonText = () => {
@@ -161,6 +233,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     return <SkeletonTradePanel />;
   }
 
+  // Mobile view remains unchanged
   if (isMobile) {
     return (
       <div className="p-2 bg-background h-full flex flex-col text-xs">
@@ -233,17 +306,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         >
           {getButtonText()}
         </Button>
-
-        {logs.length > 0 && (
-          <div className="mt-4 p-4 border rounded-lg shadow-inner bg-background/50 h-40 overflow-y-auto">
-            <h4 className="font-bold text-sm mb-2">Trade Log</h4>
-            <div className="space-y-2">
-              {logs.map((log, i) => (
-                <div key={i} className="text-xs text-gray-400 font-mono break-all">{log}</div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     )
   }
@@ -315,17 +377,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             total
           }}
         />
-
-        {logs.length > 0 && (
-          <div className="mt-4 p-4 border rounded-lg shadow-inner bg-background/50 h-40 overflow-y-auto">
-            <h4 className="font-bold text-sm mb-2">Trade Log</h4>
-            <div className="space-y-2">
-              {logs.map((log, i) => (
-                <div key={i} className="text-xs text-gray-400 font-mono break-all">{log}</div>
-              ))}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

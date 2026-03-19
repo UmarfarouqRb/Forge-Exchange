@@ -80,6 +80,10 @@ contract VaultSpot is Ownable, ReentrancyGuard {
 
     constructor() Ownable(msg.sender) {}
 
+    // --- Receive Function ---
+    
+    receive() external payable {}
+
     // --- Admin Functions ---
 
     /// @notice Sets the address of the SpotRouter, which is authorized to execute trades.
@@ -149,17 +153,17 @@ contract VaultSpot is Ownable, ReentrancyGuard {
         uint256 fee = _calculateFee(amount);
         require(amount > fee, "Vault: amount too small");
 
+        // Checks-Effects-Interactions Pattern
         balances[msg.sender][address(weth)] -= amount;
 
         weth.withdraw(amount);
 
-        // fee → multisig
+        // Interactions
         if (fee > 0) {
             (bool feeOk, ) = payable(owner()).call{value: fee}("");
             require(feeOk, "Vault: fee transfer failed");
         }
 
-        // net ETH → user
         uint256 netAmount = amount - fee;
         (bool success, ) = payable(msg.sender).call{value: netAmount}("");
         require(success, "Vault: ETH transfer failed");
@@ -248,7 +252,7 @@ contract VaultSpot is Ownable, ReentrancyGuard {
 
     // --- Router-Only Functions ---
 
-    /// @notice Debits tokens from a user'''s balance to initiate a swap. Called only by the SpotRouter.
+    /// @notice Debits tokens from a user's balance to initiate a swap. Called only by the SpotRouter.
     /// @dev This action is disabled during emergency mode.
     /// EXECUTION INVARIANT (EI-S1): Debit must precede any external call in a swap.
     function debit(address user, address token, uint256 amount) external onlyRouter nonReentrant whenNotInEmergency {

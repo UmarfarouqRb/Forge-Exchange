@@ -43,6 +43,9 @@ export type Order = {
   filledQuantity: string;
   status: 'open' | 'filled' | 'cancelled';
   createdAt: string;
+  intent?: any;
+  signature?: string;
+  type?: 'limit' | 'market';
 };
 
 export type InsertOrder = {
@@ -52,6 +55,8 @@ export type InsertOrder = {
   price?: string;
   quantity: string;
   type?: 'limit' | 'market';
+  intent?: any;
+  signature?: string;
 }
 
 export type OrderBook = {

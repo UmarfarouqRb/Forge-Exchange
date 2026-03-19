@@ -46,7 +46,7 @@ contract IntentSpotRouterTest is Test {
         vault = new VaultSpot();
         feeController = new FeeController(address(this), treasury, 0, 1000); // No fees initially
         router = new IntentSpotRouter(
-            address(vault),
+            payable(address(vault)),
             address(feeController),
             "IntentSpotRouter",
             "1.0"
@@ -167,6 +167,53 @@ contract IntentSpotRouterTest is Test {
 
         // --- Assertions -- -
         assertEq(treasuryBalanceAfter - treasuryBalanceBefore, expectedProtocolFee, "Incorrect protocol fee collected for large amount");
+    }
+
+    function test_executeSwap_findsBestAdapter() public {
+        // --- Setup -- -
+        // 1. Deploy and add a second adapter
+        MockAdapter adapter2 = new MockAdapter();
+        bytes32 adapter2Id = keccak256("MockAdapter2");
+        router.addAdapter(adapter2Id, address(adapter2));
+
+        // 2. Define swap and quote parameters
+        uint256 amountIn = 1 ether;
+        uint256 goodAmountOut = 1900 * 1e6; // 1900 USDC
+        uint256 bestAmountOut = 2000 * 1e6;  // 2000 USDC
+
+        // 3. Configure mock adapters' return values
+        // Note: No fees are applied in this test, so amountInAfterFee = amountIn
+        adapter.setAmountOut(address(weth), address(usdc), amountIn, goodAmountOut);
+        deal(address(usdc), address(adapter), goodAmountOut);
+
+        adapter2.setAmountOut(address(weth), address(usdc), amountIn, bestAmountOut);
+        deal(address(usdc), address(adapter2), bestAmountOut);
+
+        // 4. Create and sign swap intent with adapter set to address(0)
+        ISpotRouter.SwapIntent memory intent = ISpotRouter.SwapIntent({
+            user: user,
+            tokenIn: address(weth),
+            tokenOut: address(usdc),
+            amountIn: amountIn,
+            minAmountOut: goodAmountOut,
+            deadline: block.timestamp + 1 hours,
+            nonce: 0,
+            adapter: address(0),
+            relayerFee: 0
+        });
+
+        bytes32 digest = getDigest(intent);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // --- Execution -- -
+        vm.startPrank(relayer);
+        uint256 actualAmountOut = router.executeSwap(intent, signature);
+        vm.stopPrank();
+
+        // --- Assertions -- -
+        assertEq(actualAmountOut, bestAmountOut, "executeSwap did not return the best amount");
+        assertEq(vault.balances(user, address(usdc)), bestAmountOut, "User did not receive the best amount out");
     }
 
 

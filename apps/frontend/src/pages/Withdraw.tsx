@@ -22,7 +22,7 @@ export default function Withdraw() {
   const [amount, setAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
-  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | ''>('');
+  const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | '' >('');
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const [gasEstimate, setGasEstimate] = useState<string | null>(null);
 
@@ -47,13 +47,14 @@ export default function Withdraw() {
     if (!selectedAssetSymbol) return undefined;
     return allAssets.find(a => a && a.token && a.token.symbol === selectedAssetSymbol);
   }, [allAssets, selectedAssetSymbol]);
-  
+
   const settlementToken = selectedAsset?.token;
 
   const vaultAddress = safeAddress(VAULT_SPOT_ADDRESS);
 
   const isWeth = useMemo(() => {
-    return settlementToken?.address.toLowerCase() === WETH_ADDRESS.toLowerCase();
+    if (!settlementToken) return false;
+    return settlementToken.address.toLowerCase() === WETH_ADDRESS.toLowerCase();
   }, [settlementToken]);
 
   useEffect(() => {
@@ -62,33 +63,33 @@ export default function Withdraw() {
 
   useEffect(() => {
     const getGasEstimate = async () => {
-        if (!amount || !selectedAsset || !settlementToken || !address || parseFloat(amount) <= 0) {
-            setGasEstimate(null);
-            return;
-        }
+      if (!amount || !selectedAsset || !settlementToken || !address || parseFloat(amount) <= 0) {
+        setGasEstimate(null);
+        return;
+      }
 
-        const parsedAmount = parseUnits(amount, settlementToken.decimals);
-        let args: any;
+      const parsedAmount = parseUnits(amount, settlementToken.decimals);
+      let args: any;
 
-        if (isWeth) {
-            args = {
-                address: vaultAddress,
-                abi: VaultSpotAbi,
-                functionName: 'withdrawETH',
-                args: [parsedAmount],
-            };
-        } else {
-            const tokenAddr = safeAddress(settlementToken.address);
-            if (!tokenAddr) return;
-            args = {
-                address: vaultAddress,
-                abi: VaultSpotAbi,
-                functionName: 'withdraw',
-                args: [tokenAddr, parsedAmount],
-            };
-        }
-        const newGasEstimate = await estimateGas(args);
-        setGasEstimate(newGasEstimate);
+      if (isWeth) {
+        args = {
+          address: vaultAddress,
+          abi: VaultSpotAbi,
+          functionName: 'withdrawETH',
+          args: [parsedAmount],
+        };
+      } else {
+        const tokenAddr = safeAddress(settlementToken.address);
+        if (!tokenAddr) return;
+        args = {
+          address: vaultAddress,
+          abi: VaultSpotAbi,
+          functionName: 'withdraw',
+          args: [tokenAddr, parsedAmount],
+        };
+      }
+      const newGasEstimate = await estimateGas(args);
+      setGasEstimate(newGasEstimate);
     };
 
     getGasEstimate();
@@ -118,126 +119,135 @@ export default function Withdraw() {
       return;
     }
     if (!amount || parseFloat(amount) <= 0) {
-        setMessage({ type: 'error', text: 'Please enter a valid amount.' });
-        toast.error('Please enter a valid amount.');
-        return;
+      setMessage({ type: 'error', text: 'Please enter a valid amount.' });
+      toast.error('Please enter a valid amount.');
+      return;
     }
     if (!selectedAsset || !settlementToken) {
-        setMessage({ type: 'error', text: 'Please select a valid asset to withdraw.' });
-        toast.error('Please select a valid asset to withdraw.');
-        return;
+      setMessage({ type: 'error', text: 'Please select a valid asset to withdraw.' });
+      toast.error('Please select a valid asset to withdraw.');
+      return;
     }
 
     const parsedAmount = parseUnits(amount, settlementToken.decimals);
-    
+
+    console.log("Withdraw debug:", {
+      token: settlementToken?.symbol,
+      tokenAddress: settlementToken?.address,
+      weth: WETH_ADDRESS,
+      isWeth,
+      amount: parsedAmount.toString(),
+      decimals: settlementToken.decimals,
+    });
+
     if (selectedAsset.balance < parsedAmount) {
-        setMessage({ type: 'error', text: 'Insufficient vault balance for this withdrawal.' });
-        toast.error('Insufficient vault balance for this withdrawal.');
-        return;
+      setMessage({ type: 'error', text: 'Insufficient vault balance for this withdrawal.' });
+      toast.error('Insufficient vault balance for this withdrawal.');
+      return;
     }
 
     setIsWithdrawing(true);
     const toastId = toast.loading('Processing withdrawal...');
 
     try {
-        let txHash;
+      let txHash;
 
-        if (isWeth) {
-            toast.loading('Withdrawing ETH...', { id: toastId });
-            txHash = await writeContractAsync({
-                address: vaultAddress,
-                abi: VaultSpotAbi,
-                functionName: "withdrawETH",
-                args: [parsedAmount],
-            });
-        } else {
-            const tokenAddr = safeAddress(settlementToken.address);
-            if (!tokenAddr) {
-              throw new Error('Invalid token address');
-            }
-            toast.loading(`Withdrawing ${settlementToken.symbol}...`, { id: toastId });
-            txHash = await writeContractAsync({
-                address: vaultAddress,
-                abi: VaultSpotAbi,
-                functionName: "withdraw",
-                args: [tokenAddr, parsedAmount],
-            });
+      if (isWeth) {
+        toast.loading('Withdrawing ETH...', { id: toastId });
+        txHash = await writeContractAsync({
+          address: vaultAddress,
+          abi: VaultSpotAbi,
+          functionName: "withdrawETH",
+          args: [parsedAmount],
+        });
+      } else {
+        const tokenAddr = safeAddress(settlementToken.address);
+        if (!tokenAddr) {
+          throw new Error('Invalid token address');
         }
+        toast.loading(`Withdrawing ${settlementToken.symbol}...`, { id: toastId });
+        txHash = await writeContractAsync({
+          address: vaultAddress,
+          abi: VaultSpotAbi,
+          functionName: "withdraw",
+          args: [tokenAddr, parsedAmount],
+        });
+      }
 
-        setWithdrawTxHash(txHash);
+      setWithdrawTxHash(txHash);
     } catch (err) {
-        console.error("Withdraw error:", err);
-        const errorMsg = (err as TransactionError).shortMessage || 'An error occurred during the withdrawal.';
-        setMessage({ type: 'error', text: errorMsg });
-        toast.error(errorMsg, { id: toastId });
-        setIsWithdrawing(false);
+      console.error("Withdraw error:", err);
+      const errorMsg = (err as TransactionError).shortMessage || 'An error occurred during the withdrawal.';
+      setMessage({ type: 'error', text: errorMsg });
+      toast.error(errorMsg, { id: toastId });
+      setIsWithdrawing(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-background p-6 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-            <CardHeader>
-                <CardTitle>Withdraw</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
-                    <p className="font-bold">Reminder</p>
-                    <p>Currently Deposits and withdrawals are processed on the Base Sepolia network.</p>
-                </div>
-                {message && (
-                    <div className={`p-4 rounded-md my-4 ${message.type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`}>
-                        <p>{message.text}</p>
-                    </div>
-                )}
-                <div className="space-y-4 py-4">
-                    <div className="grid w-full items-center gap-1.5">
-                        <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
-                        <VaultAssetSelector 
-                            asset={selectedAssetSymbol}
-                            setAsset={setSelectedAssetSymbol} 
-                            type="withdraw"
-                        />
-                    </div>
-                    <div className="spacey-2">
-                        <Label htmlFor="withdraw-amount">Amount</Label>
-                        <Input
-                        id="withdraw-amount"
-                        type="number"
-                        placeholder={`0.00`}
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        disabled={isWithdrawing || !selectedAssetSymbol}
-                        />
-                    </div>
-                    {gasEstimate && (
-                        <div className="text-xs text-muted-foreground">
-                            Estimated Gas: {gasEstimate} ETH
-                        </div>
-                    )}
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Withdraw</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
+            <p className="font-bold">Reminder</p>
+            <p>Currently Deposits and withdrawals are processed on the Base Sepolia network.</p>
+          </div>
+          {message && (
+            <div className={`p-4 rounded-md my-4 ${message.type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`}>
+              <p>{message.text}</p>
+            </div>
+          )}
+          <div className="space-y-4 py-4">
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
+              <VaultAssetSelector
+                asset={selectedAssetSymbol}
+                setAsset={setSelectedAssetSymbol}
+                type="withdraw"
+              />
+            </div>
+            <div className="spacey-2">
+              <Label htmlFor="withdraw-amount">Amount</Label>
+              <Input
+                id="withdraw-amount"
+                type="number"
+                placeholder={`0.00`}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                disabled={isWithdrawing || !selectedAssetSymbol}
+              />
+            </div>
+            {gasEstimate && (
+              <div className="text-xs text-muted-foreground">
+                Estimated Gas: {gasEstimate} ETH
+              </div>
+            )}
 
-                    <Button
-                        onClick={handleWithdraw}
-                        disabled={!amount || isWithdrawing || !selectedAssetSymbol || isAssetsLoading}
-                        className="w-full"
-                        variant="destructive"
-                        data-testid="button-confirm-withdraw"
-                    >
-                        {isWithdrawing || isAssetsLoading ? (
-                        <>
-                            <FiLoader className="mr-2 h-4 w-4 animate-spin" />
-                            { isAssetsLoading ? 'Loading...' : 'Processing...' }
-                        </>
-                        ) : (
-                        'Confirm Withdrawal'
-                        )}
-                    </Button>
-                    <Button onClick={() => navigate('/assets')} className="w-full mt-2" variant="outline">
-                        Back to Assets
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
+            <Button
+              onClick={handleWithdraw}
+              disabled={!amount || isWithdrawing || !selectedAssetSymbol || isAssetsLoading}
+              className="w-full"
+              variant="destructive"
+              data-testid="button-confirm-withdraw"
+            >
+              {isWithdrawing || isAssetsLoading ? (
+                <>
+                  <FiLoader className="mr-2 h-4 w-4 animate-spin" />
+                  {isAssetsLoading ? 'Loading...' : 'Processing...'}
+                </>
+              ) : (
+                'Confirm Withdrawal'
+              )}
+            </Button>
+            <Button onClick={() => navigate('/assets')} className="w-full mt-2" variant="outline">
+              Back to Assets
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

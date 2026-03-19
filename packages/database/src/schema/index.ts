@@ -9,6 +9,7 @@ import {
   numeric,
   unique,
   primaryKey,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import type { InferModel } from 'drizzle-orm';
 // Re-export the 'eq' operator to be used throughout the monorepo
@@ -43,11 +44,14 @@ export const orders = pgTable('orders', {
     userAddress: text('user_address').notNull(),
     tradingPairId: uuid('trading_pair_id').references(() => tradingPairs.id),
     side: text('side', { enum: ['buy', 'sell'] }).notNull(),
-    price: numeric('price').notNull(),
+    price: numeric('price'),
     quantity: numeric('quantity').notNull(),
     filledQuantity: numeric('filled_quantity').default('0'),
     status: text('status', { enum: ['open', 'filled', 'cancelled'] }).default('open'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    intent: jsonb('intent'),
+    signature: text('signature'),
+    type: text('type', { enum: ['market', 'limit'] })
 });
 
 export const markets = pgTable('markets', {
