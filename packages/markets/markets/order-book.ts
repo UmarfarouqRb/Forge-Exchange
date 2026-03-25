@@ -1,5 +1,13 @@
+import { getOrdersByPairId } from '@forge/db';
 
-import { getOrdersByPairId, Order } from '@forge/db';
+export type Order = {
+    id: string;
+    userAddress: string;
+    tradingPairId: string;
+    side: 'buy' | 'sell';
+    price: string;
+    quantity: string;
+}
 
 export type OrderBook = {
     bids: [string, string][];

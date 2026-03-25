@@ -19,6 +19,7 @@
   "author": "umarfarouqrb",
   "license": "ISC",
   "dependencies": {
+    "forge-exchange-api": "workspace:^",
     "@forge/common": "workspace:^",
     "@forge/core-sdk": "workspace:^",
     "@forge/crypto": "workspace:^",

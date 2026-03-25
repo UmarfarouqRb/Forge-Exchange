@@ -1,16 +1,16 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { getMarket, getMarketBySymbol } from "./src/market";
+import { getMarket, getMarketBySymbol } from "../../packages/markets/markets/market";
 import { health } from "./src/health";
-import { getMarkets } from "./src/markets";
-import { getTokens } from "./src/tokens";
-import { getTrendingPairs } from "./src/trending";
+import { getMarkets } from "../../packages/markets/markets/markets";
+import { getTokens } from "../../packages/markets/tokens/tokens";
+import { getTrendingPairs } from "../../packages/markets/tradingPairs/trending";
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { createOrder, getOrdersByAccount } from "./src/orders";
 import { broadcastToTopic } from "./websocket";
-import { getVaultTokens } from "./src/vault";
-import { getTradingPairs, getTradingPairBySymbol } from "./src/trading-pairs";
-import { getLiquidityPools, getLiquidityPositions, deposit, withdraw } from "./src/liquidity";
+import { getVaultTokens } from "../../packages/markets/vault/vault";
+import { getTradingPairs, getTradingPairBySymbol } from "../../packages/markets/tradingPairs/trading-pairs";
+import { getLiquidityPools, getLiquidityPositions, deposit, withdraw } from "../../packages/markets//liquidity/liquidity";
 import pointsRouter from "./src/routes/v1/points";
 
 // Define the proxy middleware for the relayer service

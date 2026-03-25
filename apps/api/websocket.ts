@@ -1,8 +1,8 @@
 
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
-import { getTradingPairs } from './src/trading-pairs';
-import { getMarket } from './src/market';
+import { getTradingPairs } from '../../packages/markets/tradingPairs/trading-pairs';
+import { getMarket } from '../../packages/markets/markets/market';
 
 let wss: WebSocketServer;
 

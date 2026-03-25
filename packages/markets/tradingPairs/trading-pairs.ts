@@ -1,4 +1,4 @@
-import { TOKENS, Token } from "./token";
+import { TOKENS, Token  } from "../tokens/token";
 
 export type TradingPair = {
   id: string;

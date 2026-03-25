@@ -1,8 +1,8 @@
 import { getOrdersByPairId, Order, getMarketById } from '@forge/db';
 import { isAddress } from 'viem';
-import type { Token } from './mainnet-tokens';
-import { MAINNET_TOKENS } from './mainnet-tokens';
-import { getTradingPairs } from './trading-pairs';
+import type { Token } from '../tokens/mainnet-tokens';
+import { MAINNET_TOKENS } from '../tokens/mainnet-tokens';
+import { getTradingPairs } from '../tradingPairs/trading-pairs';
 import { get24hMarketData } from './market-data';
 
 // --- TYPE DEFINITIONS ---

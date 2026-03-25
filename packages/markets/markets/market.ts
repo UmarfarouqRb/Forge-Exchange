@@ -1,4 +1,4 @@
-import { getOrdersByPairId, Order, getMarketById, Market } from '@forge/db';
+import { getOrdersByPairId, getMarketById, Market } from '@forge/db';
 import {
     http,
     createPublicClient,
@@ -8,12 +8,21 @@ import {
 } from 'viem';
 import { base } from 'viem/chains';
 import { PANCAKE_QUOTER_V2_ADDRESS, PANCAKE_QUOTER_V2_ABI } from './QuoterV2';
-import type { Token } from './mainnet-tokens';
-import { MAINNET_TOKENS } from './mainnet-tokens';
-import { getTradingPairs } from './trading-pairs';
+import type { Token } from '../tokens/mainnet-tokens';
+import { MAINNET_TOKENS } from '../tokens/mainnet-tokens';
+import { getTradingPairs } from '../tradingPairs/trading-pairs';
 import { get24hMarketData } from './market-data';
 
 // --- TYPE DEFINITIONS ---
+
+export type Order = {
+    id: string;
+    userAddress: string;
+    tradingPairId: string;
+    side: 'buy' | 'sell';
+    price: string | null;
+    quantity: string;
+}
 
 export type OrderBook = {
     bids: [string, string][];
@@ -79,7 +88,8 @@ export async function getAMMPrice(tokenIn: { address: string; decimals: number }
             amountIn: parseUnits('1', tokenIn.decimals),
             fee: fee,
             sqrtPriceLimitX96: 0,
-        };
+        } as const;
+
         const contractCall = {
             address: PANCAKE_QUOTER_V2_ADDRESS,
             abi: PANCAKE_QUOTER_V2_ABI,
@@ -113,18 +123,18 @@ export async function getAMMPrice(tokenIn: { address: string; decimals: number }
     return null;
 }
 
-const syntheticPriceOffsets: { [pairId: string]: number } = {};
-const SYNTHETIC_UPDATE_INTERVAL = 1000; 
-let lastSyntheticUpdate: { [pairId: string]: number } = {};
-let syntheticDepthCache: { [pairId: string]: OrderBook } = {};
+const dexAggregatedPriceOffsets: { [pairId: string]: number } = {};
+const DEX_AGGREGATED_UPDATE_INTERVAL = 1000; 
+let lastDexAggregatedUpdate: { [pairId: string]: number } = {};
+let dexAggregatedDepthCache: { [pairId: string]: OrderBook } = {};
 
-function generateSyntheticDepth(midPrice: number, pairId: string): OrderBook {
+function generateDexAggregatedDepth(midPrice: number, pairId: string): OrderBook {
     const now = Date.now();
-    if (!lastSyntheticUpdate[pairId] || (now - lastSyntheticUpdate[pairId] > SYNTHETIC_UPDATE_INTERVAL)) {
-        syntheticPriceOffsets[pairId] = (Math.random() * 0.002 - 0.001);
-        lastSyntheticUpdate[pairId] = now;
+    if (!lastDexAggregatedUpdate[pairId] || (now - lastDexAggregatedUpdate[pairId] > DEX_AGGREGATED_UPDATE_INTERVAL)) {
+        dexAggregatedPriceOffsets[pairId] = (Math.random() * 0.002 - 0.001);
+        lastDexAggregatedUpdate[pairId] = now;
     }
-    const currentMidPriceOffset = syntheticPriceOffsets[pairId] || 0;
+    const currentMidPriceOffset = dexAggregatedPriceOffsets[pairId] || 0;
     const fluctuatingMidPrice = midPrice * (1 + currentMidPriceOffset);
 
     const bids: [string, string][] = [];
@@ -165,20 +175,20 @@ async function getOrderBook(baseToken: Token, quoteToken: Token, pairId: string)
     let asks: [string, string][];
 
     if (realOrders.length > 0) {
-        const realBids = realOrders.filter(o => o.side === 'buy').map(o => [o.price, o.quantity] as [string, string]);
-        const realAsks = realOrders.filter(o => o.side === 'sell').map(o => [o.price, o.quantity] as [string, string]);
+        const realBids = realOrders.filter(o => o.side === 'buy' && o.price).map(o => [o.price as string, o.quantity] as [string, string]);
+        const realAsks = realOrders.filter(o => o.side === 'sell' && o.price).map(o => [o.price as string, o.quantity] as [string, string]);
         bids = aggregateAndSort(realBids, true);
         asks = aggregateAndSort(realAsks);
     } else {
         if (midPrice) {
             const now = Date.now();
-            if (!lastSyntheticUpdate[pairId] || (now - lastSyntheticUpdate[pairId] > SYNTHETIC_UPDATE_INTERVAL)) {
-                const newSyntheticDepth = generateSyntheticDepth(midPrice, pairId);
-                syntheticDepthCache[pairId] = newSyntheticDepth;
-                lastSyntheticUpdate[pairId] = now;
+            if (!lastDexAggregatedUpdate[pairId] || (now - lastDexAggregatedUpdate[pairId] > DEX_AGGREGATED_UPDATE_INTERVAL)) {
+                const newDexAggregatedDepth = generateDexAggregatedDepth(midPrice, pairId);
+                dexAggregatedDepthCache[pairId] = newDexAggregatedDepth;
+                lastDexAggregatedUpdate[pairId] = now;
             }
-            bids = syntheticDepthCache[pairId]?.bids || [];
-            asks = syntheticDepthCache[pairId]?.asks || [];
+            bids = dexAggregatedDepthCache[pairId]?.bids || [];
+            asks = dexAggregatedDepthCache[pairId]?.asks || [];
         } else {
             bids = [];
             asks = [];

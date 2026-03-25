@@ -1,5 +1,5 @@
 
-import { Market, Order, TradingPair, InsertOrder, Token, VaultAsset } from "@/types/market-data";
+import { Market, Order, TradingPair, Token, VaultAsset } from "@/types/market-data";
 
 const API_URL = 'https://forge-exchange-api.onrender.com';
 
@@ -56,9 +56,27 @@ export async function getOrders(walletAddress: string): Promise<Order[]> {
   return handleResponse<Order[]>(response);
 }
 
-export type CreateOrderRequest = InsertOrder;
+// This type represents the data sent to the backend to create an order.
+export type CreateOrderRequest = {
+    userAddress: string;
+    tradingPairId: string;
+    side: 'buy' | 'sell';
+    price?: string | undefined;
+    quantity: string;
+    orderType: 'market' | 'limit';
+    signature: `0x${string}`;
+    tokenIn: string;
+    tokenOut: string;
+    amountIn: string;
+    minAmountOut: string;
+    deadline: string;
+    nonce: string;
+    adapter: string;
+    relayerFee: string;
+};
 
-export async function createOrder(order: InsertOrder): Promise<Order> {
+
+export async function createOrder(order: CreateOrderRequest): Promise<Order> {
   const response = await fetch(`${API_URL}/api/orders`, {
     method: 'POST',
     headers: {

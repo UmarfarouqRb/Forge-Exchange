@@ -71,17 +71,24 @@ CREATE TABLE trading_pairs (
 -- orders table
 CREATE TABLE orders (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_address text NOT NULL,
-    trading_pair_id uuid REFERENCES trading_pairs(id),
-    side text CHECK (side IN ('buy','sell')) NOT NULL,
-    price numeric,
-    quantity numeric NOT NULL,
-    filled_quantity numeric DEFAULT 0,
-    status text CHECK (status IN ('open','filled','cancelled')) DEFAULT 'open',
-    created_at timestamptz DEFAULT now(),
-    intent jsonb,
-    signature text,
-    type text
+    user_address TEXT NOT NULL,
+    trading_pair_id UUID NOT NULL REFERENCES trading_pairs(id),
+    side TEXT NOT NULL CHECK (side IN ('buy', 'sell')),
+    price NUMERIC,
+    quantity NUMERIC NOT NULL,
+    filled_quantity NUMERIC DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'filled', 'cancelled')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    order_type TEXT NOT NULL CHECK (order_type IN ('market', 'limit')),
+    signature TEXT NOT NULL,
+    token_in TEXT NOT NULL,
+    token_out TEXT NOT NULL,
+    amount_in TEXT NOT NULL,
+    min_amount_out TEXT NOT NULL,
+    deadline TEXT NOT NULL,
+    nonce TEXT NOT NULL,
+    adapter TEXT NOT NULL,
+    relayer_fee TEXT NOT NULL
 );
 
 -- order_books table

@@ -1,8 +1,9 @@
 
-import { TOKENS, Token } from "./token";
+import { TOKENS, Token } from "../tokens/token";
 import { createPublicClient, http, erc20Abi } from "viem";
 import { baseSepolia } from "viem/chains";
-import { VAULT_SPOT_ADDRESS } from "../../frontend/src/config/contracts";
+
+const VAULT_SPOT_ADDRESS = '0x738D9455f38266F35fB241C0e3EEbdc2EFa6D5cD' as const;
 
 const alchemyRpcUrl = process.env.ALCHEMY_RPC_URL;
 const publicRpcUrl = 'https://sepolia.base.org';

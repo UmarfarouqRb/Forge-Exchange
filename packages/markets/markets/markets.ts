@@ -1,5 +1,5 @@
 
-import { getTradingPairs } from "./trading-pairs";
+import { getTradingPairs } from "../tradingPairs/trading-pairs";
 import { getMarketBySymbol, MarketState } from "./market";
 import { mockMarketStats } from "./market-stats";
 

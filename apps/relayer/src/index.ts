@@ -1,7 +1,8 @@
 
 import express, { Request, Response } from 'express';
-import { executeSpotTrade } from './spot';
 import fetch from 'node-fetch';
+import { MatchingEngine } from './matching/engine';
+import { LiquidityEngine } from './liquidity/engine';
 
 const app: express.Express = express();
 app.use(express.json());
@@ -20,16 +21,19 @@ async function broadcastToApi(topic: string, data: any) {
   }
 }
 
-app.post('/execute', async (req: Request, res: Response) => {
-    const { intent, signature, orderType } = req.body;
+const liquidityEngine = new LiquidityEngine();
+const matchingEngine = new MatchingEngine(liquidityEngine);
+
+app.post('/api/orders', async (req: Request, res: Response) => {
+    const order = req.body;
     try {
-        const result = await executeSpotTrade(intent, signature, orderType);
+        const result = matchingEngine.processOrder(order);
         // Broadcast the successful order status
-        broadcastToApi(`orders:${intent.user}`, { type: 'orderStatus', data: result });
+        broadcastToApi(`orders:${order.userAddress}`, { type: 'orderStatus', data: result });
         res.json(result);
     } catch (error: any) {
         // Broadcast the error
-        broadcastToApi(`orders:${intent.user}`, { type: 'orderError', data: { message: error.message } });
+        broadcastToApi(`orders:${order.userAddress}`, { type: 'orderError', data: { message: error.message } });
         res.status(500).json({ error: error.message });
     }
 });
@@ -40,5 +44,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Relayer listening on port ${PORT}`);
 });
+
+// Initialize and start the matching engine
+matchingEngine.start();
 
 export default app;

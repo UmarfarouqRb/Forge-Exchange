@@ -82,6 +82,42 @@ export const getOrders = async (address: string) => {
     return results;
 };
 
+export const getOpenOrders = async () => {
+    const chainId = await getChainId();
+    const results = await db
+        .select({
+            id: orders.id,
+            userAddress: orders.userAddress,
+            tradingPairId: orders.tradingPairId,
+            side: orders.side,
+            price: orders.price,
+            quantity: orders.quantity,
+            filledQuantity: orders.filledQuantity,
+            status: orders.status,
+            createdAt: orders.createdAt,
+            order_type: orders.orderType,
+            signature: orders.signature,
+            intent: {
+                tokenIn: orders.tokenIn,
+                tokenOut: orders.tokenOut,
+                amountIn: orders.amountIn,
+                minAmountOut: orders.minAmountOut,
+                deadline: orders.deadline,
+                nonce: orders.nonce,
+                adapter: orders.adapter,
+                relayerFee: orders.relayerFee,
+                user: orders.userAddress,
+                chainId
+            },
+            pair: tradingPairs.symbol
+        })
+        .from(orders)
+        .leftJoin(tradingPairs, eq(orders.tradingPairId, tradingPairs.id))
+        .where(eq(orders.status, 'open'));
+    return results;
+};
+
+
 export const getOrdersByPairId = async (pairId: string) => {
     return db.select({
         id: orders.id,

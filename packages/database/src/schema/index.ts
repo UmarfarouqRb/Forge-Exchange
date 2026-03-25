@@ -9,7 +9,6 @@ import {
   numeric,
   unique,
   primaryKey,
-  jsonb,
 } from 'drizzle-orm/pg-core';
 import type { InferModel } from 'drizzle-orm';
 // Re-export the 'eq' operator to be used throughout the monorepo
@@ -42,16 +41,23 @@ export const tradingPairs = pgTable('trading_pairs', {
 export const orders = pgTable('orders', {
     id: uuid('id').primaryKey().defaultRandom(),
     userAddress: text('user_address').notNull(),
-    tradingPairId: uuid('trading_pair_id').references(() => tradingPairs.id),
+    tradingPairId: uuid('trading_pair_id').references(() => tradingPairs.id).notNull(),
     side: text('side', { enum: ['buy', 'sell'] }).notNull(),
     price: numeric('price'),
     quantity: numeric('quantity').notNull(),
     filledQuantity: numeric('filled_quantity').default('0'),
     status: text('status', { enum: ['open', 'filled', 'cancelled'] }).default('open'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-    intent: jsonb('intent'),
-    signature: text('signature'),
-    type: text('type', { enum: ['market', 'limit'] })
+    orderType: text('type', { enum: ['market', 'limit'] }).notNull(),
+    signature: text('signature').notNull(),
+    tokenIn: text('token_in').notNull(),
+    tokenOut: text('token_out').notNull(),
+    amountIn: text('amount_in').notNull(),
+    minAmountOut: text('min_amount_out').notNull(),
+    deadline: text('deadline').notNull(),
+    nonce: text('nonce').notNull(),
+    adapter: text('adapter').notNull(),
+    relayerFee: text('relayer_fee').notNull(),
 });
 
 export const markets = pgTable('markets', {
@@ -77,4 +83,3 @@ export type InsertOrder = InferModel<typeof orders, 'insert'>;
 
 export type Market = InferModel<typeof markets>;
 export type InsertMarket = InferModel<typeof markets, 'insert'>;
-

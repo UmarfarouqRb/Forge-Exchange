@@ -11,6 +11,6 @@
     "types": ["node"],
     "typeRoots": ["node_modules/@types", "src/types"]
   },
-  "include": ["./**/*.ts"],
+  "include": ["./**/*.ts", "../../packages/markets/tradingPairs/trending.ts", "../../packages/markets/tradingPairs/trading-pairs.ts", "../../packages/markets/markets/markets.ts", "../../packages/markets/markets/market-off-chain.ts", "../../packages/markets/markets/market.ts", "../../packages/markets/markets/market-data.ts", "../../packages/markets/vault/vault.ts", "../../packages/markets/markets/market-stats.ts", "../../packages/markets/markets/QuoterV2.ts", "../../packages/markets/tradingPairs/pairs.ts", "../../packages/markets/markets/prices.ts", "../../packages/markets/markets/order-book.ts", "../../packages/markets/liquidity/liquidity.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -33,6 +33,7 @@ contract IntentSpotRouterTest is Test {
     address internal user;
     address internal relayer = address(0x2);
     address internal treasury = address(0x3);
+    address internal lp = address(0x4); // Liquidity Provider
     uint256 internal userPrivateKey = 0x123;
     uint256 internal invalidUserPrivateKey = 0x456;
 
@@ -216,6 +217,121 @@ contract IntentSpotRouterTest is Test {
         assertEq(vault.balances(user, address(usdc)), bestAmountOut, "User did not receive the best amount out");
     }
 
+    function test_settleTrade_successful() public {
+        // --- Setup -- -
+        uint256 amountIn = 1 ether;        // User wants to sell 1 WETH
+        uint256 amountOut = 2000 * 1e6;  // User wants to receive 2000 USDC
+        uint256 relayerFee = 0.01 ether;   // 0.01 WETH
+        uint256 feeBps = 50;             // 0.5% protocol fee
+
+        // 1. Set up the fee controller for protocol fees
+        feeController.setBaseFeeBps(feeBps);
+
+        // 2. Fund the LP with the necessary tokenOut (USDC)
+        deal(address(usdc), lp, amountOut);
+        vm.startPrank(lp);
+        usdc.approve(address(vault), amountOut);
+        vault.deposit(address(usdc), amountOut);
+        vm.stopPrank();
+
+        // 3. Create the MatchedTrade struct
+        IntentSpotRouter.MatchedTrade memory trade = IntentSpotRouter.MatchedTrade({
+            user: user,
+            counterparty: lp,
+            tokenIn: address(weth),
+            tokenOut: address(usdc),
+            amountIn: amountIn,
+            amountOut: amountOut,
+            nonce: 0,
+            deadline: block.timestamp + 1 hours,
+            relayerFee: relayerFee
+        });
+
+        // 4. Sign the MatchedTrade digest
+        bytes32 digest = getMatchedTradeDigest(trade);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // 5. Calculate expected fees
+        uint256 amountInAfterRelayerFee = amountIn - relayerFee;
+        (uint256 expectedProtocolFee, ) = feeController.getSpotFee(user, address(weth), address(usdc), amountInAfterRelayerFee, address(0));
+        uint256 netAmountIn = amountIn - relayerFee - expectedProtocolFee;
+
+        // 6. Record balances before the trade
+        uint256 userWethBefore = vault.balances(user, address(weth));
+        uint256 userUsdcBefore = vault.balances(user, address(usdc));
+        uint256 lpWethBefore = vault.balances(lp, address(weth));
+        uint256 lpUsdcBefore = vault.balances(lp, address(usdc));
+        uint256 relayerWethBefore = vault.balances(relayer, address(weth));
+        uint256 treasuryWethBefore = vault.balances(treasury, address(weth));
+
+        // --- Execution -- -
+        vm.prank(relayer);
+        vm.expectEmit(true, true, true, true);
+        emit IntentSpotRouter.Swap(user, address(weth), address(usdc), amountIn, amountOut, expectedProtocolFee, relayerFee);
+        router.settleTrade(trade, signature);
+
+        // --- Assertions -- -
+        // Get balances after
+        uint256 userWethAfter = vault.balances(user, address(weth));
+        uint256 userUsdcAfter = vault.balances(user, address(usdc));
+        uint256 lpWethAfter = vault.balances(lp, address(weth));
+        uint256 lpUsdcAfter = vault.balances(lp, address(usdc));
+        uint256 relayerWethAfter = vault.balances(relayer, address(weth));
+        uint256 treasuryWethAfter = vault.balances(treasury, address(weth));
+
+        // 1. User balances
+        assertEq(userWethBefore - userWethAfter, amountIn, "User WETH balance incorrect");
+        assertEq(userUsdcAfter - userUsdcBefore, amountOut, "User USDC balance incorrect");
+
+        // 2. LP balances
+        assertEq(lpUsdcBefore - lpUsdcAfter, amountOut, "LP USDC balance incorrect");
+        assertEq(lpWethAfter - lpWethBefore, netAmountIn, "LP WETH balance incorrect");
+
+        // 3. Relayer fee
+        assertEq(relayerWethAfter - relayerWethBefore, relayerFee, "Relayer fee incorrect");
+
+        // 4. Treasury fee
+        assertEq(treasuryWethAfter - treasuryWethBefore, expectedProtocolFee, "Treasury fee incorrect");
+    }
+
+    function test_settleTrade_fails_insufficientLiquidity() public {
+        // --- Setup -- -
+        uint256 amountIn = 1 ether;       // User wants to sell 1 WETH
+        uint256 amountOut = 2000 * 1e6; // User wants to receive 2000 USDC
+
+        // 1. Fund the LP with LESS than the required amountOut
+        uint256 lpLiquidity = amountOut - (100 * 1e6); // 100 USDC less
+        deal(address(usdc), lp, lpLiquidity);
+        vm.startPrank(lp);
+        usdc.approve(address(vault), lpLiquidity);
+        vault.deposit(address(usdc), lpLiquidity);
+        vm.stopPrank();
+
+        // 2. Create the MatchedTrade struct
+        IntentSpotRouter.MatchedTrade memory trade = IntentSpotRouter.MatchedTrade({
+            user: user,
+            counterparty: lp,
+            tokenIn: address(weth),
+            tokenOut: address(usdc),
+            amountIn: amountIn,
+            amountOut: amountOut,
+            nonce: 0,
+            deadline: block.timestamp + 1 hours,
+            relayerFee: 0
+        });
+
+        // 3. Sign the MatchedTrade digest
+        bytes32 digest = getMatchedTradeDigest(trade);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // --- Execution and Assertion -- -
+        vm.prank(relayer);
+        vm.expectRevert("Insufficient liquidity");
+        router.settleTrade(trade, signature);
+    }
+
 
     // --- Helper Functions -- -
 
@@ -231,6 +347,34 @@ contract IntentSpotRouterTest is Test {
             intent.nonce,
             intent.adapter,
             intent.relayerFee
+        ));
+
+        bytes32 DOMAIN_SEPARATOR_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+        bytes32 nameHash = keccak256(bytes("IntentSpotRouter"));
+        bytes32 versionHash = keccak256(bytes("1.0"));
+        bytes32 domainSeparator = keccak256(abi.encode(
+            DOMAIN_SEPARATOR_TYPEHASH,
+            nameHash,
+            versionHash,
+            block.chainid,
+            address(router)
+        ));
+
+        return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+    }
+
+    function getMatchedTradeDigest(IntentSpotRouter.MatchedTrade memory trade) internal view returns (bytes32) {
+        bytes32 structHash = keccak256(abi.encode(
+            router.MATCHED_TRADE_TYPEHASH(),
+            trade.user,
+            trade.counterparty,
+            trade.tokenIn,
+            trade.tokenOut,
+            trade.amountIn,
+            trade.amountOut,
+            trade.nonce,
+            trade.deadline,
+            trade.relayerFee
         ));
 
         bytes32 DOMAIN_SEPARATOR_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");

@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy, useWallets, useSignTypedData } from '@privy-io/react-auth';
 import { Market, TradingPair } from '@/types/market-data';
 import { parseUnits, getAddress } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
@@ -27,7 +27,7 @@ const domain = {
   version: '1',
   chainId: chainId,
   verifyingContract: getAddress(INTENT_SPOT_ROUTER_ADDRESS[chainId]),
-} as const;
+};
 
 // EIP-712 Types for the intent
 const types = {
@@ -42,7 +42,7 @@ const types = {
     { name: 'adapter', type: 'address' },
     { name: 'relayerFee', type: 'uint256' },
   ],
-} as const;
+};
 
 
 interface TradePanelProps {
@@ -78,11 +78,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { getVaultBalance, isLoading: isVaultLoading } = useVault();
-
-  const addLog = (log: string) => {
-    // Replace with toast notification
-    toast.info(log);
-  }
+  const { signTypedData } = useSignTypedData();
 
   const connectedWallet = wallets[0];
   const currentPrice = market?.lastPrice || '0';
@@ -120,7 +116,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const { mutate: submitOrder, isPending: isSubmitting } = useMutation({
     mutationFn: createOrder,
     onSuccess: (data) => {
-      addLog(`Order placed successfully! Order ID: ${data.id}`);
       toast.success('Order placed successfully!');
       setIsConfirming(false);
       setAmount('');
@@ -129,7 +124,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       queryClient.invalidateQueries({ queryKey: ['tradeHistory', user?.wallet?.address] });
     },
     onError: (error: Error) => {
-      addLog(`Error: ${error.message}`);
       toast.error(error.message);
       console.error('Failed to create order:', error);
       setIsConfirming(false);
@@ -137,14 +131,11 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   });
 
   const handlePlaceOrder = () => {
-    addLog('Initiating trade...');
     if (!authenticated) {
-      addLog('Please connect your wallet');
       login();
       return;
     }
     if (!hasSufficientBalance) {
-      addLog('Insufficient funds');
       toast.error('Insufficient funds');
       return;
     }
@@ -156,40 +147,47 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         toast.error("Wallet not connected or tokens not defined.");
         return;
     }
-
-    addLog('Constructing and signing order...');
     
     const isBuy = side === 'buy';
     const tokenIn = isBuy ? quoteToken : baseToken;
     const tokenOut = isBuy ? baseToken : quoteToken;
     
     const amountIn = isBuy ? parseUnits(total.toString(), tokenIn.decimals) : parseUnits(amount, tokenIn.decimals);
-    const amountOutMin = isBuy ? parseUnits(amount, tokenOut.decimals) : parseUnits(total.toString(), tokenOut.decimals); // Simplified for this example, should use slippage
+    const amountOutMin = isBuy ? parseUnits(amount, tokenOut.decimals) : parseUnits(total.toString(), tokenOut.decimals);
 
     const intent = {
         user: getAddress(user.wallet.address),
         tokenIn: getAddress(tokenIn.address),
         tokenOut: getAddress(tokenOut.address),
-        amountIn: amountIn.toString(),
-        minAmountOut: amountOutMin.toString(), // Users should have a way to set slippage
-        deadline: (Math.floor(Date.now() / 1000) + 300).toString(), // 5 minutes from now
-        nonce: (Date.now() * 1000).toString(), // Unique nonce using timestamp
-        adapter: '0x0000000000000000000000000000000000000000',
-        relayerFee: '0'
+        amountIn: amountIn, 
+        minAmountOut: amountOutMin,
+        deadline: BigInt(Math.floor(Date.now() / 1000) + 300),
+        nonce: BigInt(Date.now()),
+        adapter: '0x0000000000000000000000000000000000000000' as const,
+        relayerFee: 0n
     };
 
     try {
-
-        // @ts-ignore TODO: Privy wallet does not have updated signTypedData method from viem
-        const signature = await connectedWallet.signTypedData(domain, types, intent);
-
-        addLog('Signature received, submitting order...');
+      const signature = await signTypedData({
+        domain,
+        types,
+        primaryType: "SwapIntent",
+        message: intent,
+      });
 
       const orderToSubmit: CreateOrderRequest = {
-        ...intent,
-        signature,
-        orderType,
-        side,
+        userAddress: intent.user,
+        tokenIn: intent.tokenIn,
+        tokenOut: intent.tokenOut,
+        amountIn: intent.amountIn.toString(),
+        minAmountOut: intent.minAmountOut.toString(),
+        deadline: intent.deadline.toString(),
+        nonce: intent.nonce.toString(),
+        adapter: intent.adapter,
+        relayerFee: intent.relayerFee.toString(),
+        signature: signature as `0x${string}`,
+        orderType: orderType,
+        side: side,
         tradingPairId: pair.id,
         quantity: amount,
         price: orderType === 'limit' ? price : undefined,
