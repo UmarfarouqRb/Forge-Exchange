@@ -7,7 +7,7 @@ import { LiquidityEngine } from './liquidity/engine';
 const app: express.Express = express();
 app.use(express.json());
 
-const API_URL = process.env.API_URL || 'https://forge-exchange-api.onrender.com';
+const API_URL = process.env.API_URL || 'http://localhost:3001';
 
 async function broadcastToApi(topic: string, data: any) {
   try {
@@ -24,16 +24,21 @@ async function broadcastToApi(topic: string, data: any) {
 const liquidityEngine = new LiquidityEngine();
 const matchingEngine = new MatchingEngine(liquidityEngine);
 
+// The matching engine will emit status updates for the agent to consume
+matchingEngine.on('agent_status', (data) => {
+    // We need to know which user this status update is for
+    const userId = data.userId || (data.order && data.order.userAddress);
+    if (userId) {
+        broadcastToApi(`agent:${userId}`, data);
+    }
+});
+
 app.post('/api/orders', async (req: Request, res: Response) => {
     const order = req.body;
     try {
-        const result = matchingEngine.processOrder(order);
-        // Broadcast the successful order status
-        broadcastToApi(`orders:${order.userAddress}`, { type: 'orderStatus', data: result });
-        res.json(result);
+        matchingEngine.processOrder(order);
+        res.status(202).json({ message: 'Order received and is being processed.' });
     } catch (error: any) {
-        // Broadcast the error
-        broadcastToApi(`orders:${order.userAddress}`, { type: 'orderError', data: { message: error.message } });
         res.status(500).json({ error: error.message });
     }
 });
@@ -45,7 +50,6 @@ app.listen(PORT, () => {
     console.log(`Relayer listening on port ${PORT}`);
 });
 
-// Initialize and start the matching engine
 matchingEngine.start();
 
 export default app;

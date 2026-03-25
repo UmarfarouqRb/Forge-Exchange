@@ -25,6 +25,7 @@
     "@forge/crypto": "workspace:^",
     "@forge/db": "workspace:^",
     "@forge/intent-types": "workspace:^",
+    "@forge/markets": "workspace:^",
     "@openzeppelin/defender-relay-client": "^1.54.6",
     "@types/node-fetch": "^2.6.13",
     "@types/sqlite3": "^3.1.11",

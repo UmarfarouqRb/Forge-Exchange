@@ -18,6 +18,8 @@ import { formatBalance } from '@/lib/format';
 import { useVault } from '@/contexts/VaultContext';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@/config/contracts';
 import { toast } from 'sonner';
+import { AgentLog } from './AgentLog';
+import { useAgentStatus } from '@/hooks/useAgentStatus';
 
 const chainId = 84532; // Base Sepolia
 
@@ -79,6 +81,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const queryClient = useQueryClient();
   const { getVaultBalance, isLoading: isVaultLoading } = useVault();
   const { signTypedData } = useSignTypedData();
+  const { logs: agentLogs } = useAgentStatus();
 
   const connectedWallet = wallets[0];
   const currentPrice = market?.lastPrice || '0';
@@ -360,6 +363,10 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           >
             {getButtonText()}
           </Button>
+        </div>
+
+        <div className="mt-4">
+          <AgentLog logs={agentLogs} />
         </div>
 
         <OrderConfirmationDialog

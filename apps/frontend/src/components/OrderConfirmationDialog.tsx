@@ -70,7 +70,7 @@ export function OrderConfirmationDialog({ open, onOpenChange, onConfirm, order }
             }}
             className={order.side === 'buy' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}
           >
-            Confirm {order.side.charAt(0).toUpperCase() + order.side.slice(1)}
+            Sign {order.side.charAt(0).toUpperCase() + order.side.slice(1)}
           </Button>
         </DialogFooter>
       </DialogContent>

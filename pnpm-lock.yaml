@@ -413,6 +413,9 @@ importers:
       '@forge/intent-types':
         specifier: workspace:^
         version: link:../../packages/intent-types
+      '@forge/markets':
+        specifier: workspace:^
+        version: link:../../packages/markets
       '@openzeppelin/defender-relay-client':
         specifier: ^1.54.6
         version: 1.54.6(@ethersproject/abstract-provider@5.8.0)(@ethersproject/abstract-signer@5.8.0)(@ethersproject/hash@5.8.0)(@ethersproject/providers@5.8.0(bufferutil@4.1.0)(utf-8-validate@5.0.10))(@ethersproject/transactions@5.8.0)(encoding@0.1.13)(web3-core-helpers@1.10.4)(web3-core@1.10.4(encoding@0.1.13))
