@@ -119,17 +119,7 @@ export const getOpenOrders = async () => {
 
 
 export const getOrdersByPairId = async (pairId: string) => {
-    return db.select({
-        id: orders.id,
-        userAddress: orders.userAddress,
-        tradingPairId: orders.tradingPairId,
-        side: orders.side,
-        price: orders.price,
-        quantity: orders.quantity,
-        filledQuantity: orders.filledQuantity,
-        status: orders.status,
-        createdAt: orders.createdAt,
-    }).from(orders).where(eq(orders.tradingPairId, pairId));
+    return db.select().from(orders).where(eq(orders.tradingPairId, pairId));
 };
 
 export const getMarketById = async (pairId: string) => {

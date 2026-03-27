@@ -5,7 +5,7 @@ export type Order = {
     userAddress: string;
     tradingPairId: string;
     side: 'buy' | 'sell';
-    price: string;
+    price: string | null;
     quantity: string;
 }
 
@@ -63,8 +63,8 @@ export async function getOrderBook(price: number, pairId: string): Promise<Order
     let asks: [string, string][];
 
     if (realOrders.length > 0) {
-        const realBids = realOrders.filter(o => o.side === 'buy').map(o => [o.price, o.quantity] as [string, string]);
-        const realAsks = realOrders.filter(o => o.side === 'sell').map(o => [o.price, o.quantity] as [string, string]);
+        const realBids = realOrders.filter(o => o.side === 'buy' && o.price).map(o => [o.price, o.quantity] as [string, string]);
+        const realAsks = realOrders.filter(o => o.side === 'sell' && o.price).map(o => [o.price, o.quantity] as [string, string]);
         bids = aggregateAndSort(realBids, true);
         asks = aggregateAndSort(realAsks);
     } else {

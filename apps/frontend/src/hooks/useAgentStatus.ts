@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { LogEntry } from '@/components/AgentLog';
-import { useAgentWebSocket } from '@/lib/ws/agent';
+import { useAgentSocket } from '@/lib/ws/agent';
 
 export function useAgentStatus(orderId?: string) {
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const { lastMessage } = useAgentWebSocket();
+  const { lastMessage } = useAgentSocket();
 
   useEffect(() => {
     if (lastMessage) {
