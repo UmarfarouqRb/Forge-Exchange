@@ -7,12 +7,16 @@
     "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
     "noImplicitAny": false,
     "moduleResolution": "Bundler",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "paths": {
+        "@forge/markets": ["../../packages/markets"]
+      }
   },
   "include": ["src", "test"],
   "references": [
     { "path": "../../packages/database" },
-    { "path": "../../packages/common" }
+    { "path": "../../packages/common" },
+    { "path": "../../packages/markets" }
   ],
   "exclude": ["node_modules", "dist"]
 }

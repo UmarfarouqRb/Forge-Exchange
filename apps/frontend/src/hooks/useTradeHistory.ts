@@ -1,20 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAccount } from 'wagmi';
-
-const fetchTradeHistory = async (address: string) => {
-  const response = await fetch(`/api/trades/${address}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch trade history');
-  }
-  return response.json();
-};
+import { usePrivy } from '@privy-io/react-auth';
+import { getOrders } from '../lib/api';
 
 export function useTradeHistory() {
-  const { address } = useAccount();
+  const { user, getAccessToken } = usePrivy();
+  const walletAddress = user?.wallet?.address;
+
+  const fetchTradeHistory = async () => {
+    if (!walletAddress) {
+      throw new Error("Wallet address not found");
+    }
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+        throw new Error("Not authenticated");
+    }
+    return getOrders(walletAddress, accessToken);
+  };
 
   return useQuery({
-    queryKey: ['tradeHistory', address],
-    queryFn: () => fetchTradeHistory(address!),
-    enabled: !!address,
+    queryKey: ['tradeHistory', walletAddress],
+    queryFn: fetchTradeHistory,
+    enabled: !!walletAddress,
   });
 }

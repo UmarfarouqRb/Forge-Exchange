@@ -20,7 +20,7 @@ import { useTransaction } from '@/hooks/useTransaction';
 import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
-import { getDisplaySymbol } from '@/utils/tokenDisplay';
+import { getDisplaySymbolBySymbol } from '@/utils/tokenDisplay';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Deposit() {
@@ -42,8 +42,7 @@ export default function Deposit() {
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
-      const canonicalSymbol = assetSymbolFromUrl === 'ETH' ? 'WETH' : assetSymbolFromUrl;
-      setSelectedAssetSymbol(canonicalSymbol);
+      setSelectedAssetSymbol(assetSymbolFromUrl);
     }
   }, [assetSymbolFromUrl]);
 
@@ -61,7 +60,7 @@ export default function Deposit() {
     functionName: 'allowance',
     args: address && vaultAddress ? [address, vaultAddress] : undefined,
     query: {
-      enabled: !!address && !!tokenAddress && !!vaultAddress && settlementToken && getDisplaySymbol(settlementToken) !== 'ETH',
+      enabled: !!address && !!tokenAddress && !!vaultAddress && settlementToken && getDisplaySymbolBySymbol(settlementToken.symbol) !== 'ETH',
     },
   });
 
@@ -71,14 +70,14 @@ export default function Deposit() {
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
     query: {
-        enabled: !!address && !!tokenAddress && !!settlementToken && getDisplaySymbol(settlementToken) !== 'ETH',
+        enabled: !!address && !!tokenAddress && !!settlementToken && getDisplaySymbolBySymbol(settlementToken.symbol) !== 'ETH',
     },
   });
 
   const { data: ethBalance, refetch: refetchEthBalance } = useBalance({
       address,
       query: {
-          enabled: !!address && !!settlementToken && getDisplaySymbol(settlementToken) === 'ETH',
+          enabled: !!address && !!settlementToken && getDisplaySymbolBySymbol(settlementToken.symbol) === 'ETH',
       }
   });
 
@@ -92,7 +91,7 @@ export default function Deposit() {
       const parsedAmount = parseUnits(amount, settlementToken.decimals);
       let args: any;
 
-      if (getDisplaySymbol(settlementToken) === 'ETH') {
+      if (getDisplaySymbolBySymbol(settlementToken.symbol) === 'ETH') {
           args = {
               address: vaultAddress,
               abi: VaultSpotAbi,
@@ -229,7 +228,7 @@ export default function Deposit() {
 
     const parsedAmount = parseUnits(amount, settlementToken.decimals);
 
-    const isEth = settlementToken && getDisplaySymbol(settlementToken) === 'ETH';
+    const isEth = settlementToken && getDisplaySymbolBySymbol(settlementToken.symbol) === 'ETH';
     const hasSufficientWalletBalance = isEth
         ? ethBalance && ethBalance.value >= parsedAmount
         : walletBalance !== undefined && walletBalance >= parsedAmount;
@@ -244,7 +243,7 @@ export default function Deposit() {
     setIsDepositing(true);
     setAmount('');
 
-    if (settlementToken && getDisplaySymbol(settlementToken) === 'ETH') {
+    if (settlementToken && getDisplaySymbolBySymbol(settlementToken.symbol) === 'ETH') {
       handleEthDeposit(parsedAmount);
     } else {
       handleErc20Deposit(parsedAmount, settlementToken);
@@ -271,7 +270,7 @@ export default function Deposit() {
             <div className="grid w-full items-center gap-1.5">
               <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
               <VaultAssetSelector 
-                asset={selectedAssetSymbol}
+                asset={getDisplaySymbolBySymbol(selectedAssetSymbol)}
                 setAsset={setSelectedAssetSymbol} 
                 type="deposit"
               />

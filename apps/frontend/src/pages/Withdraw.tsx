@@ -17,6 +17,7 @@ import { VaultAssetSelector } from '@/components/VaultAssetSelector';
 import { useTransaction } from '@/hooks/useTransaction';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
+import { getDisplaySymbolBySymbol } from '@/utils/tokenDisplay';
 
 export default function Withdraw() {
   const [amount, setAmount] = useState('');
@@ -36,8 +37,7 @@ export default function Withdraw() {
 
   useEffect(() => {
     if (assetSymbolFromUrl) {
-      const canonicalSymbol = assetSymbolFromUrl === 'ETH' ? 'WETH' : assetSymbolFromUrl;
-      setSelectedAssetSymbol(canonicalSymbol);
+      setSelectedAssetSymbol(assetSymbolFromUrl);
     }
   }, [assetSymbolFromUrl]);
 
@@ -204,7 +204,7 @@ export default function Withdraw() {
             <div className="grid w-full items-center gap-1.5">
               <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
               <VaultAssetSelector
-                asset={selectedAssetSymbol}
+                asset={getDisplaySymbolBySymbol(selectedAssetSymbol)}
                 setAsset={setSelectedAssetSymbol}
                 type="withdraw"
               />

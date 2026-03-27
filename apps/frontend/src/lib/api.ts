@@ -1,13 +1,20 @@
 
 import { Market, Order, TradingPair, Token, VaultAsset } from "@/types/market-data";
+import { serialize } from './serializers';
 
 const API_URL = 'https://forge-exchange-api.onrender.com';
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('API Error:', response.status, errorText);
-    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    // Improved error logging
+    console.error('API Error Response:', { 
+      status: response.status, 
+      statusText: response.statusText, 
+      url: response.url, 
+      errorBody: errorText 
+    });
+    throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
   }
   return response.json() as Promise<T>;
 }
@@ -51,8 +58,12 @@ export async function getMarketBySymbol(symbol: string): Promise<Market> {
   return handleResponse<Market>(response);
 }
 
-export async function getOrders(walletAddress: string): Promise<Order[]> {
-  const response = await fetch(`${API_URL}/api/orders/${walletAddress}`);
+export async function getOrders(walletAddress: string, accessToken: string): Promise<Order[]> {
+  const response = await fetch(`${API_URL}/api/orders/${walletAddress}`, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+    }
+  });
   return handleResponse<Order[]>(response);
 }
 
@@ -76,13 +87,14 @@ export type CreateOrderRequest = {
 };
 
 
-export async function createOrder(order: CreateOrderRequest): Promise<Order> {
+export async function createOrder(order: CreateOrderRequest, accessToken: string): Promise<Order> {
   const response = await fetch(`${API_URL}/api/orders`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
     },
-    body: JSON.stringify(order),
+    body: JSON.stringify(order), // Caller is responsible for serialization
   });
   return handleResponse<Order>(response);
 }
@@ -105,13 +117,14 @@ export interface PlaceOrderPayload {
   orderType: 'limit' | 'market';
 }
 
-export async function placeOrder(payload: PlaceOrderPayload): Promise<Order> {
+export async function placeOrder(payload: PlaceOrderPayload, accessToken: string): Promise<Order> {
   const response = await fetch(`${API_URL}/api/spot/execute`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payload), // Caller is responsible for serialization
   });
   return handleResponse<Order>(response);
 }

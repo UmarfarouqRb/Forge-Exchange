@@ -20,6 +20,7 @@ import { INTENT_SPOT_ROUTER_ADDRESS } from '@/config/contracts';
 import { toast } from 'sonner';
 import { AgentLog } from './AgentLog';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
+import { serialize } from '@/lib/serializers';
 
 const chainId = 84532; // Base Sepolia
 
@@ -75,7 +76,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const [amount, setAmount] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
   
-  const { ready, authenticated, user, login } = usePrivy();
+  const { ready, authenticated, user, login, getAccessToken } = usePrivy();
   const { wallets } = useWallets();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -117,7 +118,10 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   }, [amount, side, baseBalance, quoteBalance, baseToken, quoteToken, total]);
 
   const { mutate: submitOrder, isPending: isSubmitting } = useMutation({
-    mutationFn: createOrder,
+    mutationFn: async (order: CreateOrderRequest) => {
+        const accessToken = await getAccessToken();
+        return createOrder(order, accessToken || '');
+    },
     onSuccess: (data) => {
       toast.success('Order placed successfully!');
       setIsConfirming(false);
@@ -188,7 +192,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         nonce: intent.nonce.toString(),
         adapter: intent.adapter,
         relayerFee: intent.relayerFee.toString(),
-        signature: signature as `0x${string}`,
+        signature: (signature.signature || signature ) as `0x${string}`,
         orderType: orderType,
         side: side,
         tradingPairId: pair.id,
@@ -196,7 +200,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         price: orderType === 'limit' ? price : undefined,
       };
 
-      submitOrder(orderToSubmit);
+      submitOrder(serialize(orderToSubmit));
 
     } catch (e) {
         const error = e as Error;

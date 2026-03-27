@@ -1,27 +1,55 @@
+
 import { EventEmitter } from 'events';
-import { parseUnits } from 'viem';
+import { parseUnits, isAddress, createPublicClient, http, getAddress } from 'viem';
+import { sepolia } from 'viem/chains';
 
 // Updated imports to use the new `packages/markets` index file
 import { getTradingPairs, TradingPair, getMarket, MarketState } from '@forge/markets';
 
-const LP_ADDRESS = '0xDeAdfa11dedBeEf0B0Be00000000000000000000';
+import { INTENT_SPOT_ROUTER_ADDRESS } from '../contracts/baseSepolia/IntentSpotRouter';
+import { IntentSpotRouterAbi } from '../contracts/IntentSpotRouter';
+
+// Utility function to validate and format Ethereum addresses
+function safeAddress(addr?: string | null): `0x${string}` | null {
+    if (!addr) return null;
+    if (!isAddress(addr)) {
+        console.warn(`Invalid address provided: ${addr}`);
+        return null;
+    }
+    return getAddress(addr); // Use getAddress for checksummed address
+}
+
+const publicClient = createPublicClient({
+    chain: sepolia,
+    transport: http(),
+});
+
 
 export class LiquidityEngine extends EventEmitter {
     private tradingPairs: TradingPair[] = [];
     private marketData: { [key: string]: MarketState } = {};
-    private lpAddress: string;
+    private lpAddress: `0x${string}` | null;
+    private intentSpotRouterAddress: `0x${string}`;
 
     constructor() {
         super();
-        this.lpAddress = LP_ADDRESS;
+        // Read LP_ADDRESS from environment variable, with a fallback
+        const fallbackLpAddress = '0xf2ac07DeFdb48fbc9459459a448C4A158c6C23ef';
+        this.lpAddress = safeAddress(process.env.LP_ADDRESS || fallbackLpAddress);
+        this.intentSpotRouterAddress = INTENT_SPOT_ROUTER_ADDRESS[sepolia.id];
+        
         this.initialize();
-        console.log(`Liquidity Engine initialized with LP: ${this.lpAddress}`);
+
+        if (this.lpAddress) {
+            console.log(`Liquidity Engine initialized with LP: ${this.lpAddress}`);
+        } else {
+            console.error("CRITICAL: No valid LP_ADDRESS configured. Liquidity Engine will not be able to execute trades with LP.");
+        }
     }
 
     private async initialize() {
         try {
-            // Load trading pairs and their market data from our new package
-            this.tradingPairs = getTradingPairs(); // Switched to synchronous call
+            this.tradingPairs = getTradingPairs();
             for (const pair of this.tradingPairs) {
                 const market = await getMarket(pair.id);
                 if (market) {
@@ -39,43 +67,56 @@ export class LiquidityEngine extends EventEmitter {
     }
 
     public getPrice(pairId: string): number | null {
-        const market = this.marketData[pairId];
-        // The price on MarketState can be null
-        return market?.price ?? null;
+        return this.marketData[pairId]?.price ?? null;
+    }
+    
+    public async getOnChainQuote(intent: any): Promise<bigint> {
+        try {
+            const data = await publicClient.simulateContract({
+                address: this.intentSpotRouterAddress,
+                abi: IntentSpotRouterAbi,
+                functionName: 'executeSwap',
+                args: [intent.intent, intent.signature],
+            });
+            return data.result;
+        } catch (error) {
+            // It's common for quotes to fail if there's no liquidity, so we log as a warning not an error.
+            console.warn('Could not get on-chain quote, likely no liquidity on DEX for this pair.');
+            return 0n;
+        }
     }
 
     public async settleMatchedTrade(trade: any) {
         const { buyer, seller, quantity, price, pair } = trade;
-
         const amountBase = parseUnits(quantity.toString(), pair.base.decimals);
         const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
         const amountQuote = (amountBase * priceBigInt) / (10n ** BigInt(pair.base.decimals));
 
         this.emit('agent_status', { 
             orderId: buyer.id, 
-            msg: `[Executor] Calling vault to settle internal match for ${quantity} ${pair.base.symbol}.`,
+            msg: `[Executor] Settling internal match for ${quantity} ${pair.base.symbol}.`,
             type: 'info' 
         });
 
         await this.settleOnChain({
-            userA: seller.userAddress,
-            userB: buyer.userAddress,
-            tokenA: pair.base.address,
-            tokenB: pair.quote.address,
-            amountA: amountBase,
-            amountB: amountQuote
+            intent: buyer.side === 'buy' ? buyer.intent : seller.intent,
+            signature: buyer.side === 'buy' ? buyer.signature : seller.signature,
+            counterparty: buyer.side === 'buy' ? seller.userAddress : buyer.userAddress,
+            amountOut: amountQuote
         });
     }
 
     public async executeWithLP(order: any) {
+        if (!this.lpAddress) {
+            console.error("Cannot execute with LP: LP Address is not configured or invalid.");
+            this.emit('agent_status', { orderId: order.id, msg: "[Executor] Cannot execute with LP, address not configured.", type: 'error' });
+            return;
+        }
+
         const price = this.getPrice(order.tradingPairId);
         if (price === null) {
-            console.error(`No price for pair ${order.tradingPairId}, cannot execute with LP.`);
-            this.emit('agent_status', { 
-                orderId: order.id, 
-                msg: `[Executor] Could not get a price for ${order.pair.symbol}.`,
-                type: 'error' 
-            });
+            console.error(`Cannot settle with LP: No internal price for pair ${order.tradingPairId}`);
+            this.emit('agent_status', { orderId: order.id, msg: `[Executor] Cannot settle with LP, no internal price for ${order.pair.symbol}.`, type: 'error' });
             return;
         }
 
@@ -84,51 +125,72 @@ export class LiquidityEngine extends EventEmitter {
 
         const amountBase = parseUnits(order.quantity.toString(), pair.base.decimals);
         const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
-        const amountQuote = (amountBase * priceBigInt) / (10n ** BigInt(pair.base.decimals));
+
+        const amountOut = order.side === "buy" 
+            ? amountBase 
+            : (amountBase * priceBigInt) / (10n ** BigInt(pair.base.decimals));
 
         this.emit('agent_status', { 
             orderId: order.id,
-            msg: `[Executor] Calling DEX Aggregator to fill ${order.quantity} ${pair.base.symbol}.`,
+            msg: `[Executor] No external liquidity found. Settling ${order.quantity} ${pair.base.symbol} with internal LP.`,
             type: 'info' 
         });
 
-        if (order.side === "buy") {
-            await this.settleOnChain({
-                userA: this.lpAddress,
-                userB: order.userAddress,
-                tokenA: pair.base.address,
-                tokenB: pair.quote.address,
-                amountA: amountBase,
-                amountB: amountQuote
-            });
-        } else {
-            await this.settleOnChain({
-                userA: order.userAddress,
-                userB: this.lpAddress,
-                tokenA: pair.base.address,
-                tokenB: pair.quote.address,
-                amountA: amountBase,
-                amountB: amountQuote
-            });
-        }
+        await this.settleOnChain({
+            intent: order.intent,
+            signature: order.signature,
+            counterparty: this.lpAddress,
+            amountOut: amountOut
+        });
+    }
+
+    public async executeWithExternalDex(intent: any, signature: any) {
+        this.emit('agent_status', {
+            orderId: intent.id, // Assuming id is on the intent
+            msg: `[Executor] Routing to external DEX to fill ${intent.quantity} ${intent.pair.base.symbol}.`,
+            type: 'info' 
+        });
+        
+        const { request } = await publicClient.simulateContract({
+            address: this.intentSpotRouterAddress,
+            abi: IntentSpotRouterAbi,
+            functionName: 'executeSwap',
+            args: [intent, signature], 
+        });
+        
+        // Here you would normally submit the transaction
+        // e.g., const hash = await walletClient.writeContract(request);
+        console.log("External swap transaction prepared:", request);
     }
 
     private async settleOnChain(params: any) {
-        const { userA, userB, tokenA, tokenB, amountA, amountB } = params;
+        const { intent, signature, counterparty, amountOut } = params;
         
-        console.log('--- Settlement Event ---');
-        console.log(`  User ${userA} gives ${amountA.toString()} of ${tokenA}`);
-        console.log(`  User ${userB} gets ${amountA.toString()} of ${tokenA}`);
-        console.log('------------------------');
+        try {
+            const { request } = await publicClient.simulateContract({
+                address: this.intentSpotRouterAddress,
+                abi: IntentSpotRouterAbi,
+                functionName: 'settleTrade',
+                args: [intent, signature, counterparty, amountOut],
+            });
 
-        // This is where we would submit the transaction to the blockchain.
-        // For now, we just log and emit the event.
+            // Here you would normally submit the transaction
+            // e.g., const hash = await walletClient.writeContract(request);
+            console.log("Internal settlement transaction prepared:", request);
 
-        this.emit('settlement_status', {
-            userA: userA,
-            userB: userB,
-            message: `Settlement complete between ${userA} and ${userB}`,
-            type: 'success'
-        });
+            this.emit('settlement_status', {
+                userA: intent.user,
+                userB: counterparty,
+                message: `Settlement complete between ${intent.user} and ${counterparty}`,
+                type: 'success'
+            });
+        } catch (error) {
+            console.error("On-chain settlement simulation failed:", error);
+            this.emit('agent_status', {
+                orderId: intent.id, 
+                msg: "On-chain settlement failed.",
+                type: 'error'
+            });
+        }
     }
 }

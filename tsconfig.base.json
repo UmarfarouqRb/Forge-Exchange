@@ -17,6 +17,7 @@
       "@forge/crypto": ["packages/crypto/src"],
       "@forge/db": ["packages/database/src"],
       "@forge/intent-types": ["packages/intent-types/src"],
+      "@forge/markets": ["packages/markets"],
       "@forge/schema": ["packages/schema/src"],
       "relayer": ["apps/relayer/src/index.ts"]
     }

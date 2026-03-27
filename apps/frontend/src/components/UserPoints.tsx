@@ -11,7 +11,7 @@ export const UserPoints = () => {
   const progress = (total_points / nextLevelPoints) * 100;
 
   return (
-    <div className="w-full p-4 bg-blue-500 rounded-lg">
+    <div className="w-full p-4 bg-blue-100 rounded-lg">
       <div className="flex justify-between items-center mb-2">
         <div className="text-white">
           <span className="font-bold">FGP</span>

@@ -30,24 +30,6 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
         "SwapIntent(address user,address tokenIn,address tokenOut,uint256 amountIn,uint256 minAmountOut,uint256 deadline,uint256 nonce,address adapter,uint256 relayerFee)"
     );
 
-    /// @dev New struct and typehash for internally matched trades
-    struct MatchedTrade {
-        address user;
-        address counterparty; // LP or another user
-        address tokenIn;
-        address tokenOut;
-        uint256 amountIn;
-        uint256 amountOut;
-        uint256 nonce;
-        uint256 deadline;
-        uint256 relayerFee;
-    }
-
-    bytes32 public constant MATCHED_TRADE_TYPEHASH = keccak256(
-        "MatchedTrade(address user,address counterparty,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,uint256 nonce,uint256 deadline,uint256 relayerFee)"
-    );
-
-
     // --- Events ---
 
     /**
@@ -288,91 +270,86 @@ contract IntentSpotRouter is Ownable, ReentrancyGuard, ISpotRouter, IntentVerifi
 
     /**
      * @notice Settles a trade that was matched off-chain by a relayer.
-     * @dev This is for internal settlement between users or with an LP.
-     * @param trade The MatchedTrade struct with details of the trade.
-     * @param signature The user's EIP-712 signature for the trade.
+     * @dev This is for internal settlement between a user and a counterparty (e.g., another user or LP).
+     * The user's original signed intent is used for verification.
+     * @param intent The user's original SwapIntent.
+     * @param signature The user's EIP-712 signature for the intent.
+     * @param counterparty The address of the party (e.g., LP or another user) settling the trade.
+     * @param amountOut The final amount of tokenOut the user will receive, provided by the relayer.
      */
     function settleTrade(
-        MatchedTrade calldata trade,
-        bytes calldata signature
+        SwapIntent calldata intent,
+        bytes calldata signature,
+        address counterparty,
+        uint256 amountOut
     ) external nonReentrant {
+        bytes32 intentHash = keccak256(abi.encode(intent));
+        
+        // --- VALIDATIONS ---
+        require(intent.amountIn > 0, "Input amount cannot be zero");
+        require(amountOut >= intent.minAmountOut, "Slippage check failed");
+        _checkDeadline(intent.deadline);
 
-        bytes32 tradeHash = keccak256(abi.encode(trade));
+        // --- SIGNATURE & NONCE ---
+        _useNonce(intent.user, intent.nonce);
 
-        require(trade.amountIn > 0, "Invalid amount");
-        require(vault.balances(trade.counterparty, trade.tokenOut) >= trade.amountOut, "Insufficient liquidity");
-
-        _checkDeadline(trade.deadline);
-
-        _useNonce(trade.user, trade.nonce);
-
-        // --- VERIFY SIGNATURE ---
         bytes32 structHash = keccak256(abi.encode(
-            MATCHED_TRADE_TYPEHASH,
-            trade.user,
-            trade.counterparty,
-            trade.tokenIn,
-            trade.tokenOut,
-            trade.amountIn,
-            trade.amountOut,
-            trade.nonce,
-            trade.deadline,
-            trade.relayerFee
+            SWAP_INTENT_TYPEHASH,
+            intent.user,
+            intent.tokenIn,
+            intent.tokenOut,
+            intent.amountIn,
+            intent.minAmountOut,
+            intent.deadline,
+            intent.nonce,
+            intent.adapter,
+            intent.relayerFee
         ));
-
         bytes32 digest = _hashTypedDataV4(structHash);
         address signer = ECDSA.recover(digest, signature);
+        require(signer == intent.user, "Invalid signature");
 
-        require(signer == trade.user, "Invalid signature");
+        // --- LIQUIDITY CHECK ---
+        require(vault.balances(counterparty, intent.tokenOut) >= amountOut, "Insufficient liquidity");
 
         // --- FEES ---
-        uint256 relayerFee = trade.relayerFee;
-
+        uint256 relayerFee = intent.relayerFee;
         (uint256 protocolFee, address feeRecipient) = feeController.getSpotFee(
-            trade.user,
-            trade.tokenIn,
-            trade.tokenOut,
-            trade.amountIn - relayerFee,
-            address(0)
+            intent.user,
+            intent.tokenIn,
+            intent.tokenOut,
+            intent.amountIn - relayerFee,
+            address(0) // Internal settlement
         );
-
         uint256 totalFee = relayerFee + protocolFee;
-        require(trade.amountIn >= totalFee, "Fee exceeds input");
-
-        uint256 netAmountIn = trade.amountIn - totalFee;
+        require(intent.amountIn >= totalFee, "Fee exceeds input amount");
+        uint256 netAmountIn = intent.amountIn - totalFee;
 
         // --- INTERNAL SETTLEMENT ---
+        vault.debit(intent.user, intent.tokenIn, intent.amountIn);
+        vault.debit(counterparty, intent.tokenOut, amountOut);
+        
+        vault.credit(counterparty, intent.tokenIn, netAmountIn);
+        vault.credit(intent.user, intent.tokenOut, amountOut);
 
-        // User pays tokenIn
-        vault.debit(trade.user, trade.tokenIn, trade.amountIn);
-
-        // Counterparty pays tokenOut
-        vault.debit(trade.counterparty, trade.tokenOut, trade.amountOut);
-
-        // Transfer assets
-        vault.credit(trade.counterparty, trade.tokenIn, netAmountIn);
-        vault.credit(trade.user, trade.tokenOut, trade.amountOut);
-
-        // --- FEES DISTRIBUTION ---
+        // --- FEE DISTRIBUTION ---
         if (relayerFee > 0) {
-            vault.credit(msg.sender, trade.tokenIn, relayerFee);
+            vault.credit(msg.sender, intent.tokenIn, relayerFee);
         }
-
         if (protocolFee > 0) {
-            vault.credit(feeRecipient, trade.tokenIn, protocolFee);
+            vault.credit(feeRecipient, intent.tokenIn, protocolFee);
         }
 
         emit Swap(
-            trade.user,
-            trade.tokenIn,
-            trade.tokenOut,
-            trade.amountIn,
-            trade.amountOut,
+            intent.user,
+            intent.tokenIn,
+            intent.tokenOut,
+            intent.amountIn,
+            amountOut,
             protocolFee,
             relayerFee
         );
-
-        emit IntentFilled(tradeHash, trade.user, trade.nonce);
+        emit IntentFilled(intentHash, intent.user, intent.nonce);
     }
 
     // --- Public Swap Logic ---
