@@ -2,6 +2,8 @@
 import { EventEmitter } from 'events';
 import { parseUnits, isAddress, createPublicClient, http, getAddress } from 'viem';
 import { sepolia } from 'viem/chains';
+import { createClient } from '@supabase/supabase-js';
+
 
 // Updated imports to use the new `packages/markets` index file
 import { getTradingPairs, TradingPair, getMarket, MarketState } from '@forge/markets';
@@ -23,6 +25,10 @@ const publicClient = createPublicClient({
     chain: sepolia,
     transport: http(),
 });
+
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 
 export class LiquidityEngine extends EventEmitter {
@@ -68,6 +74,17 @@ export class LiquidityEngine extends EventEmitter {
 
     public getPrice(pairId: string): number | null {
         return this.marketData[pairId]?.price ?? null;
+    }
+
+    private async updateOrderStatusInDB(signature: string, status: 'FILLED' | 'FAILED') {
+        const { data, error } = await supabase
+            .from('orders')
+            .update({ status: status })
+            .eq('signature', signature);
+
+        if (error) {
+            console.error(`[Relayer] Failed to update order status for signature ${signature}:`, error);
+        }
     }
     
     public async getOnChainQuote(intent: any): Promise<bigint> {
@@ -151,16 +168,22 @@ export class LiquidityEngine extends EventEmitter {
             type: 'info' 
         });
         
-        const { request } = await publicClient.simulateContract({
-            address: this.intentSpotRouterAddress,
-            abi: IntentSpotRouterAbi,
-            functionName: 'executeSwap',
-            args: [intent, signature], 
-        });
-        
-        // Here you would normally submit the transaction
-        // e.g., const hash = await walletClient.writeContract(request);
-        console.log("External swap transaction prepared:", request);
+        try {
+            const { request } = await publicClient.simulateContract({
+                address: this.intentSpotRouterAddress,
+                abi: IntentSpotRouterAbi,
+                functionName: 'executeSwap',
+                args: [intent, signature], 
+            });
+            
+            // Here you would normally submit the transaction
+            // e.g., const hash = await walletClient.writeContract(request);
+            console.log("External swap transaction prepared:", request);
+            this.updateOrderStatusInDB(signature, 'FILLED');
+        } catch (error) {
+            console.error("External DEX execution simulation failed:", error);
+            this.updateOrderStatusInDB(signature, 'FAILED');
+        }
     }
 
     private async settleOnChain(params: any) {
@@ -184,6 +207,7 @@ export class LiquidityEngine extends EventEmitter {
                 message: `Settlement complete between ${intent.user} and ${counterparty}`,
                 type: 'success'
             });
+            this.updateOrderStatusInDB(signature, 'FILLED');
         } catch (error) {
             console.error("On-chain settlement simulation failed:", error);
             this.emit('agent_status', {
@@ -191,6 +215,7 @@ export class LiquidityEngine extends EventEmitter {
                 msg: "On-chain settlement failed.",
                 type: 'error'
             });
+            this.updateOrderStatusInDB(signature, 'FAILED');
         }
     }
 }

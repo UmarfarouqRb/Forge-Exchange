@@ -3,7 +3,9 @@ let socket: WebSocket | null = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const cbs = new Map<string, (data: any) => void>();
 
-const API_WS_URL = 'wss://forge-exchange-api.onrender.com:10000';
+const API_WS_URL = import.meta.env.PROD
+    ? 'wss://forge-exchange-api.onrender.com'
+    : 'ws://localhost:8080/ws';
 
 function connect() {
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {

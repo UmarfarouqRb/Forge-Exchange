@@ -20,7 +20,6 @@ import { INTENT_SPOT_ROUTER_ADDRESS } from '@/config/contracts';
 import { toast } from 'sonner';
 import { AgentLog } from './AgentLog';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
-import { serialize } from '@/lib/serializers';
 
 const chainId = 84532; // Base Sepolia
 
@@ -46,6 +45,26 @@ const types = {
     { name: 'relayerFee', type: 'uint256' },
   ],
 };
+
+// Helper function to recursively convert BigInts to strings
+function BignumberTostring(obj: any): any {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  if (typeof obj === 'bigint') {
+    return obj.toString();
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(item => BignumberTostring(item));
+  }
+  const newObj: { [key: string]: any } = {};
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      newObj[key] = BignumberTostring(obj[key]);
+    }
+  }
+  return newObj;
+}
 
 
 interface TradePanelProps {
@@ -175,32 +194,28 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     };
 
     try {
-      const signature = await signTypedData({
+      const result = await signTypedData({
         domain,
         types,
         primaryType: "SwapIntent",
         message: intent,
       });
+      
+      // The signature can be nested in a `result` property
+      const signature = (result.signature || result) as `0x${string}`;
 
       const orderToSubmit: CreateOrderRequest = {
-        userAddress: intent.user,
-        tokenIn: intent.tokenIn,
-        tokenOut: intent.tokenOut,
-        amountIn: intent.amountIn.toString(),
-        minAmountOut: intent.minAmountOut.toString(),
-        deadline: intent.deadline.toString(),
-        nonce: intent.nonce.toString(),
-        adapter: intent.adapter,
-        relayerFee: intent.relayerFee.toString(),
-        signature: (signature.signature || signature ) as `0x${string}`,
+        ...BignumberTostring(intent),
+        signature: signature,
         orderType: orderType,
         side: side,
         tradingPairId: pair.id,
         quantity: amount,
         price: orderType === 'limit' ? price : undefined,
+        userAddress: intent.user
       };
 
-      submitOrder(serialize(orderToSubmit));
+      submitOrder(orderToSubmit);
 
     } catch (e) {
         const error = e as Error;

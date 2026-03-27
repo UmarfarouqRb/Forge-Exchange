@@ -10,6 +10,7 @@ import { useWatchContractEvent } from 'wagmi';
 import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { safeAddress } from '@/lib/utils';
+import { getDisplaySymbol } from '@/utils/tokenDisplay';
 
 interface VaultContextType {
   assets: VaultAsset[];
@@ -77,10 +78,12 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
       const balance = balanceResult?.status === 'success' ? (balanceResult.result as bigint) : BigInt(0);
 
       let price = 0;
-      if (stablecoins.includes(token.symbol)) {
+      const displaySymbol = getDisplaySymbol(token);
+
+      if (stablecoins.includes(displaySymbol)) {
         price = 1;
       } else {
-        const market = marketMap.get(token.symbol);
+        const market = marketMap.get(displaySymbol);
         if (market && market.lastPrice) {
           price = parseFloat(market.lastPrice);
         }

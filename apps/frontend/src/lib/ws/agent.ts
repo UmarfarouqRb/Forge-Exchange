@@ -1,9 +1,12 @@
+
 import { useState, useEffect } from 'react';
 
 let socket: WebSocket | null = null;
 const subscribers = new Set<(message: MessageEvent) => void>();
 
-const AGENT_WS_URL = 'ws://localhost:8081/ws';
+const AGENT_WS_URL = import.meta.env.PROD
+    ? 'wss://forge-exchange-api.onrender.com'
+    : 'ws://localhost:8081/ws';
 
 function connect() {
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
@@ -22,35 +25,37 @@ function connect() {
 
     socket.onclose = () => {
         console.log('Agent WebSocket disconnected');
-        setTimeout(connect, 5000);
+        setTimeout(connect, 5000); // Reconnect on close
     };
 
     socket.onerror = (error) => {
         console.error('Agent WebSocket error:', error);
-        socket?.close();
+        socket?.close(); // This will trigger onclose and reconnect
     };
 }
 
-export function useAgentWebSocket() {
+function subscribe(callback: (message: MessageEvent) => void) {
+    subscribers.add(callback);
+    if (!socket || socket.readyState === WebSocket.CLOSED) {
+        connect();
+    }
+
+    return () => {
+        subscribers.delete(callback);
+        if (subscribers.size === 0) {
+            socket?.close();
+            socket = null;
+        }
+    };
+}
+
+export function useAgentSocket() {
     const [lastMessage, setLastMessage] = useState<MessageEvent | null>(null);
 
     useEffect(() => {
-        const callback = (message: MessageEvent) => {
-            setLastMessage(message);
-        };
-
-        subscribers.add(callback);
-
-        // Ensure connection is active
-        connect();
-
-        return () => {
-            subscribers.delete(callback);
-        };
+        const unsubscribe = subscribe(setLastMessage);
+        return () => unsubscribe();
     }, []);
 
     return { lastMessage };
 }
-
-// Initialize the connection
-connect();

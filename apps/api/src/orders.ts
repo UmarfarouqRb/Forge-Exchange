@@ -2,13 +2,15 @@
 import { verifyTypedData } from 'viem';
 import { createClient } from '@supabase/supabase-js';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '../../frontend/src/config/contracts';
+import fetch from 'node-fetch';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_ANON_KEY!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const chainId = 84532; // Base Sepolia
+const RELAYER_URL = process.env.RELAYER_URL || 'http://localhost:3000';
 
 // EIP-712 Domain for an Intent
 const domain = {
@@ -39,6 +41,8 @@ export async function createOrder(orderData: any) {
         tradingPairId,
         side,
         orderType,
+        price,
+        quantity,
         userAddress,
         ...intent 
     } = orderData;
@@ -69,7 +73,26 @@ export async function createOrder(orderData: any) {
         throw new Error('Invalid signature');
     }
 
-    // 2. Persist: Save the intent to the database with a 'PENDING' status.
+    // 2. Forward: Send the order to the Relayer for execution.
+    try {
+        const relayerResponse = await fetch(`${RELAYER_URL}/api/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderData),
+        });
+
+        if (!relayerResponse.ok) {
+            // Log the error from the relayer but continue to save the order as PENDING
+            const errorBody = await relayerResponse.json();
+            console.error(`[API] Relayer rejected order, but proceeding to save as PENDING. Reason: ${JSON.stringify(errorBody)}`);
+        } else {
+            console.log('[API] Order successfully forwarded to Relayer.');
+        }
+    } catch (error) {
+        console.error("[API] Failed to forward order to Relayer, but proceeding to save as PENDING.", error);
+    }
+
+    // 3. Persist: Save the intent to the database with a 'PENDING' status.
     const { data: newOrder, error } = await supabase
         .from('orders')
         .insert([{
@@ -77,8 +100,8 @@ export async function createOrder(orderData: any) {
             trading_pair_id: tradingPairId,
             side,
             order_type: orderType,
-            quantity: intent.quantity,
-            price: intent.price,
+            quantity: quantity,
+            price: price,
             status: 'PENDING',
             signature,
             token_in: intent.tokenIn,
@@ -96,10 +119,7 @@ export async function createOrder(orderData: any) {
         throw new Error('Failed to create order');
     }
 
-    // 3. Emit: This is where we'd notify the relayer.
-    // In a microservice architecture, this would publish to a message queue (e.g., Redis).
-    console.log(`[API] Order ${newOrder.id} persisted. Relaying to matching engine.`);
-    // await publishOrderToQueue(newOrder); // Conceptual function
+    console.log(`[API] Order ${newOrder.id} persisted with PENDING status.`);
 
     return newOrder;
 }
