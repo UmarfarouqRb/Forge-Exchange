@@ -47,6 +47,14 @@ const types = {
   ],
 };
 
+// Helper function to safely parse units
+const safeParseUnits = (value: string, decimals: number) => {
+  if (!value || isNaN(Number(value))) {
+    throw new Error("Invalid numeric value");
+  }
+  return parseUnits(value, decimals);
+};
+
 interface TradePanelProps {
   pair: TradingPair;
   market?: Market;
@@ -149,6 +157,21 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   };
 
   const handleConfirmOrder = async () => {
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      toast.error("Invalid amount");
+      return;
+    }
+
+    if (orderType === 'limit' && (!price || isNaN(Number(price)))) {
+      toast.error("Invalid price");
+      return;
+    }
+
+    if (!currentPrice || isNaN(Number(currentPrice))) {
+      toast.error("Invalid market price");
+      return;
+    }
+
     if (!user?.wallet?.address || !baseToken || !quoteToken || !connectedWallet) {
         toast.error("Wallet not connected or tokens not defined.");
         return;
@@ -158,8 +181,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     const tokenIn = isBuy ? quoteToken : baseToken;
     const tokenOut = isBuy ? baseToken : quoteToken;
     
-    const amountIn = isBuy ? parseUnits(total.toString(), tokenIn.decimals) : parseUnits(amount, tokenIn.decimals);
-    const amountOutMin = isBuy ? parseUnits(amount, tokenOut.decimals) : parseUnits(total.toString(), tokenOut.decimals);
+    const amountIn = isBuy ? safeParseUnits(total.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
+    const amountOutMin = isBuy ? safeParseUnits(amount, tokenOut.decimals) : safeParseUnits(total.toString(), tokenOut.decimals);
 
     const intent = {
         user: getAddress(user.wallet.address),
@@ -173,21 +196,32 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         relayerFee: 0n
     };
 
+    console.log("INTENT DEBUG:", {
+      amount,
+      total,
+      price,
+      currentPrice,
+      intent
+    });
+
     try {
-      const result = await signTypedData({
+      const result:any = await signTypedData({
         domain,
         types,
         primaryType: "SwapIntent",
         message: intent,
       });
       
-      const signature =
-        typeof result === "string"
-          ? result
-          : result?.signature;
+      let signature: string;
 
-      if (!signature) {
-        throw new Error("Signature was not obtained.");
+      if (typeof result === "string") {
+        signature = result;
+      } else if (result?.signature) {
+        signature = result.signature;
+      } else if (result?.r && result?.s && result?.v) {
+        signature = `${result.r}${result.s.slice(2)}${result.v.toString(16)}`;
+      } else {
+        throw new Error("Invalid signature format");
       }
 
       const rawOrder = {
@@ -200,6 +234,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         price: orderType === 'limit' ? price : undefined,
         userAddress: intent.user
       };
+
+      console.log("RAW ORDER:", rawOrder);
 
       const safeOrder = JSON.parse(JSON.stringify(rawOrder));
 
@@ -366,7 +402,14 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           <Button
             className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
             onClick={handlePlaceOrder}
-            disabled={disabled || isSubmitting || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance || !amount}
+            disabled={disabled ||
+              isSubmitting ||
+              !ready ||
+              (authenticated && !connectedWallet) ||
+              !hasSufficientBalance ||
+              !amount ||
+              Number(amount) <= 0 ||
+              (orderType === 'limit' && (!price || Number(price) <= 0))}
           >
             {getButtonText()}
           </Button>
