@@ -139,10 +139,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- Liquidity Routes ---
-    app.get("/api/liquidity/pools", getLiquidityPools);
-    app.get("/api/liquidity/positions", getLiquidityPositions);
-    app.post("/api/liquidity/deposit", deposit);
-    app.post("/api/liquidity/withdraw", withdraw);
+    app.get("/api/liquidity/pools", async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const pools = await getLiquidityPools();
+            res.json(pools);
+        } catch (error) {
+            next(error);
+        }
+    });
+
+    app.get("/api/liquidity/positions", async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const positions = await getLiquidityPositions();
+            res.json(positions);
+        } catch (error) {
+            next(error);
+        }
+    });
+
+    app.post("/api/liquidity/deposit", async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            await deposit(req.body);
+            res.status(200).json({ message: "Deposit successful" });
+        } catch (error) {
+            next(error);
+        }
+    });
+
+    app.post("/api/liquidity/withdraw", async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            await withdraw(req.body);
+            res.status(200).json({ message: "Withdrawal successful" });
+        } catch (error) {
+            next(error);
+        }
+    });
 
   // --- Token Route ---
     app.get("/api/tokens", async (req: Request, res: Response, next: NextFunction) => {

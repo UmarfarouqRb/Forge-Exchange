@@ -1,12 +1,12 @@
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
-import { routes } from "../routes";
+import { registerRoutes } from "../routes";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use(routes);
+registerRoutes(app);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
