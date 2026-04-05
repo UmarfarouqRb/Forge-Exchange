@@ -89,7 +89,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const queryClient = useQueryClient();
   const { getVaultBalance, isLoading: isVaultLoading } = useVault();
   const { signTypedData } = useSignTypedData();
-  const { logs: agentLogs } = useAgentStatus();
+  const { logs: agentLogs, addLog } = useAgentStatus();
 
   const connectedWallet = wallets[0];
   const currentPrice = market?.lastPrice || '0';
@@ -129,7 +129,11 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         const accessToken = await getAccessToken();
         return createOrder(order, accessToken || '');
     },
+    onMutate: () => {
+      addLog('Submitting order to backend...');
+    },
     onSuccess: (data) => {
+      addLog('Order successfully received by backend.');
       toast.success('Order placed successfully!');
       setIsConfirming(false);
       setAmount('');
@@ -138,6 +142,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       queryClient.invalidateQueries({ queryKey: ['tradeHistory', user?.wallet?.address] });
     },
     onError: (error: Error) => {
+      addLog(`Backend failed to accept order: ${error.message}. See console for details.`);
       toast.error(error.message);
       console.error('Failed to create order:', error);
       setIsConfirming(false);
@@ -196,13 +201,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         relayerFee: 0n
     };
 
-    console.log("INTENT DEBUG:", {
-      amount,
-      total,
-      price,
-      currentPrice,
-      intent
-    });
+    addLog('Awaiting signature for trade intent...');
 
     try {
       const result:any = await signTypedData({
@@ -224,6 +223,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         throw new Error("Invalid signature format");
       }
 
+      addLog(`Signature received: ${signature.slice(0,10)}...`);
+
       const rawOrder = {
         ...bigIntToString(intent),
         signature,
@@ -235,14 +236,13 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         userAddress: intent.user
       };
 
-      console.log("RAW ORDER:", rawOrder);
-
       const safeOrder = JSON.parse(JSON.stringify(rawOrder));
 
       submitOrder(safeOrder);
 
     } catch (e) {
         const error = e as Error;
+        addLog(`Signing failed: ${error.message}`);
         console.error("Signing error:", error);
         toast.error(`Signing failed: ${error.message}`);
         setIsConfirming(false);

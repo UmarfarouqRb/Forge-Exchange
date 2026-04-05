@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { getMarket, getMarketBySymbol } from "../../packages/markets/markets/market";
 import { health } from "./src/health";
@@ -40,36 +40,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // --- Order Routes ---
-  app.post("/api/orders", async (req: Request, res: Response) => {
+  app.post("/api/orders", async (req: Request, res: Response, next: NextFunction) => {
     try {
       const order = await createOrder(req.body);
       res.status(201).json(order);
-    } catch (error: any) { 
-      res.status(400).json({ error: error.message });
+    } catch (error) { 
+      next(error);
     }
   });
 
-  app.get("/api/orders/:account", async (req: Request, res: Response) => {
+  app.get("/api/orders/:account", async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { account } = req.params;
       const orders = await getOrdersByAccount(account);
       res.json(orders);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      next(error);
     }
   });
 
   // --- Market Routes ---
-  app.get("/api/markets", async (req: Request, res: Response) => {
+  app.get("/api/markets", async (req: Request, res: Response, next: NextFunction) => {
     try {
         const markets = await getMarkets();
         res.json(markets);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error) {
+        next(error);
     }
   });
 
-  app.get("/api/markets/:id", async (req: Request, res: Response) => {
+  app.get("/api/markets/:id", async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     if (typeof id !== 'string') {
         return res.status(400).json({ error: 'ID parameter is required' });
@@ -81,12 +81,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Market not found" });
       }
       res.json(marketState);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      next(error);
     }
   });
 
-  app.get("/api/markets/by-symbol/:symbol", async (req: Request, res: Response) => {
+  app.get("/api/markets/by-symbol/:symbol", async (req: Request, res: Response, next: NextFunction) => {
     const { symbol } = req.params;
     if (typeof symbol !== 'string') {
         return res.status(400).json({ error: 'Symbol parameter is required' });
@@ -98,21 +98,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Market not found" });
       }
       res.json(marketState);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      next(error);
     }
   });
 
   // --- Trading Pairs Routes ---
-  app.get("/api/trading-pairs", async (req: Request, res: Response) => {
+  app.get("/api/trading-pairs", async (req: Request, res: Response, next: NextFunction) => {
     try {
         res.json(getTradingPairs());
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error) {
+        next(error);
     }
   });
 
-  app.get("/api/trading-pairs/by-symbol/:symbol", async (req: Request, res: Response) => {
+  app.get("/api/trading-pairs/by-symbol/:symbol", async (req: Request, res: Response, next: NextFunction) => {
     const { symbol } = req.params;
     if (typeof symbol !== 'string') {
         return res.status(400).json({ error: 'Symbol parameter is required' });
@@ -123,18 +123,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!pair) {
           return res.status(404).json({ error: "Trading pair not found" });
       }
-      res.json(pair);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      res.json(.pair);
+    } catch (error) {
+      next(error);
     }
   });
 
-  app.get("/api/trading-pairs/trending", async (req: Request, res: Response) => {
+  app.get("/api/trading-pairs/trending", async (req: Request, res: Response, next: NextFunction) => {
     try {
         const trendingPairs = await getTrendingPairs();
         res.json(trendingPairs);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
+    } catch (error) {
+        next(error);
     }
   });
 
@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.post("/api/liquidity/withdraw", withdraw);
 
   // --- Token Route ---
-    app.get("/api/tokens", async (req: Request, res: Response) => {
+    app.get("/api/tokens", async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { chainId } = req.query;
             const tokens = getTokens();
@@ -157,17 +157,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               };
             }
             res.json(tokenDict);
-        } catch (error: any) {
-            res.status(500).json({ error: error.message });
+        } catch (error) {
+            next(error);
         }
     });
 
-    app.get("/api/vault/tokens", async (req: Request, res: Response) => {
+    app.get("/api/vault/tokens", async (req: Request, res: Response, next: NextFunction) => {
         try {
             const tokens = await getVaultTokens();
             res.json(tokens);
-        } catch (error: any) {
-            res.status(500).json({ error: error.message });
+        } catch (error) {
+            next(error);
         }
     });
     
