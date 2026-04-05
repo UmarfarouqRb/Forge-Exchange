@@ -31,9 +31,19 @@ export function useAgentStatus(orderId?: string) {
     }
   }, [lastMessage, orderId]);
 
+  const addLog = useCallback((message: string, type: LogEntry['type'] = 'info') => {
+    const newLog: LogEntry = {
+        orderId: orderId || 'general',
+        msg: message,
+        type: type,
+        timestamp: Date.now(),
+    };
+    setLogs(prevLogs => [...prevLogs, newLog]);
+  }, [orderId]);
+
   const clearLogs = useCallback(() => {
     setLogs([]);
   }, []);
 
-  return { logs, clearLogs };
+  return { logs, addLog, clearLogs };
 }

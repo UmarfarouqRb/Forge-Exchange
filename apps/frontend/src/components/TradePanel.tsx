@@ -89,7 +89,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const queryClient = useQueryClient();
   const { getVaultBalance, isLoading: isVaultLoading } = useVault();
   const { signTypedData } = useSignTypedData();
-  const { logs: agentLogs, addLog } = useAgentStatus();
+  const { logs: agentLogs, addLog, clearLogs } = useAgentStatus();
 
   const connectedWallet = wallets[0];
   const currentPrice = market?.lastPrice || '0';
@@ -142,7 +142,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       queryClient.invalidateQueries({ queryKey: ['tradeHistory', user?.wallet?.address] });
     },
     onError: (error: Error) => {
-      addLog(`Backend failed to accept order: ${error.message}. See console for details.`);
+      addLog(`Backend failed to accept order: ${error.message}. See console for details.`, 'error');
       toast.error(error.message);
       console.error('Failed to create order:', error);
       setIsConfirming(false);
@@ -158,6 +158,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       toast.error('Insufficient funds');
       return;
     }
+    clearLogs();
     setIsConfirming(true);
   };
 
@@ -242,7 +243,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
     } catch (e) {
         const error = e as Error;
-        addLog(`Signing failed: ${error.message}`);
+        addLog(`Signing failed: ${error.message}`, 'error');
         console.error("Signing error:", error);
         toast.error(`Signing failed: ${error.message}`);
         setIsConfirming(false);

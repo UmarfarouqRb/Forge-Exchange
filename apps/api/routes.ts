@@ -123,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!pair) {
           return res.status(404).json({ error: "Trading pair not found" });
       }
-      res.json(.pair);
+      res.json(pair);
     } catch (error) {
       next(error);
     }

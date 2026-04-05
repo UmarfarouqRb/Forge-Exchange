@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "esnext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node"
+  },
+  "references": [
+    { "path": "packages/database" },
+    { "path": "packages/markets" },
+    { "path": "apps/api" },
+    { "path": "apps/relayer" },
+    { "path": "apps/frontend" }
+  ],
+  "exclude": ["node_modules"]
+}
