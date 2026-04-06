@@ -71,6 +71,7 @@ CREATE TABLE trading_pairs (
 -- orders table
 CREATE TABLE orders (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    intent_id TEXT UNIQUE,
     user_address TEXT NOT NULL,
     trading_pair_id UUID NOT NULL REFERENCES trading_pairs(id),
     side TEXT NOT NULL CHECK (side IN ('buy', 'sell')),
@@ -90,6 +91,12 @@ CREATE TABLE orders (
     adapter TEXT NOT NULL,
     relayer_fee TEXT NOT NULL
 );
+
+-- Add indexes to orders table
+CREATE INDEX idx_orders_user ON orders(user_address);
+CREATE INDEX idx_orders_pair ON orders(trading_pair_id);
+CREATE INDEX idx_orders_status ON orders(status);
+
 
 -- order_books table
 CREATE TABLE order_books (
@@ -166,13 +173,13 @@ CREATE TABLE public.invite_codes (
 -- STEP 3: SEED BASE DATA
 INSERT INTO tokens (chain_id, address, symbol, name, decimals)
 VALUES
-(8453, '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 'ETH', 'Ether', 18),
-(8453, '0xdac17f958d2ee523a2206206994597c13d831ec7', 'USDT', 'Tether', 6);
+(84532, '0x4200000000000000000000000000000000000006', 'WETH', 'Wrapped Ether', 18),
+(84532, '0x036CbD53842c5426634e7929541eC2318f3dCF7e', 'USDC', 'USD Coin', 6);
 
 INSERT INTO trading_pairs (base_token_id, quote_token_id, symbol)
-SELECT t1.id, t2.id, 'ETHUSDT'
+SELECT t1.id, t2.id, 'WETHUSDC'
 FROM tokens t1, tokens t2
-WHERE t1.symbol='ETH' AND t2.symbol='USDT';
+WHERE t1.symbol='WETH' AND t2.symbol='USDC' AND t1.chain_id = 84532 AND t2.chain_id = 84532;
 
 INSERT INTO markets (trading_pair_id)
 SELECT id FROM trading_pairs;

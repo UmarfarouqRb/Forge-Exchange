@@ -1,7 +1,7 @@
 
 import { relayerConfig } from '@forge/common';
 import { updateOrderStatus } from '@forge/db';
-import { createPublicClient, createWalletClient, http, keccak256, parseUnits, formatUnits, getAddress } from 'viem';
+import { createPublicClient, createWalletClient, http, parseUnits, formatUnits, getAddress } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { getChain } from './utils/chain';
 import IntentSpotRouter from '../../../deployment/abi/IntentSpotRouter.json' assert { type: "json" };
@@ -49,7 +49,7 @@ export const executeSpotTrade = async (intent: any, signature: `0x${string}`, or
         throw new Error('Missing required fields');
     }
 
-    const orderId = keccak256(signature);
+    const orderId = intent.id;
 
     try {
         const network = relayerConfig.getNetworkByChainId(intent.chainId);

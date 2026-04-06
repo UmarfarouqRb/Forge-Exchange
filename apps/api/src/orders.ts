@@ -1,8 +1,9 @@
 
 import { verifyTypedData } from 'viem';
 import { createClient } from '@supabase/supabase-js';
-import { INTENT_SPOT_ROUTER_ADDRESS } from '../../frontend/src/config/contracts';
+import { INTENT_SPOT_ROUTER_ADDRESS } from '../../../frontend/src/config/contracts';
 import fetch from 'node-fetch';
+import crypto from 'crypto';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL!;
@@ -37,15 +38,17 @@ const types = {
 
 export async function createOrder(orderData: any) {
     const { 
+        intent,
         signature, 
         tradingPairId,
         side,
         orderType,
-        price,
+        price: initialPrice,
         quantity,
-        userAddress,
-        ...intent 
     } = orderData;
+
+    const intentId = crypto.randomUUID();
+    const userAddress = intent.user;
 
     // 1. Validation: Verify the EIP-712 signature
     const message = {
@@ -73,36 +76,59 @@ export async function createOrder(orderData: any) {
         throw new Error('Invalid signature');
     }
 
+    // Handle market order price
+    let finalPrice = initialPrice;
+    if (orderType === 'market') {
+        finalPrice = null;
+    }
+
+    // 2. Reconstruct payload for Relayer
+    const intentForRelayer = {
+        id: intentId,
+        chainId: chainId,
+        ...intent,
+    };
+
+    const payloadForRelayer = {
+      intent: intentForRelayer,
+      signature: signature,
+      side: side,
+      orderType: orderType,
+    };
+
     // 2. Forward: Send the order to the Relayer for execution.
     try {
         const relayerResponse = await fetch(`${RELAYER_URL}/api/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderData),
+            body: JSON.stringify(payloadForRelayer, (key, value) =>
+                typeof value === 'bigint' ? value.toString() : value
+            ),
         });
 
         if (!relayerResponse.ok) {
             // Log the error from the relayer but continue to save the order as PENDING
             const errorBody = await relayerResponse.json();
-            console.error(`[API] Relayer rejected order, but proceeding to save as PENDING. Reason: ${JSON.stringify(errorBody)}`);
+            console.error(`[API] Relayer rejected order, but proceeding to save as open. Reason: ${JSON.stringify(errorBody)}`);
         } else {
             console.log('[API] Order successfully forwarded to Relayer.');
         }
     } catch (error) {
-        console.error("[API] Failed to forward order to Relayer, but proceeding to save as PENDING.", error);
+        console.error("[API] Failed to forward order to Relayer, but proceeding to save as open.", error);
     }
 
-    // 3. Persist: Save the intent to the database with a 'PENDING' status.
+    // 3. Persist: Save the intent to the database with a 'open' status.
     const { data: newOrder, error } = await supabase
         .from('orders')
         .insert([{
+            intent_id: intentId,
             user_address: userAddress,
             trading_pair_id: tradingPairId,
             side,
             order_type: orderType,
             quantity: quantity,
-            price: price,
-            status: 'PENDING',
+            price: finalPrice,
+            status: 'open',
             signature,
             token_in: intent.tokenIn,
             token_out: intent.tokenOut,
@@ -110,6 +136,8 @@ export async function createOrder(orderData: any) {
             min_amount_out: intent.minAmountOut,
             deadline: intent.deadline,
             nonce: intent.nonce,
+            adapter: intent.adapter,
+            relayer_fee: intent.relayerFee,
         }])
         .select('*')
         .single();
@@ -119,7 +147,7 @@ export async function createOrder(orderData: any) {
         throw new Error('Failed to create order');
     }
 
-    console.log(`[API] Order ${newOrder.id} persisted with PENDING status.`);
+    console.log(`[API] Order ${newOrder.id} persisted with open status.`);
 
     return newOrder;
 }
