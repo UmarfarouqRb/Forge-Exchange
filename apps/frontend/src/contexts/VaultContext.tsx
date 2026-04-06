@@ -71,6 +71,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     const marketMap = new Map(markets.map(m => [m.symbol.split('-')[0], m]));
     const stablecoins = ['USDC', 'DAI', 'USDT'];
     let totalValue = 0;
+    const ethPrice = markets.find(m => m.symbol === 'WETHUSDC')?.lastPrice || '0';
 
     const assetsWithPrices: VaultAsset[] = vaultTokensStatic.map((asset: VaultToken, i: number) => {
       const token = asset.token;
@@ -80,7 +81,9 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
       let price = 0;
       const displaySymbol = getDisplaySymbol(token);
 
-      if (stablecoins.includes(displaySymbol)) {
+      if (displaySymbol === 'ETH') {
+        price = parseFloat(ethPrice);
+      } else if (stablecoins.includes(displaySymbol)) {
         price = 1;
       } else {
         const market = marketMap.get(displaySymbol);

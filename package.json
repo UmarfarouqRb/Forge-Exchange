@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "pnpm -r run dev",
-    "build": "pnpm -r -- node-options=--max-old-space-size=4096 build",
+    "build": "pnpm -r build",
     "build:frontend": "pnpm --filter frontend build",
     "build:relayer": "pnpm --filter relayer build",
     "start": "pnpm -r run start",

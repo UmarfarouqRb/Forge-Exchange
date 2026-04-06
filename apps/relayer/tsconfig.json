@@ -7,10 +7,7 @@
     "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
     "noImplicitAny": false,
     "moduleResolution": "Bundler",
-    "resolveJsonModule": true,
-    "paths": {
-        "@forge/markets": ["../../packages/markets"]
-      }
+    "resolveJsonModule": true
   },
   "include": ["src", "test"],
   "references": [

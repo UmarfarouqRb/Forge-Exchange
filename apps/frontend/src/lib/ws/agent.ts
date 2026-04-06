@@ -25,11 +25,11 @@ function connect() {
 
     socket.onclose = () => {
         console.log('Agent WebSocket disconnected');
-        setTimeout(connect, 5000); // Reconnect on close
+        setTimeout(connect, 1000); // Reconnect on close
     };
 
     socket.onerror = (error) => {
-        console.error('Agent WebSocket error:', error);
+        console.error('Agent WebSocket error:', JSON.stringify(error, ['message', 'name', 'stack']));
         socket?.close(); // This will trigger onclose and reconnect
     };
 }

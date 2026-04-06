@@ -41,11 +41,11 @@ function connect() {
     socket.onclose = () => {
         console.log('WebSocket disconnected');
         // Attempt to reconnect after a delay
-        setTimeout(connect, 5000);
+        setTimeout(connect, 1000);
     };
 
     socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('WebSocket error:', JSON.stringify(error, ['message', 'name', 'stack']));
         socket?.close();
     };
 }

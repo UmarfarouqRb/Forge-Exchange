@@ -29,4 +29,11 @@ export const TOKENS: Record<string, Token> = {
     symbol: "BTC",
     decimals: 8,
   },
+  LINK: {
+    id: "LINK",
+    address: "0xE4aB69C077896252FAFBD49EFD26B5D171A32410",
+    name: "Chainlink",
+    symbol: "LINK",
+    decimals: 18,
+  },
 };

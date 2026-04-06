@@ -6,15 +6,16 @@ const API_URL = 'https://forge-exchange-api.onrender.com';
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const errorText = await response.text();
-    // Improved error logging
-    console.error('API Error Response:', { 
-      status: response.status, 
-      statusText: response.statusText, 
-      url: response.url, 
-      errorBody: errorText 
-    });
-    throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`);
+    let errorText;
+    try {
+        errorText = await response.text();
+        const errorJson = JSON.parse(errorText);
+        // Use the more descriptive message from the backend if available
+        throw new Error(errorJson.message || `API Error: ${response.status} ${response.statusText} - ${errorText}`);
+    } catch (e) {
+        // Fallback if the response is not JSON or another error occurs
+        throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText || 'No additional error information.'}`);
+    }
   }
   return response.json() as Promise<T>;
 }
@@ -88,15 +89,21 @@ export type CreateOrderRequest = {
 
 
 export async function createOrder(order: CreateOrderRequest, accessToken: string): Promise<Order> {
-  const response = await fetch(`${API_URL}/api/orders`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(order), // Caller is responsible for serialization
-  });
-  return handleResponse<Order>(response);
+    try {
+        const response = await fetch(`${API_URL}/api/orders`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(serialize(order)),
+        });
+        return await handleResponse<Order>(response);
+    } catch (error) {
+        console.error("Error in createOrder:", error);
+        // Re-throw the error to be caught by the calling mutation
+        throw error; 
+    }
 }
 
 export async function getTokens(chainId: string): Promise<{ [symbol: string]: { address: `0x${string}`; decimals: number } }> {

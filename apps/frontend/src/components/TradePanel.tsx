@@ -20,7 +20,7 @@ import { INTENT_SPOT_ROUTER_ADDRESS } from '@/config/contracts';
 import { toast } from 'sonner';
 import { AgentLog } from './AgentLog';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
-import { bigIntToString } from '@/lib/serializers';
+import { serialize } from '@/lib/serializers';
 
 const chainId = 84532; // Base Sepolia
 
@@ -203,13 +203,14 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     };
 
     addLog('Awaiting signature for trade intent...');
+    const serializedIntent = serialize(intent);
 
     try {
       const result:any = await signTypedData({
-        domain,
+        domain: serialize(domain),
         types,
         primaryType: "SwapIntent",
-        message: intent,
+        message: serializedIntent,
       });
       
       let signature: string;
@@ -227,7 +228,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       addLog(`Signature received: ${signature.slice(0,10)}...`);
 
       const rawOrder = {
-        ...bigIntToString(intent),
+        ...serializedIntent,
         signature,
         orderType,
         side,
@@ -237,9 +238,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         userAddress: intent.user
       };
 
-      const safeOrder = JSON.parse(JSON.stringify(rawOrder));
-
-      submitOrder(safeOrder);
+      submitOrder(rawOrder);
 
     } catch (e) {
         const error = e as Error;

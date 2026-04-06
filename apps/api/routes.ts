@@ -1,16 +1,22 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { getMarket, getMarketBySymbol } from "../../packages/markets/markets/market";
+import { 
+    getMarket, 
+    getMarketBySymbol,
+    getMarkets,
+    getTokens,
+    getVaultTokens,
+    getTradingPairs,
+    getTradingPairBySymbol,
+    getLiquidityPools,
+    getLiquidityPositions,
+    deposit,
+    withdraw
+} from "@forge/markets";
 import { health } from "./src/health";
-import { getMarkets } from "../../packages/markets/markets/markets";
-import { getTokens } from "../../packages/markets/tokens/tokens";
-import { getTrendingPairs } from "../../packages/markets/tradingPairs/trending";
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { createOrder, getOrdersByAccount } from "./src/orders";
 import { broadcastToTopic } from "./websocket";
-import { getVaultTokens } from "../../packages/markets/vault/vault";
-import { getTradingPairs, getTradingPairBySymbol } from "../../packages/markets/tradingPairs/trading-pairs";
-import { getLiquidityPools, getLiquidityPositions, deposit, withdraw } from "../../packages/markets//liquidity/liquidity";
 import pointsRouter from "./src/routes/v1/points";
 
 // Define the proxy middleware for the relayer service
@@ -126,15 +132,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(pair);
     } catch (error) {
       next(error);
-    }
-  });
-
-  app.get("/api/trading-pairs/trending", async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const trendingPairs = await getTrendingPairs();
-        res.json(trendingPairs);
-    } catch (error) {
-        next(error);
     }
   });
 

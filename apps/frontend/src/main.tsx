@@ -19,7 +19,6 @@ import './index.css';
 import { ThemeProvider, useThemeContext } from './contexts/ThemeContext';
 import { config } from './wagmi';
 import { VaultProvider } from './contexts/VaultContext';
-import { PointsProvider } from './contexts/PointsContext';
 
 const privyAppId = import.meta.env.VITE_PRIVY_APP_ID;
 
@@ -55,9 +54,7 @@ function Main() {
           <WagmiProvider config={config}>
             <ChainProvider>
               <VaultProvider>
-                <PointsProvider>
-                  <App />
-                </PointsProvider>
+                <App />
               </VaultProvider>
             </ChainProvider>
           </WagmiProvider>
