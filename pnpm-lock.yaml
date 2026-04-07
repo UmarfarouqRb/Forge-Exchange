@@ -72,6 +72,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@forge/contracts':
+        specifier: workspace:^
+        version: link:../../packages/contracts
       '@forge/db':
         specifier: workspace:^
         version: link:../../packages/database
@@ -511,6 +514,8 @@ importers:
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
+
+  packages/contracts: {}
 
   packages/core-sdk:
     dependencies:
