@@ -3,14 +3,16 @@ import { LiquidityEngine } from '../liquidity/engine';
 import { EventEmitter } from 'events';
 
 export class MatchingEngine extends EventEmitter {
+    private agentName: string;
     private interval: NodeJS.Timeout | null = null;
     private liquidityEngine: LiquidityEngine;
     private openOrders: any[] = [];
     private isMatching: boolean = false;
 
-    constructor(liquidityEngine: LiquidityEngine) {
+    constructor(liquidityEngine: LiquidityEngine, agentName: string = 'Solver01') {
         super();
         this.liquidityEngine = liquidityEngine;
+        this.agentName = agentName;
 
         this.liquidityEngine.on('settlement_status', (data) => {
             this.emit('agent_status', data);
@@ -36,7 +38,7 @@ export class MatchingEngine extends EventEmitter {
         this.emit('agent_status', { 
             orderId: order.intent.id, 
             userAddress: order.intent.user, // Add user address to the event
-            msg: '[Engine] Order received. Searching for match...',
+            msg: `[${this.agentName}] Order received. Searching for match...`,
             type: 'info' 
         });
 
@@ -48,7 +50,7 @@ export class MatchingEngine extends EventEmitter {
             this.emit('agent_status', { 
                 orderId: order.intent.id, 
                 userAddress: order.intent.user,
-                msg: `[Engine] Invalid order type: ${order.orderType}`,
+                msg: `[${this.agentName}] Invalid order type: ${order.orderType}`,
                 type: 'error' 
             });
         }
@@ -87,7 +89,7 @@ export class MatchingEngine extends EventEmitter {
                 this.emit('agent_status', { 
                     orderId: marketOrder.intent.id, 
                     userAddress: marketOrder.intent.user,
-                    msg: `[Engine] Found internal match for ${fillQuantity} ${marketOrder.pair.base.symbol}.`,
+                    msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${marketOrder.pair.base.symbol}.`,
                     type: 'info' 
                 });
 
@@ -112,7 +114,7 @@ export class MatchingEngine extends EventEmitter {
             this.emit('agent_status', { 
                 orderId: marketOrder.intent.id,
                 userAddress: marketOrder.intent.user,
-                msg: `[Engine] No internal match. Checking external liquidity...`,
+                msg: `[${this.agentName}] No internal match. Checking external liquidity...`,
                 type: 'info' 
             });
 
@@ -123,7 +125,7 @@ export class MatchingEngine extends EventEmitter {
                 this.emit('agent_status', { 
                     orderId: marketOrder.intent.id,
                     userAddress: marketOrder.intent.user,
-                    msg: `[Engine] External DEX offers better price. Routing externally.`,
+                    msg: `[${this.agentName}] External DEX offers better price. Routing externally.`,
                     type: 'info' 
                 });
                 await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature);
@@ -131,7 +133,7 @@ export class MatchingEngine extends EventEmitter {
                 this.emit('agent_status', { 
                     orderId: marketOrder.intent.id,
                     userAddress: marketOrder.intent.user,
-                    msg: `[Engine] No better external price. Settling with internal LP.`,
+                    msg: `[${this.agentName}] No better external price. Settling with internal LP.`,
                     type: 'info' 
                 });
                 await this.liquidityEngine.executeWithLP(marketOrder);
@@ -162,7 +164,7 @@ export class MatchingEngine extends EventEmitter {
                         this.emit('agent_status', {
                             orderId: bestBid.intent.id, 
                             userAddress: bestBid.intent.user,
-                            msg: `[Engine] Found internal match for ${fillQuantity} ${bestBid.pair.base.symbol}.`,
+                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestBid.pair.base.symbol}.`,
                             type: 'info' 
                         });
 

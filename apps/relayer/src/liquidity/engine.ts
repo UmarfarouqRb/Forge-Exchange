@@ -112,7 +112,8 @@ export class LiquidityEngine extends EventEmitter {
         const amountQuote = (amountBase * priceBigInt) / (10n ** BigInt(pair.base.decimals));
 
         this.emit('agent_status', { 
-            orderId: buyer.id, 
+            orderId: buyer.intent.id,
+            userAddress: buyer.intent.user,
             msg: `[${this.agentName}] Settling internal match for ${quantity} ${pair.base.symbol}.`,
             type: 'info' 
         });
@@ -128,14 +129,24 @@ export class LiquidityEngine extends EventEmitter {
     public async executeWithLP(order: any) {
         if (!this.lpAddress) {
             console.error("Cannot execute with LP: LP Address is not configured or invalid.");
-            this.emit('agent_status', { orderId: order.id, msg: `[${this.agentName}] Cannot execute with LP, address not configured.`, type: 'error' });
+            this.emit('agent_status', { 
+                orderId: order.intent.id, 
+                userAddress: order.intent.user,
+                msg: `[${this.agentName}] Cannot execute with LP, address not configured.`, 
+                type: 'error' 
+            });
             return;
         }
 
         const price = this.getPrice(order.tradingPairId);
         if (price === null) {
             console.error(`Cannot settle with LP: No internal price for pair ${order.tradingPairId}`);
-            this.emit('agent_status', { orderId: order.id, msg: `[${this.agentName}] Cannot settle with LP, no internal price for ${order.pair.symbol}.`, type: 'error' });
+            this.emit('agent_status', { 
+                orderId: order.intent.id, 
+                userAddress: order.intent.user,
+                msg: `[${this.agentName}] Cannot settle with LP, no internal price for ${order.pair.symbol}.`, 
+                type: 'error' 
+            });
             return;
         }
 
@@ -150,7 +161,8 @@ export class LiquidityEngine extends EventEmitter {
             : (amountBase * priceBigInt) / (10n ** BigInt(pair.base.decimals));
 
         this.emit('agent_status', { 
-            orderId: order.id,
+            orderId: order.intent.id,
+            userAddress: order.intent.user,
             msg: `[${this.agentName}] No external liquidity found. Settling ${order.quantity} ${pair.base.symbol} with internal LP.`,
             type: 'info' 
         });
@@ -165,7 +177,8 @@ export class LiquidityEngine extends EventEmitter {
 
     public async executeWithExternalDex(intent: any, signature: any) {
         this.emit('agent_status', {
-            orderId: intent.id, // Assuming id is on the intent
+            orderId: intent.id,
+            userAddress: intent.user,
             msg: `[${this.agentName}] Routing to external DEX to fill ${intent.quantity} ${intent.pair.base.symbol}.`,
             type: 'info' 
         });
@@ -214,6 +227,7 @@ export class LiquidityEngine extends EventEmitter {
             console.error("On-chain settlement simulation failed:", error);
             this.emit('agent_status', {
                 orderId: intent.id, 
+                userAddress: intent.user,
                 msg: `[${this.agentName}] On-chain settlement failed.`,
                 type: 'error'
             });
