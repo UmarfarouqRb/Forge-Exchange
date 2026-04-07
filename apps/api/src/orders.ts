@@ -1,7 +1,7 @@
 
 import { verifyTypedData } from 'viem';
 import { createClient } from '@supabase/supabase-js';
-import { INTENT_SPOT_ROUTER_ADDRESS } from '../../frontend/src/config/contracts';
+import { INTENT_SPOT_ROUTER_ADDRESS } from '@forge/contracts';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 

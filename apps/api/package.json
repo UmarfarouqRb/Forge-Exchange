@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@forge/contracts": "workspace:^",
     "@forge/db": "workspace:^",
     "@neondatabase/serverless": "^0.10.4",
     "@supabase/supabase-js": "^2.88.0",
