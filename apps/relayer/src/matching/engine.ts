@@ -35,7 +35,8 @@ export class MatchingEngine extends EventEmitter {
     processOrder(order: any) {
         this.emit('agent_status', { 
             orderId: order.intent.id, 
-            msg: '[Agent] Order received. Searching for match...',
+            userAddress: order.intent.user, // Add user address to the event
+            msg: '[Engine] Order received. Searching for match...',
             type: 'info' 
         });
 
@@ -46,7 +47,8 @@ export class MatchingEngine extends EventEmitter {
         } else {
             this.emit('agent_status', { 
                 orderId: order.intent.id, 
-                msg: `[Agent] Invalid order type: ${order.orderType}`,
+                userAddress: order.intent.user,
+                msg: `[Engine] Invalid order type: ${order.orderType}`,
                 type: 'error' 
             });
         }
@@ -84,7 +86,8 @@ export class MatchingEngine extends EventEmitter {
 
                 this.emit('agent_status', { 
                     orderId: marketOrder.intent.id, 
-                    msg: `[Agent] Found internal match for ${fillQuantity} ${marketOrder.pair.base.symbol}.`,
+                    userAddress: marketOrder.intent.user,
+                    msg: `[Engine] Found internal match for ${fillQuantity} ${marketOrder.pair.base.symbol}.`,
                     type: 'info' 
                 });
 
@@ -106,29 +109,29 @@ export class MatchingEngine extends EventEmitter {
         if (remainingQuantity > 0) {
             marketOrder.quantity = remainingQuantity.toString();
 
-            // 2. If quantity remains, check for a better price on an external DEX
             this.emit('agent_status', { 
                 orderId: marketOrder.intent.id,
-                msg: `[Agent] No internal match. Checking external liquidity...`,
+                userAddress: marketOrder.intent.user,
+                msg: `[Engine] No internal match. Checking external liquidity...`,
                 type: 'info' 
             });
 
             const onChainQuote = await this.liquidityEngine.getOnChainQuote(marketOrder);
             const internalPrice = this.liquidityEngine.getPrice(marketOrder.tradingPairId);
 
-            // Simplified price comparison. A real implementation would be more robust.
             if (onChainQuote > 0 && (!internalPrice || onChainQuote > internalPrice)) {
                 this.emit('agent_status', { 
                     orderId: marketOrder.intent.id,
-                    msg: `[Agent] External DEX offers better price. Routing externally.`,
+                    userAddress: marketOrder.intent.user,
+                    msg: `[Engine] External DEX offers better price. Routing externally.`,
                     type: 'info' 
                 });
                 await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature);
             } else {
-                // 3. Fallback to internal LP if no better external price is found
                 this.emit('agent_status', { 
                     orderId: marketOrder.intent.id,
-                    msg: `[Agent] No better external price. Settling with internal LP.`,
+                    userAddress: marketOrder.intent.user,
+                    msg: `[Engine] No better external price. Settling with internal LP.`,
                     type: 'info' 
                 });
                 await this.liquidityEngine.executeWithLP(marketOrder);
@@ -158,6 +161,7 @@ export class MatchingEngine extends EventEmitter {
                         
                         this.emit('agent_status', {
                             orderId: bestBid.intent.id, 
+                            userAddress: bestBid.intent.user,
                             msg: `[Engine] Found internal match for ${fillQuantity} ${bestBid.pair.base.symbol}.`,
                             type: 'info' 
                         });

@@ -32,13 +32,15 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 
 export class LiquidityEngine extends EventEmitter {
+    private agentName: string;
     private tradingPairs: TradingPair[] = [];
     private marketData: { [key: string]: MarketState } = {};
     private lpAddress: `0x${string}` | null;
     private intentSpotRouterAddress: `0x${string}`;
 
-    constructor() {
+    constructor(agentName: string = 'Agent01') {
         super();
+        this.agentName = agentName;
         // Read LP_ADDRESS from environment variable, with a fallback
         const fallbackLpAddress = '0xf2ac07DeFdb48fbc9459459a448C4A158c6C23ef';
         this.lpAddress = safeAddress(process.env.LP_ADDRESS || fallbackLpAddress);
@@ -67,7 +69,7 @@ export class LiquidityEngine extends EventEmitter {
             console.error("Failed to initialize LiquidityEngine:", error);
             this.emit('agent_status', { 
                 type: 'error', 
-                msg: 'Failed to initialize liquidity engine.' 
+                msg: `[${this.agentName}] Failed to initialize liquidity engine.` 
             });
         }
     }
@@ -111,7 +113,7 @@ export class LiquidityEngine extends EventEmitter {
 
         this.emit('agent_status', { 
             orderId: buyer.id, 
-            msg: `[Executor] Settling internal match for ${quantity} ${pair.base.symbol}.`,
+            msg: `[${this.agentName}] Settling internal match for ${quantity} ${pair.base.symbol}.`,
             type: 'info' 
         });
 
@@ -126,14 +128,14 @@ export class LiquidityEngine extends EventEmitter {
     public async executeWithLP(order: any) {
         if (!this.lpAddress) {
             console.error("Cannot execute with LP: LP Address is not configured or invalid.");
-            this.emit('agent_status', { orderId: order.id, msg: "[Executor] Cannot execute with LP, address not configured.", type: 'error' });
+            this.emit('agent_status', { orderId: order.id, msg: `[${this.agentName}] Cannot execute with LP, address not configured.`, type: 'error' });
             return;
         }
 
         const price = this.getPrice(order.tradingPairId);
         if (price === null) {
             console.error(`Cannot settle with LP: No internal price for pair ${order.tradingPairId}`);
-            this.emit('agent_status', { orderId: order.id, msg: `[Executor] Cannot settle with LP, no internal price for ${order.pair.symbol}.`, type: 'error' });
+            this.emit('agent_status', { orderId: order.id, msg: `[${this.agentName}] Cannot settle with LP, no internal price for ${order.pair.symbol}.`, type: 'error' });
             return;
         }
 
@@ -149,7 +151,7 @@ export class LiquidityEngine extends EventEmitter {
 
         this.emit('agent_status', { 
             orderId: order.id,
-            msg: `[Executor] No external liquidity found. Settling ${order.quantity} ${pair.base.symbol} with internal LP.`,
+            msg: `[${this.agentName}] No external liquidity found. Settling ${order.quantity} ${pair.base.symbol} with internal LP.`,
             type: 'info' 
         });
 
@@ -164,7 +166,7 @@ export class LiquidityEngine extends EventEmitter {
     public async executeWithExternalDex(intent: any, signature: any) {
         this.emit('agent_status', {
             orderId: intent.id, // Assuming id is on the intent
-            msg: `[Executor] Routing to external DEX to fill ${intent.quantity} ${intent.pair.base.symbol}.`,
+            msg: `[${this.agentName}] Routing to external DEX to fill ${intent.quantity} ${intent.pair.base.symbol}.`,
             type: 'info' 
         });
         
@@ -212,7 +214,7 @@ export class LiquidityEngine extends EventEmitter {
             console.error("On-chain settlement simulation failed:", error);
             this.emit('agent_status', {
                 orderId: intent.id, 
-                msg: "On-chain settlement failed.",
+                msg: `[${this.agentName}] On-chain settlement failed.`,
                 type: 'error'
             });
             this.updateOrderStatusInDB(signature, 'FAILED');

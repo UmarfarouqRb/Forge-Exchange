@@ -26,10 +26,11 @@ const matchingEngine = new MatchingEngine(liquidityEngine);
 
 // The matching engine will emit status updates for the agent to consume
 matchingEngine.on('agent_status', (data) => {
-    // We need to know which user this status update is for
-    const userId = data.userId || (data.order && data.order.userAddress);
-    if (userId) {
-        broadcastToApi(`agent:${userId}`, data);
+    const userAddress = data.userAddress;
+    if (userAddress) {
+        // The topic is now orders specific to the user, not a generic agent topic
+        const topic = `orders:${userAddress}`;
+        broadcastToApi(topic, data);
     }
 });
 
