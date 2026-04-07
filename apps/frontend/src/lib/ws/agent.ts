@@ -8,7 +8,7 @@ const AGENT_WS_URL = import.meta.env.PROD
     ? 'wss://forge-exchange-api.onrender.com'
     : 'ws://localhost:8081/ws';
 
-function connect() {
+function connect(userAddress: string) {
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
         return;
     }
@@ -17,6 +17,12 @@ function connect() {
 
     socket.onopen = () => {
         console.log('Agent WebSocket connected');
+        // Once connected, send the user's address to subscribe to their order updates
+        const subscriptionMessage = JSON.stringify({
+            type: 'subscribe',
+            userAddress: userAddress
+        });
+        socket?.send(subscriptionMessage);
     };
 
     socket.onmessage = (event) => {
@@ -25,19 +31,20 @@ function connect() {
 
     socket.onclose = () => {
         console.log('Agent WebSocket disconnected');
-        setTimeout(connect, 1000); // Reconnect on close
+        // Pass userAddress to reconnect
+        setTimeout(() => connect(userAddress), 1000);
     };
 
     socket.onerror = (error) => {
         console.error('Agent WebSocket error:', JSON.stringify(error, ['message', 'name', 'stack']));
-        socket?.close(); // This will trigger onclose and reconnect
+        socket?.close();
     };
 }
 
-function subscribe(callback: (message: MessageEvent) => void) {
+function subscribe(callback: (message: MessageEvent) => void, userAddress: string) {
     subscribers.add(callback);
     if (!socket || socket.readyState === WebSocket.CLOSED) {
-        connect();
+        connect(userAddress);
     }
 
     return () => {
@@ -49,13 +56,15 @@ function subscribe(callback: (message: MessageEvent) => void) {
     };
 }
 
-export function useAgentSocket() {
+export function useAgentSocket(userAddress: string) {
     const [lastMessage, setLastMessage] = useState<MessageEvent | null>(null);
 
     useEffect(() => {
-        const unsubscribe = subscribe(setLastMessage);
-        return () => unsubscribe();
-    }, []);
+        if (userAddress) {
+            const unsubscribe = subscribe(setLastMessage, userAddress);
+            return () => unsubscribe();
+        }
+    }, [userAddress]);
 
     return { lastMessage };
 }

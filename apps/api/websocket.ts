@@ -8,6 +8,8 @@ let wss: WebSocketServer;
 
 // A map to store clients subscribed to specific topics (e.g., trading pairs, orders)
 const subscriptions = new Map<string, Set<WebSocket>>();
+// A map to associate a user address with a WebSocket connection
+const userConnections = new Map<string, WebSocket>();
 
 export function createWebSocketServer(server: Server) {
   wss = new WebSocketServer({ server });
@@ -19,11 +21,20 @@ export function createWebSocketServer(server: Server) {
       try {
         const data = JSON.parse(message);
         console.log('Received message:', data);
-        // The client can send a message to subscribe to a topic
-        if (data.type === 'subscribe' && data.topic) {
-          subscribeClient(ws, data.topic);
+        
+        if (data.type === 'subscribe') {
+            if (data.topic) {
+                subscribeClient(ws, data.topic);
+            } else if (data.userAddress) {
+                // When a user connects, they should send their address
+                // to be associated with the websocket connection.
+                const userAddress = data.userAddress;
+                userConnections.set(userAddress, ws);
+                // Automatically subscribe them to their orders topic
+                subscribeClient(ws, `orders:${userAddress}`);
+            }
         }
-        // The client can also unsubscribe
+        
         if (data.type === 'unsubscribe' && data.topic) {
           unsubscribeClient(ws, data.topic);
         }
@@ -65,6 +76,15 @@ function unsubscribeClient(ws: WebSocket, topic: string) {
 }
 
 function unsubscribeClientFromAll(ws: WebSocket) {
+    // Also remove from userConnections map
+    for (const [address, socket] of userConnections.entries()) {
+        if (socket === ws) {
+            userConnections.delete(address);
+            console.log(`User ${address} disconnected`);
+            break;
+        }
+    }
+
     subscriptions.forEach((clients, topic) => {
         if (clients.has(ws)) {
             clients.delete(ws);

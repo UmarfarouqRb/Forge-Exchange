@@ -1,7 +1,10 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { useAccount } from 'wagmi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useAgentSocket } from '@/lib/ws/agent'; // Assuming this is the correct path
 
 export interface LogEntry {
   orderId: string;
@@ -10,11 +13,24 @@ export interface LogEntry {
   timestamp: number;
 }
 
-interface AgentLogProps {
-  logs: LogEntry[];
-}
+export function AgentLog() {
+  const { address } = useAccount();
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const { lastMessage } = useAgentSocket(address || '');
 
-export function AgentLog({ logs }: AgentLogProps) {
+  useEffect(() => {
+    if (lastMessage) {
+      try {
+        const newLog = JSON.parse(lastMessage.data);
+        // Add a timestamp to the log
+        newLog.timestamp = Date.now();
+        setLogs(prevLogs => [newLog, ...prevLogs]);
+      } catch (error) {
+        console.error("Failed to parse agent log message:", error);
+      }
+    }
+  }, [lastMessage]);
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
