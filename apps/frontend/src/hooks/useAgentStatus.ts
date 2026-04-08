@@ -13,20 +13,16 @@ export function useAgentStatus(orderId?: string) {
     if (lastMessage) {
       try {
         const data = JSON.parse(lastMessage.data);
-        if (data.type === 'agent_status') {
-            if (orderId && data.payload.orderId === orderId) {
-                const newLog: LogEntry = {
-                    ...data.payload,
-                    timestamp: Date.now(),
-                };
-                setLogs(prevLogs => [...prevLogs, newLog]);
-            } else if (!orderId) {
-                const newLog: LogEntry = {
-                    ...data.payload,
-                    timestamp: Date.now(),
-                };
-                setLogs(prevLogs => [...prevLogs, newLog]);
-            }
+        const isTargetOrder = !orderId || data.orderId === orderId;
+        
+        if (isTargetOrder && data.msg) {
+            const newLog: LogEntry = {
+                orderId: data.orderId,
+                msg: data.msg,
+                type: data.type || 'info',
+                timestamp: Date.now(),
+            };
+            setLogs(prevLogs => [...prevLogs, newLog]);
         }
       } catch (error) {
         console.error("Failed to parse WebSocket message:", error);
