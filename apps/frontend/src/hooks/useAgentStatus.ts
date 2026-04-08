@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { LogEntry } from '@/components/AgentLog';
 import { useAgentSocket } from '@/lib/ws/agent';
+import { usePrivy } from '@privy-io/react-auth';
 
 export function useAgentStatus(orderId?: string) {
+  const { user } = usePrivy();
+  const userAddress = user?.wallet?.address || '';
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const { lastMessage } = useAgentSocket();
+  const { lastMessage } = useAgentSocket(userAddress);
 
   useEffect(() => {
     if (lastMessage) {

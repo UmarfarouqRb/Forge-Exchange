@@ -168,6 +168,13 @@ export class MatchingEngine extends EventEmitter {
                             type: 'info' 
                         });
 
+                        this.emit('agent_status', {
+                            orderId: bestAsk.intent.id, 
+                            userAddress: bestAsk.intent.user,
+                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestAsk.pair.base.symbol}.`,
+                            type: 'info' 
+                        });
+
                         await this.liquidityEngine.settleMatchedTrade({
                             buyer: bestBid,
                             seller: bestAsk,

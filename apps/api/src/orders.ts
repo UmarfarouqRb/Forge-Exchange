@@ -36,6 +36,15 @@ const types = {
     ],
 } as const;
 
+// Helper to create a more detailed error
+function createError(message: string, details?: any): Error {
+    const error = new Error(message);
+    if (details) {
+        (error as any).details = details;
+    }
+    return error;
+}
+
 export async function createOrder(orderData: any) {
     const { 
         intent,
@@ -47,7 +56,7 @@ export async function createOrder(orderData: any) {
         quantity,
     } = orderData;
 
-    const intentId = crypto.randomUUID();
+    const orderId = crypto.randomUUID();
     const userAddress = intent.user;
 
     // 1. Validation: Verify the EIP-712 signature
@@ -63,17 +72,23 @@ export async function createOrder(orderData: any) {
         relayerFee: BigInt(intent.relayerFee),
     };
 
-    const isValid = await verifyTypedData({
-        address: userAddress as `0x${string}`,
-        domain,
-        types,
-        primaryType: 'SwapIntent',
-        message,
-        signature,
-    });
+    let isValid = false;
+    try {
+        isValid = await verifyTypedData({
+            address: userAddress as `0x${string}`,
+            domain,
+            types,
+            primaryType: 'SwapIntent',
+            message,
+            signature,
+        });
+    } catch (e: any) {
+        console.error("Error during signature verification:", e);
+        throw createError(`Signature verification failed: ${e.message}`, e);
+    }
 
     if (!isValid) {
-        throw new Error('Invalid signature');
+        throw createError('Invalid signature');
     }
 
     // Handle market order price
@@ -84,7 +99,7 @@ export async function createOrder(orderData: any) {
 
     // 2. Reconstruct payload for Relayer
     const intentForRelayer = {
-        id: intentId,
+        id: orderId,
         chainId: chainId,
         ...intent,
     };
@@ -107,21 +122,20 @@ export async function createOrder(orderData: any) {
         });
 
         if (!relayerResponse.ok) {
-            // Log the error from the relayer but continue to save the order as PENDING
             const errorBody = await relayerResponse.json();
-            console.error(`[API] Relayer rejected order, but proceeding to save as open. Reason: ${JSON.stringify(errorBody)}`);
+            console.error(`[API] Relayer rejected order, but proceeding to save as open. Reason: ${JSON.stringify(errorBody, null, 2)}`);
         } else {
             console.log('[API] Order successfully forwarded to Relayer.');
         }
-    } catch (error) {
-        console.error("[API] Failed to forward order to Relayer, but proceeding to save as open.", error);
+    } catch (error: any) {
+        console.error(`[API] Failed to forward order to Relayer, but proceeding to save as open. Error: ${error.message}`, error);
     }
 
     // 3. Persist: Save the intent to the database with a 'open' status.
     const { data: newOrder, error } = await supabase
         .from('orders')
         .insert([{
-            intent_id: intentId,
+            order_id: orderId,
             user_address: userAddress,
             trading_pair_id: tradingPairId,
             side,
@@ -143,8 +157,8 @@ export async function createOrder(orderData: any) {
         .single();
 
     if (error) {
-        console.error("Failed to create order:", error);
-        throw new Error('Failed to create order');
+        console.error("Failed to create order in database:", JSON.stringify(error, null, 2));
+        throw createError(`Failed to create order: ${error.message}`, error);
     }
 
     console.log(`[API] Order ${newOrder.id} persisted with open status.`);
@@ -167,8 +181,8 @@ export async function getOrdersByAccount(walletAddress: string) {
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error("Failed to fetch orders:", error);
-        throw new Error('Failed to fetch orders');
+        console.error("Failed to fetch orders:", JSON.stringify(error, null, 2));
+        throw createError(`Failed to fetch orders: ${error.message}`, error);
     }
 
     return orders;

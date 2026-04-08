@@ -9,12 +9,12 @@ app.use(express.json());
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
 
-async function broadcastToApi(topic: string, data: any) {
+async function broadcastToApi(topic: string, data: any, orderId: string) {
   try {
     await fetch(`${API_URL}/api/broadcast`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, data }),
+      body: JSON.stringify({ topic, data: { ...data, orderId } }),
     });
   } catch (error) {
     console.error('Error broadcasting to API:', error);
@@ -27,10 +27,11 @@ const matchingEngine = new MatchingEngine(liquidityEngine);
 // The matching engine will emit status updates for the agent to consume
 matchingEngine.on('agent_status', (data) => {
     const userAddress = data.userAddress;
-    if (userAddress) {
+    const orderId = data.orderId;
+    if (userAddress && orderId) {
         // The topic is now orders specific to the user, not a generic agent topic
         const topic = `orders:${userAddress}`;
-        broadcastToApi(topic, data);
+        broadcastToApi(topic, data, orderId);
     }
 });
 
