@@ -1,4 +1,3 @@
-
 import { EventEmitter } from 'events';
 import { parseUnits, isAddress, createPublicClient, http, getAddress } from 'viem';
 import { sepolia } from 'viem/chains';
@@ -78,7 +77,7 @@ export class LiquidityEngine extends EventEmitter {
         return this.marketData[pairId]?.price ?? null;
     }
 
-    private async updateOrderStatusInDB(signature: string, status: 'FILLED' | 'FAILED') {
+    private async updateOrderStatusInDB(signature: string, status: 'filled' | 'cancelled') {
         const { data, error } = await supabase
             .from('orders')
             .update({ status: status })
@@ -89,13 +88,22 @@ export class LiquidityEngine extends EventEmitter {
         }
     }
     
-    public async getOnChainQuote(intent: any): Promise<bigint> {
+    public async getOnChainQuote(order: any): Promise<bigint> {
         try {
+            const parsedIntent = {
+                ...order.intent,
+                amountIn: BigInt(order.intent.amountIn),
+                minAmountOut: BigInt(order.intent.minAmountOut),
+                deadline: BigInt(order.intent.deadline),
+                nonce: BigInt(order.intent.nonce),
+                relayerFee: BigInt(order.intent.relayerFee),
+            };
+
             const data = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'executeSwap',
-                args: [intent.intent, intent.signature],
+                args: [parsedIntent, order.signature],
             });
             return data.result;
         } catch (error) {
@@ -121,7 +129,7 @@ export class LiquidityEngine extends EventEmitter {
         await this.settleOnChain({
             intent: buyer.side === 'buy' ? buyer.intent : seller.intent,
             signature: buyer.side === 'buy' ? buyer.signature : seller.signature,
-            counterparty: buyer.side === 'buy' ? seller.userAddress : buyer.userAddress,
+            counterparty: buyer.side === 'buy' ? seller.intent.user : buyer.intent.user,
             amountOut: amountQuote
         });
     }
@@ -179,25 +187,34 @@ export class LiquidityEngine extends EventEmitter {
         this.emit('agent_status', {
             orderId: intent.id,
             userAddress: intent.user,
-            msg: `[${this.agentName}] Routing to external DEX to fill ${intent.quantity} ${intent.pair.base.symbol}.`,
+            msg: `[${this.agentName}] Routing to external DEX to fill intent.`,
             type: 'info' 
         });
         
         try {
+            const parsedIntent = {
+                ...intent,
+                amountIn: BigInt(intent.amountIn),
+                minAmountOut: BigInt(intent.minAmountOut),
+                deadline: BigInt(intent.deadline),
+                nonce: BigInt(intent.nonce),
+                relayerFee: BigInt(intent.relayerFee),
+            };
+
             const { request } = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'executeSwap',
-                args: [intent, signature], 
+                args: [parsedIntent, signature], 
             });
             
             // Here you would normally submit the transaction
             // e.g., const hash = await walletClient.writeContract(request);
             console.log("External swap transaction prepared:", request);
-            this.updateOrderStatusInDB(signature, 'FILLED');
+            this.updateOrderStatusInDB(signature, 'filled');
         } catch (error) {
             console.error("External DEX execution simulation failed:", error);
-            this.updateOrderStatusInDB(signature, 'FAILED');
+            this.updateOrderStatusInDB(signature, 'cancelled');
         }
     }
 
@@ -205,11 +222,20 @@ export class LiquidityEngine extends EventEmitter {
         const { intent, signature, counterparty, amountOut } = params;
         
         try {
+            const parsedIntent = {
+                ...intent,
+                amountIn: BigInt(intent.amountIn),
+                minAmountOut: BigInt(intent.minAmountOut),
+                deadline: BigInt(intent.deadline),
+                nonce: BigInt(intent.nonce),
+                relayerFee: BigInt(intent.relayerFee),
+            };
+
             const { request } = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'settleTrade',
-                args: [intent, signature, counterparty, amountOut],
+                args: [parsedIntent, signature, counterparty, amountOut],
             });
 
             // Here you would normally submit the transaction
@@ -222,7 +248,7 @@ export class LiquidityEngine extends EventEmitter {
                 message: `Settlement complete between ${intent.user} and ${counterparty}`,
                 type: 'success'
             });
-            this.updateOrderStatusInDB(signature, 'FILLED');
+            this.updateOrderStatusInDB(signature, 'filled');
         } catch (error) {
             console.error("On-chain settlement simulation failed:", error);
             this.emit('agent_status', {
@@ -231,7 +257,7 @@ export class LiquidityEngine extends EventEmitter {
                 msg: `[${this.agentName}] On-chain settlement failed.`,
                 type: 'error'
             });
-            this.updateOrderStatusInDB(signature, 'FAILED');
+            this.updateOrderStatusInDB(signature, 'cancelled');
         }
     }
 }

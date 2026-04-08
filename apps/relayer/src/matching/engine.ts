@@ -1,4 +1,3 @@
-
 import { LiquidityEngine } from '../liquidity/engine';
 import { EventEmitter } from 'events';
 
@@ -35,9 +34,20 @@ export class MatchingEngine extends EventEmitter {
     }
 
     processOrder(order: any) {
+        if (!order.intent || !order.intent.id || !order.intent.user) {
+            console.error('[MatchingEngine] Received malformed order payload:', order);
+            this.emit('agent_status', {
+                orderId: order.intent?.id,
+                userAddress: order.intent?.user,
+                msg: `[${this.agentName}] Error: Malformed order payload. Missing intent details.`,
+                type: 'error'
+            });
+            return;
+        }
+
         this.emit('agent_status', { 
             orderId: order.intent.id, 
-            userAddress: order.intent.user, // Add user address to the event
+            userAddress: order.intent.user, 
             msg: `[${this.agentName}] Order received. Searching for match...`,
             type: 'info' 
         });
@@ -89,7 +99,7 @@ export class MatchingEngine extends EventEmitter {
                 this.emit('agent_status', { 
                     orderId: marketOrder.intent.id, 
                     userAddress: marketOrder.intent.user,
-                    msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${marketOrder.pair.base.symbol}.`,
+                    msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${marketOrder.pair?.base?.symbol || 'base token'}.`,
                     type: 'info' 
                 });
 
@@ -164,14 +174,14 @@ export class MatchingEngine extends EventEmitter {
                         this.emit('agent_status', {
                             orderId: bestBid.intent.id, 
                             userAddress: bestBid.intent.user,
-                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestBid.pair.base.symbol}.`,
+                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestBid.pair?.base?.symbol || 'base token'}.`,
                             type: 'info' 
                         });
 
                         this.emit('agent_status', {
                             orderId: bestAsk.intent.id, 
                             userAddress: bestAsk.intent.user,
-                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestAsk.pair.base.symbol}.`,
+                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestAsk.pair?.base?.symbol || 'base token'}.`,
                             type: 'info' 
                         });
 

@@ -1,4 +1,3 @@
-
 import { Market, Order, TradingPair, Token, VaultAsset } from "@/types/market-data";
 import { serialize } from './serializers';
 
@@ -70,21 +69,23 @@ export async function getOrders(walletAddress: string, accessToken: string): Pro
 
 // This type represents the data sent to the backend to create an order.
 export type CreateOrderRequest = {
-    userAddress: string;
+    intent: {
+        user: string;
+        tokenIn: string;
+        tokenOut: string;
+        amountIn: string;
+        minAmountOut: string;
+        deadline: string;
+        nonce: string;
+        adapter: string;
+        relayerFee: string;
+    };
+    signature: string;
     tradingPairId: string;
     side: 'buy' | 'sell';
-    price?: string | undefined;
-    quantity: string;
     orderType: 'market' | 'limit';
-    signature: `0x${string}`;
-    tokenIn: string;
-    tokenOut: string;
-    amountIn: string;
-    minAmountOut: string;
-    deadline: string;
-    nonce: string;
-    adapter: string;
-    relayerFee: string;
+    price?: string | null;
+    quantity: string;
 };
 
 

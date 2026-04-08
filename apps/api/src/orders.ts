@@ -1,4 +1,3 @@
-
 import { verifyTypedData } from 'viem';
 import { createClient } from '@supabase/supabase-js';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@forge/contracts';
@@ -49,15 +48,38 @@ export async function createOrder(orderData: any) {
     const { 
         intent,
         signature, 
-        tradingPairId,
+        tradingPairId: initialTradingPairId,
         side,
         orderType,
         price: initialPrice,
         quantity,
     } = orderData;
 
+    console.log("[API] Incoming intent:", JSON.stringify(intent, null, 2));
+
+    if (!intent || !intent.user) {
+        throw createError("Invalid intent: missing user", { intent });
+    }
+
     const orderId = crypto.randomUUID();
     const userAddress = intent.user;
+
+    // Resolve tradingPairId if it's a symbol
+    let tradingPairId = initialTradingPairId;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!uuidRegex.test(tradingPairId)) {
+        const { data: pair, error: pairError } = await supabase
+            .from('trading_pairs')
+            .select('id')
+            .eq('symbol', tradingPairId)
+            .single();
+
+        if (pairError || !pair) {
+            throw createError(`Trading pair not found for symbol: ${tradingPairId}`, pairError);
+        }
+        tradingPairId = pair.id;
+    }
 
     // 1. Validation: Verify the EIP-712 signature
     const message = {
@@ -100,9 +122,21 @@ export async function createOrder(orderData: any) {
     // 2. Reconstruct payload for Relayer
     const intentForRelayer = {
         id: orderId,
-        chainId: chainId,
-        ...intent,
+        chainId,
+        user: intent.user,
+        tokenIn: intent.tokenIn,
+        tokenOut: intent.tokenOut,
+        amountIn: String(intent.amountIn),
+        minAmountOut: String(intent.minAmountOut),
+        deadline: String(intent.deadline),
+        nonce: String(intent.nonce),
+        adapter: intent.adapter,
+        relayerFee: String(intent.relayerFee),
     };
+
+    if (!intentForRelayer.id) {
+        throw createError("Intent ID missing before relayer");
+    }
 
     const payloadForRelayer = {
       intent: intentForRelayer,
@@ -111,14 +145,14 @@ export async function createOrder(orderData: any) {
       orderType: orderType,
     };
 
+    console.log("[API] Forwarding payload to relayer:", JSON.stringify(payloadForRelayer, null, 2));
+
     // 2. Forward: Send the order to the Relayer for execution.
     try {
         const relayerResponse = await fetch(`${RELAYER_URL}/api/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payloadForRelayer, (key, value) =>
-                typeof value === 'bigint' ? value.toString() : value
-            ),
+            body: JSON.stringify(payloadForRelayer),
         });
 
         if (!relayerResponse.ok) {
@@ -135,7 +169,8 @@ export async function createOrder(orderData: any) {
     const { data: newOrder, error } = await supabase
         .from('orders')
         .insert([{
-            order_id: orderId,
+            id: crypto.randomUUID(),
+            intent_id: orderId,
             user_address: userAddress,
             trading_pair_id: tradingPairId,
             side,
@@ -146,12 +181,12 @@ export async function createOrder(orderData: any) {
             signature,
             token_in: intent.tokenIn,
             token_out: intent.tokenOut,
-            amount_in: intent.amountIn,
-            min_amount_out: intent.minAmountOut,
-            deadline: intent.deadline,
-            nonce: intent.nonce,
+            amount_in: String(intent.amountIn),
+            min_amount_out: String(intent.minAmountOut),
+            deadline: String(intent.deadline),
+            nonce: String(intent.nonce),
             adapter: intent.adapter,
-            relayer_fee: intent.relayerFee,
+            relayer_fee: String(intent.relayerFee),
         }])
         .select('*')
         .single();
@@ -170,12 +205,12 @@ export async function getOrdersByAccount(walletAddress: string) {
     const { data: orders, error } = await supabase
         .from('orders')
         .select(`
+          *,
+          trading_pair:trading_pairs (
             *,
-            trading_pair: (
-                *,
-                base_token: (*),
-                quote_token: (*)
-            )
+            base_token:tokens!trading_pairs_base_token_id_fkey (*),
+            quote_token:tokens!trading_pairs_quote_token_id_fkey (*)
+          )
         `)
         .eq('user_address', walletAddress)
         .order('created_at', { ascending: false });

@@ -174,12 +174,18 @@ CREATE TABLE public.invite_codes (
 INSERT INTO tokens (chain_id, address, symbol, name, decimals)
 VALUES
 (84532, '0x4200000000000000000000000000000000000006', 'WETH', 'Wrapped Ether', 18),
-(84532, '0x036CbD53842c5426634e7929541eC2318f3dCF7e', 'USDC', 'USD Coin', 6);
+(84532, '0x036CbD53842c5426634e7929541eC2318f3dCF7e', 'USDC', 'USD Coin', 6),
+(84532, '0xcbB7C0006F23900c38EB856149F799620fcb8A4a', 'BTC', 'Coinbase Wrapped BTC', 8);
 
 INSERT INTO trading_pairs (base_token_id, quote_token_id, symbol)
 SELECT t1.id, t2.id, 'WETHUSDC'
 FROM tokens t1, tokens t2
 WHERE t1.symbol='WETH' AND t2.symbol='USDC' AND t1.chain_id = 84532 AND t2.chain_id = 84532;
+
+INSERT INTO trading_pairs (base_token_id, quote_token_id, symbol)
+SELECT t1.id, t2.id, 'BTCUSDC'
+FROM tokens t1, tokens t2
+WHERE t1.symbol='BTC' AND t2.symbol='USDC' AND t1.chain_id = 84532 AND t2.chain_id = 84532;
 
 INSERT INTO markets (trading_pair_id)
 SELECT id FROM trading_pairs;

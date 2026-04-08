@@ -1,4 +1,3 @@
-
 import express, { Request, Response } from 'express';
 import fetch from 'node-fetch';
 import { MatchingEngine } from './matching/engine';
@@ -37,6 +36,12 @@ matchingEngine.on('agent_status', (data) => {
 
 app.post('/api/orders', async (req: Request, res: Response) => {
     const order = req.body;
+
+    // Validation guard to prevent relayer crash
+    if (!order.intent || !order.intent.user) {
+        return res.status(400).json({ error: 'Invalid order payload: missing intent or user' });
+    }
+
     try {
         matchingEngine.processOrder(order);
         res.status(202).json({ message: 'Order received and is being processed.' });

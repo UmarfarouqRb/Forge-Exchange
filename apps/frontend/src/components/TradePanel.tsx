@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -227,15 +226,14 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
       addLog(`Signature received: ${signature.slice(0,10)}...`);
 
-      const rawOrder = {
-        ...serializedIntent,
+      const rawOrder: CreateOrderRequest = {
+        intent: serializedIntent as CreateOrderRequest['intent'],
         signature,
         orderType,
         side,
         tradingPairId: pair.id,
         quantity: amount,
-        price: orderType === 'limit' ? price : undefined,
-        userAddress: intent.user
+        price: orderType === 'limit' ? price : null,
       };
 
       submitOrder(rawOrder);
