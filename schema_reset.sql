@@ -78,7 +78,7 @@ CREATE TABLE orders (
     price NUMERIC,
     quantity NUMERIC NOT NULL,
     filled_quantity NUMERIC DEFAULT 0,
-    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'filled', 'cancelled')),
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'filled', 'cancelled', 'pending', 'processing')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     order_type TEXT NOT NULL CHECK (order_type IN ('market', 'limit')),
     signature TEXT NOT NULL,

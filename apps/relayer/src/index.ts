@@ -35,6 +35,7 @@ matchingEngine.on('agent_status', (data) => {
 });
 
 app.post('/api/orders', async (req: Request, res: Response) => {
+    console.log('[Relayer] Received a new order payload:', JSON.stringify(req.body, null, 2));
     const order = req.body;
 
     // Validation guard to prevent relayer crash

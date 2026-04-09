@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import { parseUnits, isAddress, createPublicClient, http, getAddress } from 'viem';
+import { parseUnits, isAddress, createPublicClient, http, getAddress, createWalletClient, WalletClient, Account } from 'viem';
+import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from 'viem/chains';
 import { createClient } from '@supabase/supabase-js';
 
@@ -36,10 +37,22 @@ export class LiquidityEngine extends EventEmitter {
     private marketData: { [key: string]: MarketState } = {};
     private lpAddress: `0x${string}` | null;
     private intentSpotRouterAddress: `0x${string}`;
+    private walletClient: WalletClient;
+    private account: Account;
 
     constructor(agentName: string = 'Agent01') {
         super();
         this.agentName = agentName;
+        const relayerPrivateKey = process.env.RELAYER_PRIVATE_KEY as `0x${string}`;
+        if (!relayerPrivateKey) {
+            throw new Error("RELAYER_PRIVATE_KEY is not set in the environment.");
+        }
+        this.account = privateKeyToAccount(relayerPrivateKey);
+        this.walletClient = createWalletClient({
+            account: this.account,
+            chain: sepolia,
+            transport: http(),
+        });
         // Read LP_ADDRESS from environment variable, with a fallback
         const fallbackLpAddress = '0xf2ac07DeFdb48fbc9459459a448C4A158c6C23ef';
         this.lpAddress = safeAddress(process.env.LP_ADDRESS || fallbackLpAddress);
@@ -206,14 +219,14 @@ export class LiquidityEngine extends EventEmitter {
                 abi: IntentSpotRouterAbi,
                 functionName: 'executeSwap',
                 args: [parsedIntent, signature], 
+                account: this.account
             });
             
-            // Here you would normally submit the transaction
-            // e.g., const hash = await walletClient.writeContract(request);
-            console.log("External swap transaction prepared:", request);
+            const hash = await this.walletClient.writeContract(request);
+            console.log("External swap transaction sent:", hash);
             this.updateOrderStatusInDB(signature, 'filled');
         } catch (error) {
-            console.error("External DEX execution simulation failed:", error);
+            console.error("External DEX execution failed:", error);
             this.updateOrderStatusInDB(signature, 'cancelled');
         }
     }
@@ -236,11 +249,11 @@ export class LiquidityEngine extends EventEmitter {
                 abi: IntentSpotRouterAbi,
                 functionName: 'settleTrade',
                 args: [parsedIntent, signature, counterparty, amountOut],
+                account: this.account
             });
 
-            // Here you would normally submit the transaction
-            // e.g., const hash = await walletClient.writeContract(request);
-            console.log("Internal settlement transaction prepared:", request);
+            const hash = await this.walletClient.writeContract(request);
+            console.log("Internal settlement transaction sent:", hash);
 
             this.emit('settlement_status', {
                 userA: intent.user,
@@ -250,7 +263,7 @@ export class LiquidityEngine extends EventEmitter {
             });
             this.updateOrderStatusInDB(signature, 'filled');
         } catch (error) {
-            console.error("On-chain settlement simulation failed:", error);
+            console.error("On-chain settlement failed:", error);
             this.emit('agent_status', {
                 orderId: intent.id, 
                 userAddress: intent.user,
