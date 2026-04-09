@@ -138,11 +138,25 @@ export async function createOrder(orderData: any) {
         throw createError("Intent ID missing before relayer");
     }
 
+    const { data: pairData } = await supabase
+        .from('trading_pairs')
+        .select(`
+            *,
+            base_token:tokens!trading_pairs_base_token_id_fkey (*),
+            quote_token:tokens!trading_pairs_quote_token_id_fkey (*)
+        `)
+        .eq('id', tradingPairId)
+        .single();
+
     const payloadForRelayer = {
       intent: intentForRelayer,
-      signature: signature,
-      side: side,
-      orderType: orderType,
+      signature,
+      side,
+      orderType,
+      tradingPairId,
+      quantity,
+      price: finalPrice,
+      pair: pairData,
     };
 
     console.log("[API] Forwarding payload to relayer:", JSON.stringify(payloadForRelayer, null, 2));
