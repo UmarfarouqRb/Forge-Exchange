@@ -113,7 +113,7 @@ export async function createOrder(orderData: any) {
     const { 
         intent,
         signature, 
-        tradingPairId: initialTradingPairId,
+        tradingPairId: initialTradingPairId, // This might be a symbol or a UUID
         side,
         orderType,
         price: initialPrice,
@@ -127,12 +127,18 @@ export async function createOrder(orderData: any) {
     const orderId = crypto.randomUUID();
     const userAddress = intent.user;
 
-    // 1. Resolve tradingPairId
+    // 1. Resolve tradingPairId: Check if it's a symbol and convert to UUID if so
     let tradingPairId = initialTradingPairId;
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(tradingPairId)) {
-        const { data: pair } = await supabase.from('trading_pairs').select('id').eq('symbol', tradingPairId).single();
-        if (!pair) throw createError(`Trading pair not found for symbol: ${tradingPairId}`);
+        const { data: pair, error: pairError } = await supabase
+            .from('trading_pairs')
+            .select('id')
+            .eq('symbol', tradingPairId)
+            .single();
+        if (pairError || !pair) {
+            throw createError(`Trading pair not found for symbol: ${tradingPairId}`, pairError);
+        }
         tradingPairId = pair.id;
     }
 
@@ -169,7 +175,7 @@ export async function createOrder(orderData: any) {
             user_address: userAddress,
             trading_pair_id: tradingPairId,
             side,
-            order_type: orderType,
+            order_type: orderType, // Corrected column name
             quantity: quantity,
             price: orderType === 'market' ? null : initialPrice,
             status: 'pending', // <-- SAVE AS PENDING
@@ -198,6 +204,7 @@ export async function createOrder(orderData: any) {
     console.log(`[API] Order ${newOrder.id} saved as pending and initiated for processing.`);
     return newOrder;
 }
+
 
 export async function getOrdersByAccount(walletAddress: string) {
     const { data: orders, error } = await supabase

@@ -52,15 +52,15 @@ export class MatchingEngine extends EventEmitter {
             type: 'info' 
         });
 
-        if (order.orderType === 'market') {
+        if (order.order_type === 'market') {
             this.matchMarketOrder(order);
-        } else if (order.orderType === 'limit') {
+        } else if (order.order_type === 'limit') {
             this.openOrders.push(order);
         } else {
             this.emit('agent_status', { 
                 orderId: order.intent.id, 
                 userAddress: order.intent.user,
-                msg: `[${this.agentName}] Invalid order type: ${order.orderType}`,
+                msg: `[${this.agentName}] Invalid order type: ${order.order_type}`,
                 type: 'error' 
             });
         }
@@ -69,14 +69,18 @@ export class MatchingEngine extends EventEmitter {
     private groupOrdersByPair() {
         const orderbook: { [key: string]: { bids: any[], asks: any[] } } = {};
         this.openOrders.forEach(order => {
-            if (!order.tradingPairId) return;
-            if (!orderbook[order.tradingPairId]) {
-                orderbook[order.tradingPairId] = { bids: [], asks: [] };
+            const pairId = order.trading_pair_id || order.pair?.id;
+            if (!pairId) {
+                console.warn("Order missing trading pair ID", order);
+                return;
+            }
+            if (!orderbook[pairId]) {
+                orderbook[pairId] = { bids: [], asks: [] };
             }
             if (order.side === 'buy') {
-                orderbook[order.tradingPairId].bids.push(order);
+                orderbook[pairId].bids.push(order);
             } else {
-                orderbook[order.tradingPairId].asks.push(order);
+                orderbook[pairId].asks.push(order);
             }
         });
         return orderbook;
@@ -84,10 +88,16 @@ export class MatchingEngine extends EventEmitter {
 
     private async matchMarketOrder(marketOrder: any) {
         let remainingQuantity = Number(marketOrder.quantity);
+        const pairId = marketOrder.trading_pair_id || marketOrder.pair?.id;
+
+        if (!pairId) {
+            console.error("Market order is missing trading pair ID", marketOrder);
+            return;
+        }
 
         // 1. Attempt to match with open limit orders first
         const orderbook = this.groupOrdersByPair();
-        const pairOrders = orderbook[marketOrder.tradingPairId];
+        const pairOrders = orderbook[pairId];
 
         if (pairOrders) {
             const counterOrders = marketOrder.side === 'buy' ? pairOrders.asks : pairOrders.bids;
@@ -129,7 +139,7 @@ export class MatchingEngine extends EventEmitter {
             });
 
             const onChainQuote = await this.liquidityEngine.getOnChainQuote(marketOrder);
-            const internalPrice = this.liquidityEngine.getPrice(marketOrder.tradingPairId);
+            const internalPrice = this.liquidityEngine.getPrice(pairId);
 
             if (onChainQuote > 0 && (!internalPrice || onChainQuote > internalPrice)) {
                 this.emit('agent_status', { 
@@ -178,7 +188,7 @@ export class MatchingEngine extends EventEmitter {
                             type: 'info' 
                         });
 
-                        this.emit('agent_status', {
+                        this.emit('agent_status', { 
                             orderId: bestAsk.intent.id, 
                             userAddress: bestAsk.intent.user,
                             msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestAsk.pair?.base?.symbol || 'base token'}.`,
