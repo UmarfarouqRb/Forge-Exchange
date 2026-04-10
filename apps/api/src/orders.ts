@@ -1,4 +1,4 @@
-import { verifyTypedData, isAddress } from 'viem';
+import { verifyTypedData, isAddress, getAddress } from 'viem';
 import { createClient } from '@supabase/supabase-js';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@forge/contracts';
 import fetch from 'node-fetch';
@@ -17,7 +17,7 @@ const domain = {
     name: 'IntentSpotRouter',
     version: '1',
     chainId: chainId,
-    verifyingContract: INTENT_SPOT_ROUTER_ADDRESS[chainId] as `0x${string}`,
+    verifyingContract: getAddress(INTENT_SPOT_ROUTER_ADDRESS[chainId] as `0x${string}`),
 };
 
 // EIP-712 Types for an Intent
