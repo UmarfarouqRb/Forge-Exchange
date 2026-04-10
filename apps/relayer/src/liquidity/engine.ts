@@ -4,21 +4,18 @@ import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from 'viem/chains';
 import { createClient } from '@supabase/supabase-js';
 
-
-// Updated imports to use the new `packages/markets` index file
 import { getTradingPairs, TradingPair, getMarket, MarketState } from '@forge/markets';
 
 import { INTENT_SPOT_ROUTER_ADDRESS } from '../contracts/baseSepolia/IntentSpotRouter';
 import { IntentSpotRouterAbi } from '../contracts/IntentSpotRouter';
 
-// Utility function to validate and format Ethereum addresses
 function safeAddress(addr?: string | null): `0x${string}` | null {
     if (!addr) return null;
     if (!isAddress(addr)) {
         console.warn(`Invalid address provided: ${addr}`);
         return null;
     }
-    return getAddress(addr); // Use getAddress for checksummed address
+    return getAddress(addr);
 }
 
 const publicClient = createPublicClient({
@@ -29,7 +26,6 @@ const publicClient = createPublicClient({
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
-
 
 export class LiquidityEngine extends EventEmitter {
     private agentName: string;
@@ -53,7 +49,6 @@ export class LiquidityEngine extends EventEmitter {
             chain: sepolia,
             transport: http(),
         });
-        // Read LP_ADDRESS from environment variable, with a fallback
         const fallbackLpAddress = '0xf2ac07DeFdb48fbc9459459a448C4A158c6C23ef';
         this.lpAddress = safeAddress(process.env.LP_ADDRESS || fallbackLpAddress);
         this.intentSpotRouterAddress = INTENT_SPOT_ROUTER_ADDRESS[sepolia.id];
@@ -90,10 +85,10 @@ export class LiquidityEngine extends EventEmitter {
         return this.marketData[pairId]?.price ?? null;
     }
 
-    private async updateOrderStatusInDB(signature: string, status: 'filled' | 'cancelled') {
+    private async updateOrderStatusInDB(signature: string, status: 'fulfilled' | 'failed', last_error?: string) {
         const { data, error } = await supabase
             .from('orders')
-            .update({ status: status })
+            .update({ status, last_error })
             .eq('signature', signature);
 
         if (error) {
@@ -120,7 +115,6 @@ export class LiquidityEngine extends EventEmitter {
             });
             return data.result;
         } catch (error) {
-            // It's common for quotes to fail if there's no liquidity, so we log as a warning not an error.
             console.warn('Could not get on-chain quote, likely no liquidity on DEX for this pair.');
             return 0n;
         }
@@ -181,6 +175,10 @@ export class LiquidityEngine extends EventEmitter {
             ? amountBase 
             : (amountBase * priceBigInt) / (10n ** BigInt(pair.base.decimals));
 
+        if(amountOut < order.intent.minAmountOut) {
+            throw new Error("Slippage exceeded");
+        }
+
         this.emit('agent_status', { 
             orderId: order.intent.id,
             userAddress: order.intent.user,
@@ -214,20 +212,24 @@ export class LiquidityEngine extends EventEmitter {
                 relayerFee: BigInt(intent.relayerFee),
             };
 
-            const { request } = await publicClient.simulateContract({
+            const { request, result: amountOut } = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'executeSwap',
                 args: [parsedIntent, signature], 
                 account: this.account
             });
+
+            if(amountOut < intent.minAmountOut) {
+                throw new Error("Slippage exceeded");
+            }
             
             const hash = await this.walletClient.writeContract(request);
             console.log("External swap transaction sent:", hash);
-            this.updateOrderStatusInDB(signature, 'filled');
-        } catch (error) {
+            this.updateOrderStatusInDB(signature, 'fulfilled');
+        } catch (error: any) {
             console.error("External DEX execution failed:", error);
-            this.updateOrderStatusInDB(signature, 'cancelled');
+            this.updateOrderStatusInDB(signature, 'failed', error.message);
         }
     }
 
@@ -235,6 +237,9 @@ export class LiquidityEngine extends EventEmitter {
         const { intent, signature, counterparty, amountOut } = params;
         
         try {
+            if(amountOut < intent.minAmountOut) {
+                throw new Error("Slippage exceeded");
+            }
             const parsedIntent = {
                 ...intent,
                 amountIn: BigInt(intent.amountIn),
@@ -261,8 +266,8 @@ export class LiquidityEngine extends EventEmitter {
                 message: `Settlement complete between ${intent.user} and ${counterparty}`,
                 type: 'success'
             });
-            this.updateOrderStatusInDB(signature, 'filled');
-        } catch (error) {
+            this.updateOrderStatusInDB(signature, 'fulfilled');
+        } catch (error: any) {
             console.error("On-chain settlement failed:", error);
             this.emit('agent_status', {
                 orderId: intent.id, 
@@ -270,7 +275,7 @@ export class LiquidityEngine extends EventEmitter {
                 msg: `[${this.agentName}] On-chain settlement failed.`,
                 type: 'error'
             });
-            this.updateOrderStatusInDB(signature, 'cancelled');
+            this.updateOrderStatusInDB(signature, 'failed', error.message);
         }
     }
 }

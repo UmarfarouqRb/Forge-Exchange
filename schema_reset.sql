@@ -78,7 +78,7 @@ CREATE TABLE orders (
     price NUMERIC,
     quantity NUMERIC NOT NULL,
     filled_quantity NUMERIC DEFAULT 0,
-    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'filled', 'cancelled', 'pending', 'processing')),
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'filled', 'cancelled', 'pending', 'processing', 'partial', 'failed')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     order_type TEXT NOT NULL CHECK (order_type IN ('market', 'limit')),
     signature TEXT NOT NULL,
@@ -89,7 +89,10 @@ CREATE TABLE orders (
     deadline TEXT NOT NULL,
     nonce TEXT NOT NULL,
     adapter TEXT NOT NULL,
-    relayer_fee TEXT NOT NULL
+    relayer_fee TEXT NOT NULL,
+    retry_count integer DEFAULT 0,
+    last_error text,
+    last_attempt_at timestamp with time zone
 );
 
 -- Add indexes to orders table

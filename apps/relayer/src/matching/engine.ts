@@ -28,7 +28,6 @@ export class MatchingEngine extends EventEmitter {
 
     start() {
         console.log('Starting hybrid matching engine...');
-        // The main loop now fetches orders from the DB, not just in-memory
         this.interval = setInterval(() => this.matchOrders(), 5000);
     }
 
@@ -39,8 +38,6 @@ export class MatchingEngine extends EventEmitter {
         }
     }
 
-    // This function is now only responsible for market orders that are immediately executed.
-    // Limit orders will be handled by the main `matchOrders` loop.
     async processOrder(order: any) {
         if (!order.intent || !order.intent.id || !order.intent.user) {
             console.error('[MatchingEngine] Received malformed order payload:', order);
@@ -53,6 +50,18 @@ export class MatchingEngine extends EventEmitter {
             return;
         }
 
+        // Idempotency Check
+        const { data: existingOrder, error } = await supabase
+            .from('orders')
+            .select('status')
+            .eq('intent_id', order.intent.id)
+            .single();
+
+        if (existingOrder?.status === 'fulfilled' || existingOrder?.status === 'failed') {
+            console.log(`[MatchingEngine] Order ${order.intent.id} already processed with status: ${existingOrder.status}. Skipping.`);
+            return;
+        }
+        
         this.emit('agent_status', { 
             orderId: order.intent.id, 
             userAddress: order.intent.user, 
@@ -113,87 +122,125 @@ export class MatchingEngine extends EventEmitter {
         return orderbook;
     }
 
+    private async getLPOrders(pairId: string, side: 'buy' | 'sell') {
+        const midPrice = this.liquidityEngine.getPrice(pairId);
+        if (!midPrice) return null;
+    
+        const spread = 0.002; // 0.2%
+        const price = side === 'buy' ? midPrice * (1 + spread) : midPrice * (1 - spread);
+    
+        return {
+            id: 'LP_ORDER',
+            side: side === 'buy' ? 'sell' : 'buy',
+            price,
+            quantity: '1000000', // Effectively infinite for matching purposes
+            isLP: true
+        };
+    }
+
     private async matchMarketOrder(marketOrder: any) {
-        let remainingQuantity = Number(marketOrder.quantity);
-        const pairId = marketOrder.trading_pair_id || marketOrder.pair?.id;
+        try {
+            let remainingQuantity = Number(marketOrder.quantity);
+            const pairId = marketOrder.trading_pair_id || marketOrder.pair?.id;
 
-        if (!pairId) {
-            console.error("Market order is missing trading pair ID", marketOrder);
-            return;
-        }
-        
-        const openOrders = await this.fetchOpenOrders();
-        const orderbook = this.groupOrdersByPair(openOrders);
-        const pairOrders = orderbook[pairId];
-
-        if (pairOrders) {
-            const counterOrders = marketOrder.side === 'buy' ? pairOrders.asks : pairOrders.bids;
+            if (!pairId) {
+                throw new Error("Market order is missing trading pair ID");
+            }
             
-            for (const counterOrder of counterOrders) {
-                if (remainingQuantity <= 0) break;
+            const openOrders = await this.fetchOpenOrders();
+            const orderbook = this.groupOrdersByPair(openOrders);
+            let pairOrders = orderbook[pairId];
 
-                const fillQuantity = Math.min(remainingQuantity, Number(counterOrder.quantity));
+            const lpOrder = await this.getLPOrders(pairId, marketOrder.side);
+            if (lpOrder) {
+                if (!pairOrders) {
+                    pairOrders = { bids: [], asks: [] };
+                }
+                if (marketOrder.side === 'buy') {
+                    pairOrders.asks.push(lpOrder);
+                } else {
+                    pairOrders.bids.push(lpOrder);
+                }
+            }
 
+            if (pairOrders) {
+                const counterOrders = marketOrder.side === 'buy' ? pairOrders.asks : pairOrders.bids;
+                counterOrders.sort((a, b) => a.price - b.price);
+
+                for (const counterOrder of counterOrders) {
+                    if (remainingQuantity <= 0) break;
+
+                    if (counterOrder.isLP) {
+                        await this.liquidityEngine.executeWithLP({
+                            ...marketOrder,
+                            price: counterOrder.price,
+                            quantity: remainingQuantity
+                        });
+                        remainingQuantity = 0;
+                        break;
+                    }
+
+                    const fillQuantity = Math.min(remainingQuantity, Number(counterOrder.quantity));
+
+                    this.emit('agent_status', { 
+                        orderId: marketOrder.intent.id, 
+                        userAddress: marketOrder.intent.user,
+                        msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${marketOrder.pair?.base?.symbol || 'base token'}.`,
+                        type: 'info' 
+                    });
+
+                    await this.liquidityEngine.settleMatchedTrade({
+                        buyer: marketOrder.side === 'buy' ? marketOrder : counterOrder,
+                        seller: marketOrder.side === 'buy' ? counterOrder : marketOrder,
+                        quantity: fillQuantity,
+                        price: Number(counterOrder.price),
+                        pair: marketOrder.pair
+                    });
+
+                    remainingQuantity -= fillQuantity;
+                    
+                    const remainingCounterOrderQuantity = Number(counterOrder.quantity) - fillQuantity;
+
+                    await supabase
+                        .from('orders')
+                        .update({ 
+                            quantity: remainingCounterOrderQuantity.toString(),
+                            status: remainingCounterOrderQuantity <= 0 ? 'fulfilled' : 'processing'
+                        })
+                        .eq('id', counterOrder.id);
+                }
+            }
+
+            if (remainingQuantity > 0) {
                 this.emit('agent_status', { 
-                    orderId: marketOrder.intent.id, 
+                    orderId: marketOrder.intent.id,
                     userAddress: marketOrder.intent.user,
-                    msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${marketOrder.pair?.base?.symbol || 'base token'}.`,
+                    msg: `[${this.agentName}] No internal liquidity. Checking external DEX...`,
                     type: 'info' 
                 });
-
-                await this.liquidityEngine.settleMatchedTrade({
-                    buyer: marketOrder.side === 'buy' ? marketOrder : counterOrder,
-                    seller: marketOrder.side === 'buy' ? counterOrder : marketOrder,
-                    quantity: fillQuantity,
-                    price: Number(counterOrder.price),
-                    pair: marketOrder.pair
-                });
-
-                remainingQuantity -= fillQuantity;
-                
-                const remainingCounterOrderQuantity = Number(counterOrder.quantity) - fillQuantity;
-
-                // Update counter order in DB
-                await supabase
-                    .from('orders')
-                    .update({ 
-                        quantity: remainingCounterOrderQuantity.toString(),
-                        status: remainingCounterOrderQuantity <= 0 ? 'fulfilled' : 'processing'
-                    })
-                    .eq('id', counterOrder.id);
+                await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature);
+                remainingQuantity = 0;
             }
-        }
+            
+            const finalStatus = remainingQuantity === 0 ? 'fulfilled' : 'partial';
+            await supabase
+                .from('orders')
+                .update({ status: finalStatus, quantity: remainingQuantity.toString() })
+                .eq('intent_id', marketOrder.intent.id);
 
-        // If there's still a remaining quantity for the market order, route it externally
-        if (remainingQuantity > 0) {
-            marketOrder.quantity = remainingQuantity.toString();
+        } catch (error: any) {
+            console.error(`[MatchingEngine] Error processing market order ${marketOrder.intent.id}:`, error);
+            await supabase
+                .from('orders')
+                .update({ status: 'failed', last_error: error.message })
+                .eq('intent_id', marketOrder.intent.id);
 
             this.emit('agent_status', { 
                 orderId: marketOrder.intent.id,
                 userAddress: marketOrder.intent.user,
-                msg: `[${this.agentName}] No internal match. Checking external liquidity...`,
-                type: 'info' 
+                msg: `[${this.agentName}] Error processing market order.`,
+                type: 'error' 
             });
-            const onChainQuote = await this.liquidityEngine.getOnChainQuote(marketOrder);
-            const internalPrice = this.liquidityEngine.getPrice(pairId);
-
-            if (onChainQuote > 0 && (!internalPrice || onChainQuote > internalPrice)) {
-                this.emit('agent_status', { 
-                    orderId: marketOrder.intent.id,
-                    userAddress: marketOrder.intent.user,
-                    msg: `[${this.agentName}] External DEX offers better price. Routing externally.`,
-                    type: 'info' 
-                });
-                await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature);
-            } else {
-                this.emit('agent_status', { 
-                    orderId: marketOrder.intent.id,
-                    userAddress: marketOrder.intent.user,
-                    msg: `[${this.agentName}] No better external price. Settling with internal LP.`,
-                    type: 'info' 
-                });
-                await this.liquidityEngine.executeWithLP(marketOrder);
-            }
         }
     }
 
@@ -202,15 +249,21 @@ export class MatchingEngine extends EventEmitter {
         this.isMatching = true;
 
         try {
-            const openOrders = await this.fetchOpenOrders();
-            if (openOrders.length < 1) return;
+            const { data: openOrders, error } = await supabase.rpc('fetch_and_lock_orders');
+
+            if (error) {
+                console.error('Error fetching and locking orders:', error);
+                return;
+            }
+
+            if (!openOrders || openOrders.length < 1) return;
 
             const orderbook = this.groupOrdersByPair(openOrders);
 
             for (const pairId in orderbook) {
                 let { bids, asks } = orderbook[pairId];
-                bids.sort((a, b) => Number(b.price) - Number(a.price)); // Highest price first
-                asks.sort((a, b) => Number(a.price) - Number(b.price)); // Lowest price first
+                bids.sort((a, b) => Number(b.price) - Number(a.price)); 
+                asks.sort((a, b) => Number(a.price) - Number(b.price)); 
 
                 while (bids.length > 0 && asks.length > 0) {
                     const bestBid = bids[0];
@@ -244,7 +297,6 @@ export class MatchingEngine extends EventEmitter {
                         const remainingBidQuantity = Number(bestBid.quantity) - fillQuantity;
                         const remainingAskQuantity = Number(bestAsk.quantity) - fillQuantity;
 
-                        // Update orders in DB
                         await supabase.from('orders').update({ 
                             quantity: remainingBidQuantity.toString(),
                             status: remainingBidQuantity <= 0 ? 'fulfilled' : 'processing'
@@ -255,12 +307,11 @@ export class MatchingEngine extends EventEmitter {
                             status: remainingAskQuantity <= 0 ? 'fulfilled' : 'processing'
                         }).eq('id', bestAsk.id);
 
-
                         if (remainingBidQuantity <= 0) bids.shift();
                         if (remainingAskQuantity <= 0) asks.shift();
 
                     } else {
-                        break; // No more matches for this pair
+                        break; 
                     }
                 }
             }
