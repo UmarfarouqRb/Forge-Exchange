@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets, useSignTypedData } from '@privy-io/react-auth';
 import { Market, TradingPair } from '@/types/market-data';
-import { parseUnits, getAddress } from 'viem';
+import { parseUnits, getAddress, isAddress } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { OrderTypeSelector } from './OrderTypeSelector';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -181,6 +181,20 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         toast.error("Wallet not connected or tokens not defined.");
         return;
     }
+
+    const userAddress = user.wallet.address;
+    if (!isAddress(userAddress)) {
+        const errorMsg = `Invalid wallet address before signing: ${userAddress}`;
+        addLog(errorMsg, 'error');
+        console.error(errorMsg);
+        toast.error("Invalid wallet address detected. Please reconnect your wallet.");
+        setIsConfirming(false);
+        return;
+    }
+
+    const safeAddress = getAddress(userAddress);
+    console.log("Signing with address (original):", userAddress);
+    console.log("Signing with address (safe):", safeAddress);
     
     const isBuy = side === 'buy';
     const tokenIn = isBuy ? quoteToken : baseToken;
@@ -190,7 +204,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     const amountOutMin = isBuy ? safeParseUnits(amount, tokenOut.decimals) : safeParseUnits(total.toString(), tokenOut.decimals);
 
     const intent = {
-        user: getAddress(user.wallet.address),
+        user: safeAddress,
         tokenIn: getAddress(tokenIn.address),
         tokenOut: getAddress(tokenOut.address),
         amountIn: amountIn, 
@@ -201,6 +215,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         relayerFee: 0n
     };
 
+    console.log("Intent user:", intent.user);
     addLog('Awaiting signature for trade intent...');
     const serializedIntent = serialize(intent);
 

@@ -1,4 +1,4 @@
-import { verifyTypedData } from 'viem';
+import { verifyTypedData, isAddress } from 'viem';
 import { createClient } from '@supabase/supabase-js';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@forge/contracts';
 import fetch from 'node-fetch';
@@ -78,7 +78,7 @@ export async function forwardOrderToRelayer(order: any) {
         },
         signature: order.signature,
         side: order.side,
-        orderType: order.order_type,
+        order_type: order.order_type,
         tradingPairId: order.trading_pair_id,
         quantity: order.quantity,
         price: order.price,
@@ -122,6 +122,10 @@ export async function createOrder(orderData: any) {
 
     if (!intent || !intent.user) {
         throw createError("Invalid intent: missing user", { intent });
+    }
+    
+    if (!isAddress(intent.user)) {
+        throw createError("Invalid user address format");
     }
 
     const orderId = crypto.randomUUID();

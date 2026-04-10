@@ -1,11 +1,16 @@
+import { createClient } from '@supabase/supabase-js';
 import { LiquidityEngine } from '../liquidity/engine';
 import { EventEmitter } from 'events';
+
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export class MatchingEngine extends EventEmitter {
     private agentName: string;
     private interval: NodeJS.Timeout | null = null;
     private liquidityEngine: LiquidityEngine;
-    private openOrders: any[] = [];
     private isMatching: boolean = false;
 
     constructor(liquidityEngine: LiquidityEngine, agentName: string = 'Solver01') {
@@ -23,7 +28,8 @@ export class MatchingEngine extends EventEmitter {
 
     start() {
         console.log('Starting hybrid matching engine...');
-        this.interval = setInterval(() => this.matchLimitOrders(), 5000);
+        // The main loop now fetches orders from the DB, not just in-memory
+        this.interval = setInterval(() => this.matchOrders(), 5000);
     }
 
     stop() {
@@ -33,7 +39,9 @@ export class MatchingEngine extends EventEmitter {
         }
     }
 
-    processOrder(order: any) {
+    // This function is now only responsible for market orders that are immediately executed.
+    // Limit orders will be handled by the main `matchOrders` loop.
+    async processOrder(order: any) {
         if (!order.intent || !order.intent.id || !order.intent.user) {
             console.error('[MatchingEngine] Received malformed order payload:', order);
             this.emit('agent_status', {
@@ -53,10 +61,8 @@ export class MatchingEngine extends EventEmitter {
         });
 
         if (order.order_type === 'market') {
-            this.matchMarketOrder(order);
-        } else if (order.order_type === 'limit') {
-            this.openOrders.push(order);
-        } else {
+            await this.matchMarketOrder(order);
+        } else if (order.order_type !== 'limit') {
             this.emit('agent_status', { 
                 orderId: order.intent.id, 
                 userAddress: order.intent.user,
@@ -66,9 +72,30 @@ export class MatchingEngine extends EventEmitter {
         }
     }
 
-    private groupOrdersByPair() {
+    private async fetchOpenOrders() {
+        const { data, error } = await supabase
+            .from('orders')
+            .select(`
+                *,
+                pair:trading_pairs (
+                    *,
+                    base_token:tokens!trading_pairs_base_token_id_fkey (*),
+                    quote_token:tokens!trading_pairs_quote_token_id_fkey (*)
+                )
+            `)
+            .in('status', ['pending', 'processing'])
+            .eq('order_type', 'limit');
+
+        if (error) {
+            console.error("Error fetching open orders:", error);
+            return [];
+        }
+        return data || [];
+    }
+
+    private groupOrdersByPair(orders: any[]) {
         const orderbook: { [key: string]: { bids: any[], asks: any[] } } = {};
-        this.openOrders.forEach(order => {
+        orders.forEach(order => {
             const pairId = order.trading_pair_id || order.pair?.id;
             if (!pairId) {
                 console.warn("Order missing trading pair ID", order);
@@ -94,9 +121,9 @@ export class MatchingEngine extends EventEmitter {
             console.error("Market order is missing trading pair ID", marketOrder);
             return;
         }
-
-        // 1. Attempt to match with open limit orders first
-        const orderbook = this.groupOrdersByPair();
+        
+        const openOrders = await this.fetchOpenOrders();
+        const orderbook = this.groupOrdersByPair(openOrders);
         const pairOrders = orderbook[pairId];
 
         if (pairOrders) {
@@ -104,6 +131,7 @@ export class MatchingEngine extends EventEmitter {
             
             for (const counterOrder of counterOrders) {
                 if (remainingQuantity <= 0) break;
+
                 const fillQuantity = Math.min(remainingQuantity, Number(counterOrder.quantity));
 
                 this.emit('agent_status', { 
@@ -122,12 +150,21 @@ export class MatchingEngine extends EventEmitter {
                 });
 
                 remainingQuantity -= fillQuantity;
-                counterOrder.quantity = (Number(counterOrder.quantity) - fillQuantity).toString();
-            }
+                
+                const remainingCounterOrderQuantity = Number(counterOrder.quantity) - fillQuantity;
 
-            this.openOrders = this.openOrders.filter(o => Number(o.quantity) > 0);
+                // Update counter order in DB
+                await supabase
+                    .from('orders')
+                    .update({ 
+                        quantity: remainingCounterOrderQuantity.toString(),
+                        status: remainingCounterOrderQuantity <= 0 ? 'fulfilled' : 'processing'
+                    })
+                    .eq('id', counterOrder.id);
+            }
         }
 
+        // If there's still a remaining quantity for the market order, route it externally
         if (remainingQuantity > 0) {
             marketOrder.quantity = remainingQuantity.toString();
 
@@ -137,7 +174,6 @@ export class MatchingEngine extends EventEmitter {
                 msg: `[${this.agentName}] No internal match. Checking external liquidity...`,
                 type: 'info' 
             });
-
             const onChainQuote = await this.liquidityEngine.getOnChainQuote(marketOrder);
             const internalPrice = this.liquidityEngine.getPrice(pairId);
 
@@ -161,18 +197,20 @@ export class MatchingEngine extends EventEmitter {
         }
     }
 
-    private async matchLimitOrders() {
-        if (this.isMatching || this.openOrders.length < 1) return;
+    private async matchOrders() {
+        if (this.isMatching) return;
         this.isMatching = true;
 
         try {
-            const orderbook = this.groupOrdersByPair();
-            let stillOpenOrders: any[] = [];
+            const openOrders = await this.fetchOpenOrders();
+            if (openOrders.length < 1) return;
+
+            const orderbook = this.groupOrdersByPair(openOrders);
 
             for (const pairId in orderbook) {
                 let { bids, asks } = orderbook[pairId];
-                bids.sort((a, b) => Number(b.price) - Number(a.price));
-                asks.sort((a, b) => Number(a.price) - Number(b.price));
+                bids.sort((a, b) => Number(b.price) - Number(a.price)); // Highest price first
+                asks.sort((a, b) => Number(a.price) - Number(b.price)); // Lowest price first
 
                 while (bids.length > 0 && asks.length > 0) {
                     const bestBid = bids[0];
@@ -182,16 +220,16 @@ export class MatchingEngine extends EventEmitter {
                         const fillQuantity = Math.min(Number(bestBid.quantity), Number(bestAsk.quantity));
                         
                         this.emit('agent_status', {
-                            orderId: bestBid.intent.id, 
-                            userAddress: bestBid.intent.user,
-                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestBid.pair?.base?.symbol || 'base token'}.`,
+                            orderId: bestBid.intent_id, 
+                            userAddress: bestBid.user_address,
+                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestBid.pair?.base_token?.symbol || 'base'}.`,
                             type: 'info' 
                         });
 
                         this.emit('agent_status', { 
-                            orderId: bestAsk.intent.id, 
-                            userAddress: bestAsk.intent.user,
-                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestAsk.pair?.base?.symbol || 'base token'}.`,
+                            orderId: bestAsk.intent_id, 
+                            userAddress: bestAsk.user_address,
+                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestAsk.pair?.base_token?.symbol || 'base'}.`,
                             type: 'info' 
                         });
 
@@ -202,19 +240,30 @@ export class MatchingEngine extends EventEmitter {
                             price: Number(bestAsk.price), 
                             pair: bestBid.pair
                         });
+                        
+                        const remainingBidQuantity = Number(bestBid.quantity) - fillQuantity;
+                        const remainingAskQuantity = Number(bestAsk.quantity) - fillQuantity;
 
-                        bestBid.quantity = (Number(bestBid.quantity) - fillQuantity).toString();
-                        bestAsk.quantity = (Number(bestAsk.quantity) - fillQuantity).toString();
+                        // Update orders in DB
+                        await supabase.from('orders').update({ 
+                            quantity: remainingBidQuantity.toString(),
+                            status: remainingBidQuantity <= 0 ? 'fulfilled' : 'processing'
+                        }).eq('id', bestBid.id);
 
-                        if (Number(bestBid.quantity) <= 0) bids.shift();
-                        if (Number(bestAsk.quantity) <= 0) asks.shift();
+                        await supabase.from('orders').update({ 
+                            quantity: remainingAskQuantity.toString(),
+                            status: remainingAskQuantity <= 0 ? 'fulfilled' : 'processing'
+                        }).eq('id', bestAsk.id);
+
+
+                        if (remainingBidQuantity <= 0) bids.shift();
+                        if (remainingAskQuantity <= 0) asks.shift();
+
                     } else {
-                        break;
+                        break; // No more matches for this pair
                     }
                 }
-                stillOpenOrders = stillOpenOrders.concat(bids, asks);
             }
-            this.openOrders = stillOpenOrders;
         } catch (error) {
             console.error('Error during limit order matching cycle:', error);
             this.emit('agent_status', { type: 'error', msg: 'An error occurred during order matching.' });
