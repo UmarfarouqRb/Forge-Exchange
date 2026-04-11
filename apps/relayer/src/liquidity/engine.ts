@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { parseUnits, isAddress, createPublicClient, http, getAddress, createWalletClient, WalletClient, Account } from 'viem';
 import { privateKeyToAccount } from "viem/accounts";
-import { sepolia } from 'viem/chains';
+import { baseSepolia } from 'viem/chains';
 import { createClient } from '@supabase/supabase-js';
 
 import { getTradingPairs, TradingPair, getMarket, MarketState } from '@forge/markets';
@@ -19,7 +19,7 @@ function safeAddress(addr?: string | null): `0x${string}` | null {
 }
 
 const publicClient = createPublicClient({
-    chain: sepolia,
+    chain: baseSepolia,
     transport: http(),
 });
 
@@ -46,12 +46,12 @@ export class LiquidityEngine extends EventEmitter {
         this.account = privateKeyToAccount(relayerPrivateKey);
         this.walletClient = createWalletClient({
             account: this.account,
-            chain: sepolia,
+            chain: baseSepolia,
             transport: http(),
         });
         const fallbackLpAddress = '0xf2ac07DeFdb48fbc9459459a448C4A158c6C23ef';
         this.lpAddress = safeAddress(process.env.LP_ADDRESS || fallbackLpAddress);
-        this.intentSpotRouterAddress = INTENT_SPOT_ROUTER_ADDRESS[sepolia.id];
+        this.intentSpotRouterAddress = INTENT_SPOT_ROUTER_ADDRESS;
         
         this.initialize();
 

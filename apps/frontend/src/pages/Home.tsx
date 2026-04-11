@@ -18,6 +18,7 @@ import {
 } from 'react-icons/fi';
 import type { TradingPair } from '../types';
 import { AnnouncementBanner } from '@/components/AnnouncementBanner';
+import Footer from '@/components/Footer';
 
 declare global {
   interface Window {
@@ -349,6 +350,7 @@ export default function Home() {
           </Card>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

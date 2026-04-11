@@ -78,7 +78,7 @@ CREATE TABLE orders (
     price NUMERIC,
     quantity NUMERIC NOT NULL,
     filled_quantity NUMERIC DEFAULT 0,
-    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'filled', 'cancelled', 'pending', 'processing', 'partial', 'failed')),
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'filled', 'cancelled', 'pending', 'processing', 'partial', 'failed', 'matching')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     order_type TEXT NOT NULL CHECK (order_type IN ('market', 'limit')),
     signature TEXT NOT NULL,
@@ -192,3 +192,18 @@ WHERE t1.symbol='BTC' AND t2.symbol='USDC' AND t1.chain_id = 84532 AND t2.chain_
 
 INSERT INTO markets (trading_pair_id)
 SELECT id FROM trading_pairs;
+
+
+CREATE OR REPLACE FUNCTION fetch_and_lock_orders() RETURNS TABLE (LIKE orders) AS $$
+BEGIN
+    RETURN QUERY
+    WITH locked AS (
+        SELECT id FROM orders
+        WHERE status IN ('pending', 'processing') AND order_type = 'limit'
+        FOR UPDATE SKIP LOCKED
+    )
+    UPDATE orders
+    SET status = 'matching'
+    WHERE id IN (SELECT id FROM locked)
+    RETURNING *;
+END; $$ LANGUAGE plpgsql;

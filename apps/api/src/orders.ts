@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@forge/contracts';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
+import { broadcastToTopic } from '../websocket';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL!;
@@ -44,8 +45,21 @@ function createError(message: string, details?: any): Error {
     return error;
 }
 
+// Helper to emit an event to the user via WebSocket
+async function emitOrderUpdate(order: any, eventType: 'success' | 'failure' | 'info', message: string) {
+    const topic = `orders:${order.user_address}`;
+    const payload = {
+        type: 'order_update',
+        orderId: order.intent_id,
+        status: eventType,
+        message,
+    };
+    broadcastToTopic(topic, payload);
+}
+
+
 // This function will be used by the API endpoint and the retry worker
-export async function forwardOrderToRelayer(order: any) {
+export async function forwardOrderToRelayer(order: any): Promise<void> {
     console.log(`[API] Preparing to forward order ${order.intent_id} to relayer...`);
 
     const { data: pairData, error: pairError } = await supabase
@@ -85,28 +99,31 @@ export async function forwardOrderToRelayer(order: any) {
         pair: pairData,
     };
 
-    fetch(`${RELAYER_URL}/api/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payloadForRelayer),
-    })
-    .then(async (res) => {
+    try {
+        const res = await fetch(`${RELAYER_URL}/api/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payloadForRelayer),
+        });
+
         if (res.ok) {
             console.log(`[API] Order ${order.intent_id} successfully accepted by relayer.`);
-            // Optionally update status to 'processing'
             await supabase
                 .from('orders')
                 .update({ status: 'processing' })
                 .eq('id', order.id);
+            // Emit success event
+            await emitOrderUpdate(order, 'success', 'Order successfully sent to the solver');
         } else {
             const errorBody = await res.text();
             console.error(`[API] Relayer rejected order ${order.intent_id} with status ${res.status}:`, errorBody);
+            throw new Error(`Relayer rejected order: ${errorBody}`);
         }
-    })
-    .catch((err) => {
+    } catch (err: any) {
         console.error(`[API] Failed to forward order ${order.intent_id} to relayer:`, err.message);
-        // The order remains in 'pending' state and will be picked up by the retry worker.
-    });
+        // Re-throw the error so the calling function can handle it.
+        throw err;
+    }
 }
 
 export async function createOrder(orderData: any) {
@@ -201,11 +218,36 @@ export async function createOrder(orderData: any) {
         throw createError(`Failed to save order to database: ${insertError.message}`);
     }
 
-    // 4. Fire-and-forget call to relayer
-    forwardOrderToRelayer(newOrder);
+    // 4. Handle forwarding based on order type
+    if (orderType === 'market') {
+        try {
+            await forwardOrderToRelayer(newOrder);
+        } catch (forwardError: any) {
+            console.error(`[API] Failed to process market order ${newOrder.id}. Setting to failed.`, forwardError);
+            const { error: updateError } = await supabase.from('orders').update({
+                status: 'failed',
+                last_error: 'Failed to forward to relayer'
+            }).eq('id', newOrder.id);
+            
+            if (updateError) {
+                 console.error(`[API] CRITICAL: Failed to update order status to failed for order ${newOrder.id}`, updateError);
+            }
 
-    // 5. Return response to user immediately
-    console.log(`[API] Order ${newOrder.id} saved as pending and initiated for processing.`);
+            // Emit failure event
+            await emitOrderUpdate(newOrder, 'failure', 'Failed to send order');
+            
+            throw createError(`Market order failed: ${forwardError.message}`);
+        }
+    } else {
+        forwardOrderToRelayer(newOrder).catch(err => {
+            // For limit orders, this is non-critical. The worker will retry.
+            // No failure event is emitted here to avoid confusing the user.
+            console.warn(`[API] Non-critical failure to forward limit order ${newOrder.id}. Worker will retry.`, err);
+        });
+    }
+
+    // 5. Return response to user
+    console.log(`[API] Order ${newOrder.id} processed for creation.`);
     return newOrder;
 }
 
