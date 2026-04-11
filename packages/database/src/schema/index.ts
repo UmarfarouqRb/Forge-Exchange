@@ -12,7 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { InferModel } from 'drizzle-orm';
 // Re-export the 'eq' operator to be used throughout the monorepo
-export { eq } from 'drizzle-orm';
+export { eq, or } from 'drizzle-orm';
 
 
 // --- SCHEMA DEFINITIONS ---
@@ -40,15 +40,18 @@ export const tradingPairs = pgTable('trading_pairs', {
 
 export const orders = pgTable('orders', {
     id: uuid('id').primaryKey().defaultRandom(),
+    intentId: text('intent_id').unique(),
     userAddress: text('user_address').notNull(),
     tradingPairId: uuid('trading_pair_id').references(() => tradingPairs.id).notNull(),
     side: text('side', { enum: ['buy', 'sell'] }).notNull(),
     price: numeric('price'),
     quantity: numeric('quantity').notNull(),
     filledQuantity: numeric('filled_quantity').default('0'),
-    status: text('status', { enum: ['open', 'filled', 'cancelled'] }).default('open'),
+    status: text('status', {
+      enum: ['open', 'filled', 'cancelled', 'pending', 'processing', 'partial', 'failed', 'matching']
+    }).default('open'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-    orderType: text('type', { enum: ['market', 'limit'] }).notNull(),
+    orderType: text('order_type', { enum: ['market', 'limit'] }).notNull(),
     signature: text('signature').notNull(),
     tokenIn: text('token_in').notNull(),
     tokenOut: text('token_out').notNull(),
@@ -58,6 +61,9 @@ export const orders = pgTable('orders', {
     nonce: text('nonce').notNull(),
     adapter: text('adapter').notNull(),
     relayerFee: text('relayer_fee').notNull(),
+    retryCount: integer('retry_count').default(0),
+    lastError: text('last_error'),
+    lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }),
 });
 
 export const markets = pgTable('markets', {

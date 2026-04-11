@@ -5,7 +5,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import * as schema from './schema/index';
-import { type InsertOrder, orders, tradingPairs, markets, eq } from './schema/index';
+import { type InsertOrder, orders, tradingPairs, markets, eq, or } from './schema/index';
 
 // --- PostgreSQL (Supabase) Client ---
 
@@ -66,6 +66,7 @@ export const getOrders = async (address: string) => {
     const results = await db
         .select({
             id: orders.id,
+            intentId: orders.intentId,
             userAddress: orders.userAddress,
             tradingPairId: orders.tradingPairId,
             side: orders.side,
@@ -74,6 +75,7 @@ export const getOrders = async (address: string) => {
             filledQuantity: orders.filledQuantity,
             status: orders.status,
             createdAt: orders.createdAt,
+            orderType: orders.orderType,
             pair: tradingPairs.symbol
         })
         .from(orders)
@@ -87,6 +89,7 @@ export const getOpenOrders = async () => {
     const results = await db
         .select({
             id: orders.id,
+            intentId: orders.intentId,
             userAddress: orders.userAddress,
             tradingPairId: orders.tradingPairId,
             side: orders.side,
@@ -95,8 +98,11 @@ export const getOpenOrders = async () => {
             filledQuantity: orders.filledQuantity,
             status: orders.status,
             createdAt: orders.createdAt,
-            order_type: orders.orderType,
+            orderType: orders.orderType,
             signature: orders.signature,
+            retryCount: orders.retryCount,
+            lastError: orders.lastError,
+            lastAttemptAt: orders.lastAttemptAt,
             intent: {
                 tokenIn: orders.tokenIn,
                 tokenOut: orders.tokenOut,
@@ -113,7 +119,12 @@ export const getOpenOrders = async () => {
         })
         .from(orders)
         .leftJoin(tradingPairs, eq(orders.tradingPairId, tradingPairs.id))
-        .where(eq(orders.status, 'open'));
+        .where(
+          or(
+            eq(orders.status, 'pending'),
+            eq(orders.status, 'processing')
+          )
+        );
     return results;
 };
 
@@ -138,6 +149,6 @@ export const saveOrder = async (order: InsertOrder) => {
     return db.insert(orders).values(order);
 };
 
-export const updateOrderStatus = async (orderId: string, status: 'open' | 'filled' | 'cancelled') => {
+export const updateOrderStatus = async (orderId: string, status: 'open' | 'filled' | 'cancelled' | 'pending' | 'processing' | 'partial' | 'failed' | 'matching') => {
     return db.update(orders).set({ status }).where(eq(orders.id, orderId));
 };
