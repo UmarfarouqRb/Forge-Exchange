@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { MatchingEngine } from './matching/engine';
 
@@ -71,7 +72,24 @@ export class RetryWorker {
                         last_attempt_at: new Date().toISOString()
                     }).eq('id', order.id);
 
-                    await this.matchingEngine.processOrder(order);
+                    // Format the flat order from the DB to the nested structure the Matching Engine expects
+                    const formattedOrder = {
+                        ...order,
+                        intent: {
+                            id: order.intent_id,
+                            user: order.user_address,
+                            tokenIn: order.token_in,
+                            tokenOut: order.token_out,
+                            amountIn: order.amount_in,
+                            minAmountOut: order.min_amount_out,
+                            deadline: order.deadline,
+                            nonce: order.nonce,
+                            adapter: order.adapter,
+                            relayerFee: order.relayer_fee,
+                        }
+                    };
+
+                    await this.matchingEngine.processOrder(formattedOrder);
 
                 } catch (err: any) {
                     console.error(`[Worker] Error processing order ${order.id}:`, err);
