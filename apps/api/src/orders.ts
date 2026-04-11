@@ -57,6 +57,20 @@ async function emitOrderUpdate(order: any, eventType: 'success' | 'failure' | 'i
     broadcastToTopic(topic, payload);
 }
 
+let lastCall = 0;
+
+async function rateLimitedFetch(url: string, options: any) {
+    const now = Date.now();
+    const MIN_DELAY = 500; // 0.5 sec
+
+    const timeSinceLastCall = now - lastCall;
+    if (timeSinceLastCall < MIN_DELAY) {
+        await new Promise(res => setTimeout(res, MIN_DELAY - timeSinceLastCall));
+    }
+
+    lastCall = Date.now();
+    return fetch(url, options);
+}
 
 // This function will be used by the API endpoint and the retry worker
 export async function forwardOrderToRelayer(order: any): Promise<void> {
@@ -100,7 +114,7 @@ export async function forwardOrderToRelayer(order: any): Promise<void> {
     };
 
     try {
-        const res = await fetch(`${RELAYER_URL}/api/orders`, {
+        const res = await rateLimitedFetch(`${RELAYER_URL}/api/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payloadForRelayer),
@@ -115,6 +129,10 @@ export async function forwardOrderToRelayer(order: any): Promise<void> {
             // Emit success event
             await emitOrderUpdate(order, 'success', 'Order successfully sent to the solver');
         } else {
+            if (res.status === 429) {
+                console.warn(`[API] Relayer rate limited for order ${order.intent_id}. Order will be retried.`);
+                throw new Error('RATE_LIMITED');
+            }
             const errorBody = await res.text();
             console.error(`[API] Relayer rejected order ${order.intent_id} with status ${res.status}:`, errorBody);
             throw new Error(`Relayer rejected order: ${errorBody}`);
@@ -223,27 +241,48 @@ export async function createOrder(orderData: any) {
         try {
             await forwardOrderToRelayer(newOrder);
         } catch (forwardError: any) {
-            console.error(`[API] Failed to process market order ${newOrder.id}. Setting to failed.`, forwardError);
-            const { error: updateError } = await supabase.from('orders').update({
-                status: 'failed',
-                last_error: 'Failed to forward to relayer'
-            }).eq('id', newOrder.id);
-            
-            if (updateError) {
-                 console.error(`[API] CRITICAL: Failed to update order status to failed for order ${newOrder.id}`, updateError);
+            if (forwardError.message === 'RATE_LIMITED') {
+                console.log(`[API] Market order ${newOrder.id} was rate limited. Keeping status as 'pending' for retry.`);
+                await supabase.from('orders').update({
+                    status: 'pending',
+                    retry_count: (newOrder.retry_count || 0) + 1,
+                    last_error: 'Rate limited',
+                    last_attempt_at: new Date().toISOString()
+                }).eq('id', newOrder.id);
+                // Do not throw an error, let the user know it's pending.
+                // The worker will pick it up.
+                await emitOrderUpdate(newOrder, 'info', 'Your order was received and will be processed shortly.');
+            } else {
+                console.error(`[API] Failed to process market order ${newOrder.id}. Setting to failed.`, forwardError);
+                const { error: updateError } = await supabase.from('orders').update({
+                    status: 'failed',
+                    last_error: 'Failed to forward to relayer'
+                }).eq('id', newOrder.id);
+                
+                if (updateError) {
+                     console.error(`[API] CRITICAL: Failed to update order status to failed for order ${newOrder.id}`, updateError);
+                }
+    
+                // Emit failure event
+                await emitOrderUpdate(newOrder, 'failure', 'Failed to send order');
+                
+                throw createError(`Market order failed: ${forwardError.message}`);
             }
-
-            // Emit failure event
-            await emitOrderUpdate(newOrder, 'failure', 'Failed to send order');
-            
-            throw createError(`Market order failed: ${forwardError.message}`);
         }
     } else {
-        forwardOrderToRelayer(newOrder).catch(err => {
-            // For limit orders, this is non-critical. The worker will retry.
-            // No failure event is emitted here to avoid confusing the user.
-            console.warn(`[API] Non-critical failure to forward limit order ${newOrder.id}. Worker will retry.`, err);
-        });
+        // For limit/stop orders, we still await but handle errors gracefully
+        try {
+            await forwardOrderToRelayer(newOrder);
+        } catch (err: any) {
+            // If rate-limited, we just log it. The order is already 'pending'.
+            // The worker will handle retries.
+            if (err.message === 'RATE_LIMITED') {
+                 console.log(`[API] Limit order ${newOrder.id} was rate limited on initial forward. Worker will handle it.`);
+            } else {
+                // For other errors, it's also non-critical for the user response.
+                console.warn(`[API] Non-critical failure to forward limit order ${newOrder.id}. Worker will retry.`, err);
+            }
+        }
     }
 
     // 5. Return response to user

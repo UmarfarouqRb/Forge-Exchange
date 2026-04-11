@@ -1,4 +1,4 @@
-import { getOrdersByPairId, getMarketById, Market, supabase } from '@forge/db';
+import { getOrdersByPairId, getMarketById, Market } from '@forge/db';
 import {
     http,
     createPublicClient,
@@ -216,23 +216,12 @@ export async function getMarket(pairId: string): Promise<MarketState | null> {
             return null;
         }
 
-        const { data: dbPair, error: dbError } = await supabase
-            .from('trading_pairs')
-            .select('id')
-            .eq('symbol', pairInfo.symbol)
-            .single();
-
-        if (dbError || !dbPair) {
-            console.error(`Failed to get market by symbol ${pairInfo.symbol}:`, dbError);
-            return null;
-        }
-
         const baseToken = getDisplayToken(MAINNET_TOKENS[pairInfo.base.symbol]);
         const quoteToken = getDisplayToken(MAINNET_TOKENS[pairInfo.quote.symbol]);
 
         const [bookResult, marketDataResult, marketData24hResult] = await Promise.allSettled([
-            getOrderBook(baseToken, quoteToken, dbPair.id),
-            getMarketById(dbPair.id),
+            getOrderBook(baseToken, quoteToken, pairId ),
+            getMarketById(pairId),
             get24hMarketData(baseToken, quoteToken)
         ]);
 

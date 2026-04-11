@@ -3,6 +3,7 @@ import express, { Request, Response } from 'express';
 import fetch from 'node-fetch';
 import { MatchingEngine } from './matching/engine';
 import { LiquidityEngine } from './liquidity/engine';
+import { RetryWorker } from './worker';
 
 const app: express.Express = express();
 app.use(express.json());
@@ -23,6 +24,7 @@ async function broadcastToApi(topic: string, data: any, orderId: string) {
 
 const liquidityEngine = new LiquidityEngine();
 const matchingEngine = new MatchingEngine(liquidityEngine);
+const retryWorker = new RetryWorker(matchingEngine);
 
 // The matching engine will emit status updates for the agent to consume
 matchingEngine.on('agent_status', (data) => {
@@ -39,17 +41,12 @@ app.post('/api/orders', async (req: Request, res: Response) => {
     console.log('[Relayer] Received a new order payload:', JSON.stringify(req.body, null, 2));
     const order = req.body;
 
-    // Validation guard to prevent relayer crash
     if (!order.intent || !order.intent.user) {
         return res.status(400).json({ error: 'Invalid order payload: missing intent or user' });
     }
 
-    try {
-        matchingEngine.processOrder(order);
-        res.status(202).json({ message: 'Order received and is being processed.' });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
+    // Acknowledge receipt and let the worker handle it.
+    res.status(202).json({ message: 'Order received and will be processed.' });
 });
 
 app.get('/health', (_: Request, res: Response) => res.json({ ok: true }));
@@ -59,6 +56,8 @@ app.listen(PORT, () => {
     console.log(`Relayer listening on port ${PORT}`);
 });
 
+// Start the matching engine and the retry worker
 matchingEngine.start();
+retryWorker.start();
 
 export default app;
