@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { LiquidityEngine } from '../liquidity/engine';
 import { EventEmitter } from 'events';
@@ -70,8 +71,17 @@ export class MatchingEngine extends EventEmitter {
         });
 
         if (order.order_type === 'market') {
-            await this.matchMarketOrder(order);
-        } else if (order.order_type !== 'limit') {
+            await this.fillMarketOrder(order);
+        } else if (order.order_type === 'limit') {
+            // For limit orders, we just acknowledge receipt.
+            // The matching logic will pick it up from the database.
+            this.emit('agent_status', { 
+                orderId: order.intent.id, 
+                userAddress: order.intent.user, 
+                msg: `[${this.agentName}] Limit order received and will be processed.`,
+                type: 'info' 
+            });
+        } else {
             this.emit('agent_status', { 
                 orderId: order.intent.id, 
                 userAddress: order.intent.user,
@@ -138,7 +148,7 @@ export class MatchingEngine extends EventEmitter {
         };
     }
 
-    private async matchMarketOrder(marketOrder: any) {
+    async fillMarketOrder(marketOrder: any) {
         try {
             let remainingQuantity = Number(marketOrder.quantity);
             const pairId = marketOrder.trading_pair_id || marketOrder.pair?.id;
