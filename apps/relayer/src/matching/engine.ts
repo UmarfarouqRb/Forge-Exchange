@@ -88,6 +88,9 @@ export class MatchingEngine extends EventEmitter {
     }
     
     public async processOrder(order: Order) {
+        // --- DEBUG TRICK ---
+        console.log(" [Engine] Received order with pairId:", order.trading_pair_id);
+
         if (!order.intent || !order.intent.id || !order.intent.user) {
             console.error('[MatchingEngine] Received malformed order payload:', order);
             return;

@@ -1,80 +1,64 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { MatchingEngine } from './matching/engine';
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-const MAX_RETRIES = 5;
-const PROCESSING_TIMEOUT_MS = 60 * 1000; // 1 minute
-
 export class RetryWorker {
-    private interval: NodeJS.Timeout | null = null;
-    private isRunning = false;
+    private supabase: SupabaseClient;
     private matchingEngine: MatchingEngine;
+    private intervalId?: NodeJS.Timeout;
 
     constructor(matchingEngine: MatchingEngine) {
         this.matchingEngine = matchingEngine;
+        this.supabase = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
     }
 
-    start(pollingInterval: number = 5000) {
-        console.log('[Worker] Starting retry worker...');
-        this.interval = setInterval(() => this.processStaleOrders(), pollingInterval);
+    start() {
+        console.log('Starting Retry Worker...');
+        this.intervalId = setInterval(() => this.processRetries(), 5000); // Check every 5 seconds
     }
 
     stop() {
-        if (this.interval) {
-            console.log('[Worker] Stopping retry worker...');
-            clearInterval(this.interval);
+        console.log('Stopping Retry Worker...');
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
         }
     }
 
-    private async processStaleOrders() {
-        if (this.isRunning) {
-            console.log('[Worker] Previous batch still running, skipping this interval.');
+    private async processRetries() {
+        const { data: orders, error } = await this.supabase
+            .from('orders')
+            .select('*')
+            .in('status', ['pending', 'processing'])
+            .lt('retries', 3); // Limit retries to 3
+
+        if (error) {
+            console.error('[Worker] Error fetching retryable orders:', error);
             return;
         }
-        this.isRunning = true;
 
-        try {
-            const timeout = new Date(Date.now() - PROCESSING_TIMEOUT_MS).toISOString();
-
-            const { data: staleOrders, error } = await supabase
-                .from('orders')
-                .select('*')
-                .or(`status.eq.pending,and(status.eq.processing,last_attempt_at.lt.${timeout})`)
-                .order('created_at', { ascending: true });
-
-            if (error) {
-                console.error('[Worker] Error fetching stale orders:', error);
-                return;
-            }
-
-            if (!staleOrders || staleOrders.length === 0) {
-                return;
-            }
-
-            console.log(`[Worker] Found ${staleOrders.length} stale orders to process.`);
-
-            for (const order of staleOrders) {
-                if ((order.retry_count || 0) >= MAX_RETRIES) {
-                    await supabase
-                        .from('orders')
-                        .update({ status: 'failed', last_error: 'Exceeded max retry attempts' })
-                        .eq('id', order.id);
-                    continue;
-                }
-
+        if (orders && orders.length > 0) {
+            console.log(`[Worker] Found ${orders.length} orders to process.`);
+            for (const order of orders) {
                 try {
-                     // Mark that we are attempting to process it
-                    await supabase.from('orders').update({
-                        last_attempt_at: new Date().toISOString()
-                    }).eq('id', order.id);
+                    // Increment retry count
+                    await this.supabase
+                        .from('orders')
+                        .update({ retries: order.retries + 1, status: 'processing' })
+                        .eq('id', order.id);
 
-                    // Format the flat order from the DB to the nested structure the Matching Engine expects
+                    // --- STRICT SHAPE CONTROL ---
+                    // FORCE UUID ONLY and map explicitly
                     const formattedOrder = {
-                        ...order,
+                        id: order.id,
+                        trading_pair_id: order.trading_pair_id, // This should be the UUID
+                        side: order.side,
+                        price: order.price,
+                        quantity: order.quantity,
+                        order_type: order.order_type,
+                        pair: order.pair || null, // Optional, can be enriched later
                         intent: {
                             id: order.intent_id,
                             user: order.user_address,
@@ -86,27 +70,31 @@ export class RetryWorker {
                             nonce: order.nonce,
                             adapter: order.adapter,
                             relayerFee: order.relayer_fee,
-                        }
+                        },
+                        signature: order.signature
                     };
+
+                    // --- EXTRA SAFETY GUARD ---
+                    if (!formattedOrder.trading_pair_id || formattedOrder.trading_pair_id.length !== 36) {
+                        console.error(" [Worker] Invalid or missing UUID detected for trading_pair_id:", formattedOrder.trading_pair_id);
+                        // Mark order as failed to prevent retry loops
+                        await this.supabase.from('orders').update({ status: 'failed', failure_reason: 'Invalid trading_pair_id' }).eq('id', order.id);
+                        continue; // Skip to next order
+                    }
+
+                    // --- DEBUG TRICK ---
+                    console.log(" [Worker] Sending clean order to engine with pairId:", formattedOrder.trading_pair_id);
 
                     await this.matchingEngine.processOrder(formattedOrder);
 
-                } catch (err: any) {
-                    console.error(`[Worker] Error processing order ${order.id}:`, err);
-                    await supabase
+                } catch (e: any) {
+                    console.error(`[Worker] Failed to process order ${order.id}:`, e);
+                    await this.supabase
                         .from('orders')
-                        .update({ 
-                            status: 'pending', // Reset to pending for the next retry cycle
-                            last_error: err.message,
-                            retry_count: (order.retry_count || 0) + 1,
-                        })
+                        .update({ status: 'failed', failure_reason: e.message })
                         .eq('id', order.id);
                 }
             }
-        } catch (e) {
-            console.error('[Worker] Unhandled error in processStaleOrders:', e);
-        } finally {
-            this.isRunning = false;
         }
     }
 }
