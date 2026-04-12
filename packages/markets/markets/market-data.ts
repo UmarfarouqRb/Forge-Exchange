@@ -16,7 +16,7 @@ export type MarketData24h = {
 };
 
 const marketDataCache = new Map<string, { timestamp: number; data: MarketData24h }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 5 * 60 * 5000; // 5 minutes
 
 const getDisplayToken = (token: Token): Token => {
     if (token.symbol === 'WETH') {

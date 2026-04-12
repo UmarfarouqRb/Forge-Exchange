@@ -1,4 +1,4 @@
-import { getOrdersByPairId, getMarketById, Market } from '@forge/db';
+
 import {
     http,
     createPublicClient,
@@ -12,6 +12,7 @@ import type { Token } from '../tokens/mainnet-tokens';
 import { MAINNET_TOKENS } from '../tokens/mainnet-tokens';
 import { getTradingPairs } from '../tradingPairs/trading-pairs';
 import { get24hMarketData } from './market-data';
+import { getBook as getLiveOrderbook } from './order-book-store'; 
 
 // --- TYPE DEFINITIONS ---
 
@@ -79,7 +80,7 @@ export async function getAMMPrice(tokenIn: { address: string; decimals: number }
         return null;
     }
 
-    const feeTiers = [100, 500, 2500, 10000]; // Tiers for 0.01%, 0.05%, 0.25%, 1%
+    const feeTiers = [100, 500, 2500, 10000];
 
     for (const fee of feeTiers) {
         const params = {
@@ -123,84 +124,42 @@ export async function getAMMPrice(tokenIn: { address: string; decimals: number }
     return null;
 }
 
-const dexAggregatedPriceOffsets: { [pairId: string]: number } = {};
-const DEX_AGGREGATED_UPDATE_INTERVAL = 1000; 
-let lastDexAggregatedUpdate: { [pairId: string]: number } = {};
-let dexAggregatedDepthCache: { [pairId: string]: OrderBook } = {};
-
-function generateDexAggregatedDepth(midPrice: number, pairId: string): OrderBook {
-    const now = Date.now();
-    if (!lastDexAggregatedUpdate[pairId] || (now - lastDexAggregatedUpdate[pairId] > DEX_AGGREGATED_UPDATE_INTERVAL)) {
-        dexAggregatedPriceOffsets[pairId] = (Math.random() * 0.002 - 0.001);
-        lastDexAggregatedUpdate[pairId] = now;
+async function getOrderBook(baseToken: Token, quoteToken: Token, pairId: string): Promise<OrderBook & { lastTradePrice: number | null }> {
+    const liveBook = getLiveOrderbook(pairId);
+    
+    if (liveBook) {
+        const midPrice = await getAMMPrice(baseToken, quoteToken);
+        return {
+            ...liveBook,
+            lastTradePrice: midPrice
+        };
     }
-    const currentMidPriceOffset = dexAggregatedPriceOffsets[pairId] || 0;
-    const fluctuatingMidPrice = midPrice * (1 + currentMidPriceOffset);
+    
+    // Fallback to DEX aggregated if no live book exists
+    const midPrice: number | null = await getAMMPrice(baseToken, quoteToken);
+    if (midPrice) {
+        const dexBook = generateDexAggregatedDepth(midPrice);
+        return { ...dexBook, lastTradePrice: midPrice };
+    }
 
+    return { bids: [], asks: [], lastTradePrice: null };
+}
+
+function generateDexAggregatedDepth(midPrice: number): OrderBook {
     const bids: [string, string][] = [];
     const asks: [string, string][] = [];
     for (let i = 1; i <= 10; i++) {
-        const priceBid = fluctuatingMidPrice * (1 - i * 0.002 - (Math.random() * 0.0001));
+        const priceBid = midPrice * (1 - i * 0.002 - (Math.random() * 0.0001));
         const quantityBid = (Math.random() * 15 + 5) * (1 + (Math.random() * 0.05 - 0.025));
         bids.push([priceBid.toFixed(4), quantityBid.toFixed(2)]);
 
-        const priceAsk = fluctuatingMidPrice * (1 + i * 0.002 + (Math.random() * 0.0001));
+        const priceAsk = midPrice * (1 + i * 0.002 + (Math.random() * 0.0001));
         const quantityAsk = (Math.random() * 15 + 5) * (1 + (Math.random() * 0.05 - 0.025));
         asks.push([priceAsk.toFixed(4), quantityAsk.toFixed(2)]);
     }
     return { bids, asks };
 }
 
-async function getOrderBook(baseToken: Token, quoteToken: Token, pairId: string): Promise<OrderBook & { lastTradePrice: number | null }> {
-    const midPrice: number | null = await getAMMPrice(baseToken, quoteToken);
-
-    let realOrders: Order[] = [];
-    try {
-        realOrders = await getOrdersByPairId(pairId);
-    } catch (dbError) {
-        console.error(`Database error fetching orders for ${pairId}:`, dbError);
-    }
-
-    const aggregateAndSort = (orders: [string, string][], reverse = false): [string, string][] => {
-        const book = new Map<string, number>();
-        orders.forEach(([price, size]) => {
-            book.set(price, (book.get(price) || 0) + parseFloat(size));
-        });
-        const sorted = Array.from(book.entries()).sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
-        if (reverse) sorted.reverse();
-        return sorted.map(([price, size]) => [price, String(size)]);
-    };
-
-    let bids: [string, string][];
-    let asks: [string, string][];
-
-    if (realOrders.length > 0) {
-        const realBids = realOrders.filter(o => o.side === 'buy' && o.price).map(o => [o.price as string, o.quantity] as [string, string]);
-        const realAsks = realOrders.filter(o => o.side === 'sell' && o.price).map(o => [o.price as string, o.quantity] as [string, string]);
-        bids = aggregateAndSort(realBids, true);
-        asks = aggregateAndSort(realAsks);
-    } else {
-        if (midPrice) {
-            const now = Date.now();
-            if (!lastDexAggregatedUpdate[pairId] || (now - lastDexAggregatedUpdate[pairId] > DEX_AGGREGATED_UPDATE_INTERVAL)) {
-                const newDexAggregatedDepth = generateDexAggregatedDepth(midPrice, pairId);
-                dexAggregatedDepthCache[pairId] = newDexAggregatedDepth;
-                lastDexAggregatedUpdate[pairId] = now;
-            }
-            bids = dexAggregatedDepthCache[pairId]?.bids || [];
-            asks = dexAggregatedDepthCache[pairId]?.asks || [];
-        } else {
-            bids = [];
-            asks = [];
-        }
-    }
-
-    return {
-        bids,
-        asks,
-        lastTradePrice: midPrice
-    };
-}
 
 export function getMarkPrice(book: OrderBook & { lastTradePrice: number | null }): number | null {
     const bestBid = book.bids[0]?.[0];
@@ -219,28 +178,24 @@ export async function getMarket(pairId: string): Promise<MarketState | null> {
         const baseToken = getDisplayToken(MAINNET_TOKENS[pairInfo.base.symbol]);
         const quoteToken = getDisplayToken(MAINNET_TOKENS[pairInfo.quote.symbol]);
 
-        const [bookResult, marketDataResult, marketData24hResult] = await Promise.allSettled([
+        const [bookResult, marketData24hResult] = await Promise.allSettled([
             getOrderBook(baseToken, quoteToken, pairId ),
-            getMarketById(pairId),
             get24hMarketData(baseToken, quoteToken)
         ]);
 
         const book = bookResult.status === 'fulfilled' ? bookResult.value : { bids: [], asks: [], lastTradePrice: null };
-        const marketData = marketDataResult.status === 'fulfilled' ? marketDataResult.value : null;
         const marketData24h = marketData24hResult.status === 'fulfilled' ? marketData24hResult.value : null;
 
         if (bookResult.status === 'rejected') {
             console.error(`Failed to get order book for ${pairInfo.id}:`, bookResult.reason);
         }
-        if (marketDataResult.status === 'rejected') {
-            console.error(`Failed to get market data for ${pairInfo.id}:`, marketDataResult.reason);
-        }
+
         if (marketData24hResult.status === 'rejected') {
             console.error(`Failed to get 24h market data for ${pairInfo.id}:`, marketData24hResult.reason);
         }
 
         const markPrice = getMarkPrice(book);
-        const lastPrice = marketData?.lastPrice ?? book.lastTradePrice?.toString() ?? null;
+        const lastPrice = book.lastTradePrice?.toString() ?? null;
 
         const marketState: MarketState = {
             id: pairId,
@@ -254,7 +209,7 @@ export async function getMarket(pairId: string): Promise<MarketState | null> {
             currentPrice: markPrice?.toString() ?? null,
             bids: book.bids,
             asks: book.asks,
-            source: 'live',
+            source: getLiveOrderbook(pairId) ? 'live' : 'mock',
             isActive: true,
         };
         

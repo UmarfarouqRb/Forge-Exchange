@@ -1,88 +1,112 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { LiquidityEngine } from '../liquidity/engine';
 import { EventEmitter } from 'events';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// --- CONSTANTS ---
+const LP_ADDRESS = process.env.LP_ADDRESS!;
+if (!LP_ADDRESS) {
+    throw new Error("CRITICAL: LP_ADDRESS environment variable is not set.");
+}
+
+// --- TYPES ---
+type Order = any; // Replace with a proper shared type definition.
 
 export class MatchingEngine extends EventEmitter {
     private agentName: string;
-    private interval: NodeJS.Timeout | null = null;
     private liquidityEngine: LiquidityEngine;
-    private isMatching: boolean = false;
+    private supabase: SupabaseClient;
+
+    // In-memory order book
+    private books: Map<string, { bids: Order[], asks: Order[] }> = new Map();
+
+    // Queue to ensure sequential, non-overlapping match executions
+    private matchQueue: Promise<void> = Promise.resolve();
 
     constructor(liquidityEngine: LiquidityEngine, agentName: string = 'Solver01') {
         super();
         this.liquidityEngine = liquidityEngine;
         this.agentName = agentName;
+        this.supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-        this.liquidityEngine.on('settlement_status', (data) => {
-            this.emit('agent_status', data);
-        });
-        this.liquidityEngine.on('agent_status', (data) => {
-            this.emit('agent_status', data);
-        });
+        // Pass-through events from the liquidity engine
+        this.liquidityEngine.on('settlement_status', (data) => this.emit('agent_status', data));
+        this.liquidityEngine.on('agent_status', (data) => this.emit('agent_status', data));
+        
+        // Hydrate the order book from the DB on startup
+        this.hydrateFromDB().catch(err => console.error("Failed to hydrate order book from DB:", err));
     }
 
-    start() {
-        console.log('Starting hybrid matching engine...');
-        this.interval = setInterval(() => this.matchOrders(), 5000);
-    }
+    async hydrateFromDB() {
+        console.log("Hydrating order book from database...");
+        const { data, error } = await this.supabase
+            .from('orders')
+            .select('*')
+            .in('status', ['pending', 'processing']);
 
-    stop() {
-        if (this.interval) {
-            console.log('Stopping matching engine...');
-            clearInterval(this.interval);
-        }
-    }
-
-    async processOrder(order: any) {
-        if (!order.intent || !order.intent.id || !order.intent.user) {
-            console.error('[MatchingEngine] Received malformed order payload:', order);
-            this.emit('agent_status', {
-                orderId: order.intent?.id,
-                userAddress: order.intent?.user,
-                msg: `[${this.agentName}] Error: Malformed order payload. Missing intent details.`,
-                type: 'error'
-            });
+        if (error) {
+            console.error("Error hydrating from DB:", error);
             return;
         }
 
-        // Idempotency Check
-        const { data: existingOrder, error } = await supabase
-            .from('orders')
-            .select('status')
-            .eq('intent_id', order.intent.id)
-            .single();
+        data?.forEach(order => this.addToOrderBook(order, true));
+        console.log(`Hydrated ${data?.length || 0} orders.`);
+    }
 
-        if (existingOrder?.status === 'fulfilled' || existingOrder?.status === 'failed') {
-            console.log(`[MatchingEngine] Order ${order.intent.id} already processed with status: ${existingOrder.status}. Skipping.`);
+    start() {
+        console.log('Matching Engine is running in event-driven mode.');
+    }
+
+    stop() {
+        console.log('Matching Engine is stopping.');
+    }
+
+    private addToOrderBook(order: Order, silent: boolean = false) {
+        const { trading_pair_id, id } = order;
+        if (!trading_pair_id) {
+            console.warn("Order is missing trading_pair_id", order);
+            return;
+        }
+
+        if (!this.books.has(trading_pair_id)) {
+            this.books.set(trading_pair_id, { bids: [], asks: [] });
+        }
+
+        const book = this.books.get(trading_pair_id)!;
+        const orderList = order.side === 'buy' ? book.bids : book.asks;
+        
+        if (orderList.some(o => o.id === id)) return; // Avoid duplicates during hydration
+
+        orderList.push(order);
+        orderList.sort((a, b) => 
+            order.side === 'buy' ? Number(b.price) - Number(a.price) : Number(a.price) - Number(b.price)
+        );
+        
+        if (!silent) {
+            this.emitFormattedBook(trading_pair_id, book);
+        }
+    }
+    
+    public async processOrder(order: Order) {
+        if (!order.intent || !order.intent.id || !order.intent.user) {
+            console.error('[MatchingEngine] Received malformed order payload:', order);
             return;
         }
         
         this.emit('agent_status', { 
             orderId: order.intent.id, 
             userAddress: order.intent.user, 
-            msg: `[${this.agentName}] Order received. Searching for match...`,
+            msg: `[${this.agentName}] Order received. Processing...`,
             type: 'info' 
         });
 
         if (order.order_type === 'market') {
             await this.fillMarketOrder(order);
         } else if (order.order_type === 'limit') {
-            // For limit orders, we just acknowledge receipt.
-            // The matching logic will pick it up from the database.
-            this.emit('agent_status', { 
-                orderId: order.intent.id, 
-                userAddress: order.intent.user, 
-                msg: `[${this.agentName}] Limit order received and will be processed.`,
-                type: 'info' 
-            });
+            this.addToOrderBook(order);
+            this.enqueueMatch();
         } else {
-            this.emit('agent_status', { 
+             this.emit('agent_status', { 
                 orderId: order.intent.id, 
                 userAddress: order.intent.user,
                 msg: `[${this.agentName}] Invalid order type: ${order.order_type}`,
@@ -90,246 +114,182 @@ export class MatchingEngine extends EventEmitter {
             });
         }
     }
-
-    private async fetchOpenOrders() {
-        const { data, error } = await supabase
-            .from('orders')
-            .select(`
-                *,
-                pair:trading_pairs (
-                    *,
-                    base_token:tokens!trading_pairs_base_token_id_fkey (*),
-                    quote_token:tokens!trading_pairs_quote_token_id_fkey (*)
-                )
-            `)
-            .in('status', ['pending', 'processing'])
-            .eq('order_type', 'limit');
-
-        if (error) {
-            console.error("Error fetching open orders:", error);
-            return [];
-        }
-        return data || [];
-    }
-
-    private groupOrdersByPair(orders: any[]) {
-        const orderbook: { [key: string]: { bids: any[], asks: any[] } } = {};
-        orders.forEach(order => {
-            const pairId = order.trading_pair_id || order.pair?.id;
-            if (!pairId) {
-                console.warn("Order missing trading pair ID", order);
-                return;
-            }
-            if (!orderbook[pairId]) {
-                orderbook[pairId] = { bids: [], asks: [] };
-            }
-            if (order.side === 'buy') {
-                orderbook[pairId].bids.push(order);
-            } else {
-                orderbook[pairId].asks.push(order);
-            }
-        });
-        return orderbook;
-    }
-
-    private async getLPOrders(pairId: string, side: 'buy' | 'sell') {
-        const midPrice = this.liquidityEngine.getPrice(pairId);
-        if (!midPrice) return null;
     
-        const spread = 0.002; // 0.2%
-        const price = side === 'buy' ? midPrice * (1 + spread) : midPrice * (1 - spread);
+    private enqueueMatch() {
+        this.matchQueue = this.matchQueue
+            .then(() => this.matchOrders())
+            .catch(err => console.error("Error in matching queue:", err));
+        return this.matchQueue;
+    }
+
+    private getLPOrder(pairId: string, side: 'buy' | 'sell') {
+        const price = this.liquidityEngine.getPrice(pairId);
+        if (!price) return null;
+    
+        const spread = 0.002; // 0.2% spread for LP
+    
+        const lpPrice = side === 'buy' ? price * (1 - spread) : price * (1 + spread);
     
         return {
             id: 'LP_ORDER',
-            side: side === 'buy' ? 'sell' : 'buy',
-            price,
-            quantity: '1000000', // Effectively infinite for matching purposes
+            user_address: LP_ADDRESS,
+            side,
+            price: lpPrice,
+            quantity: Infinity, // Represents effectively infinite liquidity for this transaction
             isLP: true
         };
     }
 
-    async fillMarketOrder(marketOrder: any) {
-        try {
-            let remainingQuantity = Number(marketOrder.quantity);
-            const pairId = marketOrder.trading_pair_id || marketOrder.pair?.id;
+    private async fillMarketOrder(marketOrder: Order) {
+        const pairId = marketOrder.trading_pair_id;
+        let remainingQuantity = Number(marketOrder.quantity);
+    
+        const book = this.books.get(pairId) || { bids: [], asks: [] };
+        const counterOrders = marketOrder.side === 'buy' ? book.asks : book.bids;
 
-            if (!pairId) {
-                throw new Error("Market order is missing trading pair ID");
+        // Create a combined list of potential matches: internal book + virtual LP order
+        const potentialMatches = [...counterOrders];
+        const lpOrder = this.getLPOrder(pairId, marketOrder.side === 'buy' ? 'sell' : 'buy');
+        if (lpOrder) {
+            potentialMatches.push(lpOrder);
+            // Ensure LP order is sorted correctly
+            potentialMatches.sort((a,b) => marketOrder.side === 'buy' ? Number(a.price) - Number(b.price) : Number(b.price) - Number(a.price))
+        }
+        
+        for (const counterOrder of potentialMatches) {
+            if (remainingQuantity <= 0) break;
+
+            if (counterOrder.isLP) {
+                // NOTE: Implement checkLPLiquidity in LiquidityEngine
+                const hasLiquidity = true; // await this.liquidityEngine.checkLPLiquidity(pairId, remainingQuantity);
+                if (hasLiquidity) {
+                    await this.executeLPMatch(marketOrder, counterOrder, remainingQuantity);
+                    remainingQuantity = 0; // LP fills the rest
+                }
+                continue; 
             }
             
-            const openOrders = await this.fetchOpenOrders();
-            const orderbook = this.groupOrdersByPair(openOrders);
-            let pairOrders = orderbook[pairId];
-
-            const lpOrder = await this.getLPOrders(pairId, marketOrder.side);
-            if (lpOrder) {
-                if (!pairOrders) {
-                    pairOrders = { bids: [], asks: [] };
-                }
-                if (marketOrder.side === 'buy') {
-                    pairOrders.asks.push(lpOrder);
-                } else {
-                    pairOrders.bids.push(lpOrder);
-                }
-            }
-
-            if (pairOrders) {
-                const counterOrders = marketOrder.side === 'buy' ? pairOrders.asks : pairOrders.bids;
-                counterOrders.sort((a, b) => a.price - b.price);
-
-                for (const counterOrder of counterOrders) {
-                    if (remainingQuantity <= 0) break;
-
-                    if (counterOrder.isLP) {
-                        await this.liquidityEngine.executeWithLP({
-                            ...marketOrder,
-                            price: counterOrder.price,
-                            quantity: remainingQuantity
-                        });
-                        remainingQuantity = 0;
-                        break;
-                    }
-
-                    const fillQuantity = Math.min(remainingQuantity, Number(counterOrder.quantity));
-
-                    this.emit('agent_status', { 
-                        orderId: marketOrder.intent.id, 
-                        userAddress: marketOrder.intent.user,
-                        msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${marketOrder.pair?.base?.symbol || 'base token'}.`,
-                        type: 'info' 
-                    });
-
-                    await this.liquidityEngine.settleMatchedTrade({
-                        buyer: marketOrder.side === 'buy' ? marketOrder : counterOrder,
-                        seller: marketOrder.side === 'buy' ? counterOrder : marketOrder,
-                        quantity: fillQuantity,
-                        price: Number(counterOrder.price),
-                        pair: marketOrder.pair
-                    });
-
-                    remainingQuantity -= fillQuantity;
-                    
-                    const remainingCounterOrderQuantity = Number(counterOrder.quantity) - fillQuantity;
-
-                    await supabase
-                        .from('orders')
-                        .update({ 
-                            quantity: remainingCounterOrderQuantity.toString(),
-                            status: remainingCounterOrderQuantity <= 0 ? 'fulfilled' : 'processing'
-                        })
-                        .eq('id', counterOrder.id);
-                }
-            }
-
-            if (remainingQuantity > 0) {
-                this.emit('agent_status', { 
-                    orderId: marketOrder.intent.id,
-                    userAddress: marketOrder.intent.user,
-                    msg: `[${this.agentName}] No internal liquidity. Checking external DEX...`,
-                    type: 'info' 
-                });
-                await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature);
-                remainingQuantity = 0;
-            }
+            const fillQuantity = Math.min(remainingQuantity, Number(counterOrder.quantity));
             
-            const finalStatus = remainingQuantity === 0 ? 'fulfilled' : 'partial';
-            await supabase
-                .from('orders')
-                .update({ status: finalStatus, quantity: remainingQuantity.toString() })
-                .eq('intent_id', marketOrder.intent.id);
-
-        } catch (error: any) {
-            console.error(`[MatchingEngine] Error processing market order ${marketOrder.intent.id}:`, error);
-            await supabase
-                .from('orders')
-                .update({ status: 'failed', last_error: error.message })
-                .eq('intent_id', marketOrder.intent.id);
-
+            // Use immutable copies for execution
+            await this.executeInternalMatch(
+                marketOrder.side === 'buy' ? marketOrder : { ...counterOrder },
+                marketOrder.side === 'buy' ? { ...counterOrder } : marketOrder,
+                fillQuantity,
+                Number(counterOrder.price)
+            );
+    
+            remainingQuantity -= fillQuantity;
+            marketOrder.quantity = remainingQuantity.toString(); // Update remaining quantity for the loop
+        }
+    
+        if (remainingQuantity > 0) {
             this.emit('agent_status', { 
                 orderId: marketOrder.intent.id,
                 userAddress: marketOrder.intent.user,
-                msg: `[${this.agentName}] Error processing market order.`,
-                type: 'error' 
+                msg: `[${this.agentName}] No sufficient internal/LP liquidity. Falling back to external DEX...`,
+                type: 'info' 
             });
+            marketOrder.quantity = remainingQuantity;
+            await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature);
         }
     }
 
     private async matchOrders() {
-        if (this.isMatching) return;
-        this.isMatching = true;
+        for (const [pairId, book] of this.books.entries()) {
+            while (book.bids.length > 0 && book.asks.length > 0) {
+                const bestBid = book.bids[0];
+                const bestAsk = book.asks[0];
 
-        try {
-            const { data: openOrders, error } = await supabase.rpc('fetch_and_lock_orders');
-
-            if (error) {
-                console.error('Error fetching and locking orders:', error);
-                return;
-            }
-
-            if (!openOrders || openOrders.length < 1) return;
-
-            const orderbook = this.groupOrdersByPair(openOrders);
-
-            for (const pairId in orderbook) {
-                let { bids, asks } = orderbook[pairId];
-                bids.sort((a, b) => Number(b.price) - Number(a.price)); 
-                asks.sort((a, b) => Number(a.price) - Number(b.price)); 
-
-                while (bids.length > 0 && asks.length > 0) {
-                    const bestBid = bids[0];
-                    const bestAsk = asks[0];
-
-                    if (Number(bestBid.price) >= Number(bestAsk.price)) {
-                        const fillQuantity = Math.min(Number(bestBid.quantity), Number(bestAsk.quantity));
-                        
-                        this.emit('agent_status', {
-                            orderId: bestBid.intent_id, 
-                            userAddress: bestBid.user_address,
-                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestBid.pair?.base_token?.symbol || 'base'}.`,
-                            type: 'info' 
-                        });
-
-                        this.emit('agent_status', { 
-                            orderId: bestAsk.intent_id, 
-                            userAddress: bestAsk.user_address,
-                            msg: `[${this.agentName}] Found internal match for ${fillQuantity} ${bestAsk.pair?.base_token?.symbol || 'base'}.`,
-                            type: 'info' 
-                        });
-
-                        await this.liquidityEngine.settleMatchedTrade({
-                            buyer: bestBid,
-                            seller: bestAsk,
-                            quantity: fillQuantity,
-                            price: Number(bestAsk.price), 
-                            pair: bestBid.pair
-                        });
-                        
-                        const remainingBidQuantity = Number(bestBid.quantity) - fillQuantity;
-                        const remainingAskQuantity = Number(bestAsk.quantity) - fillQuantity;
-
-                        await supabase.from('orders').update({ 
-                            quantity: remainingBidQuantity.toString(),
-                            status: remainingBidQuantity <= 0 ? 'fulfilled' : 'processing'
-                        }).eq('id', bestBid.id);
-
-                        await supabase.from('orders').update({ 
-                            quantity: remainingAskQuantity.toString(),
-                            status: remainingAskQuantity <= 0 ? 'fulfilled' : 'processing'
-                        }).eq('id', bestAsk.id);
-
-                        if (remainingBidQuantity <= 0) bids.shift();
-                        if (remainingAskQuantity <= 0) asks.shift();
-
-                    } else {
-                        break; 
-                    }
+                if (Number(bestBid.price) >= Number(bestAsk.price)) {
+                    const fillQuantity = Math.min(Number(bestBid.quantity), Number(bestAsk.quantity));
+                    await this.executeInternalMatch({ ...bestBid }, { ...bestAsk }, fillQuantity, Number(bestAsk.price));
+                } else {
+                    break; // Prices don't cross
                 }
             }
-        } catch (error) {
-            console.error('Error during limit order matching cycle:', error);
-            this.emit('agent_status', { type: 'error', msg: 'An error occurred during order matching.' });
-        } finally {
-            this.isMatching = false;
+        }
+    }
+
+    private async executeLPMatch(taker: Order, lpOrder: Order, quantity: number) {
+        this.emit('agent_status', {
+            orderId: taker.intent.id,
+            msg: `[${this.agentName}] Executing ${quantity} against LP at price ${lpOrder.price}.`,
+            type: 'info'
+        });
+    
+        await this.liquidityEngine.settleMatchedTrade({
+            buyer: taker.side === 'buy' ? taker : { ...lpOrder, user_address: LP_ADDRESS },
+            seller: taker.side === 'sell' ? taker : { ...lpOrder, user_address: LP_ADDRESS },
+            quantity,
+            price: lpOrder.price,
+            pair: taker.pair
+        });
+
+        // Update taker order status (LP order is virtual and not in the book)
+        const updatedTaker = { ...taker, quantity: Number(taker.quantity) - quantity };
+        this.updateOrderStatusInDB(updatedTaker);
+    }
+
+    private async executeInternalMatch(buyer: Order, seller: Order, quantity: number, price: number) {
+        this.emit('agent_status', { 
+            orderId: buyer.intent.id, 
+            msg: `[${this.agentName}] Found internal match for ${quantity} @ ${price}.`,
+            type: 'info' 
+        });
+        
+        await this.liquidityEngine.settleMatchedTrade({ buyer, seller, quantity, price, pair: buyer.pair || seller.pair });
+        
+        const updatedBuyer = { ...buyer, quantity: Number(buyer.quantity) - quantity };
+        const updatedSeller = { ...seller, quantity: Number(seller.quantity) - quantity };
+
+        const pairId = buyer.trading_pair_id || seller.trading_pair_id;
+        const book = this.books.get(pairId)!;
+
+        book.bids = book.bids.map(o => o.id === buyer.id ? updatedBuyer : o).filter(o => o.quantity > 0);
+        book.asks = book.asks.map(o => o.id === seller.id ? updatedSeller : o).filter(o => o.quantity > 0);
+        
+        this.updateOrderStatusInDB(updatedBuyer);
+        this.updateOrderStatusInDB(updatedSeller);
+        
+        this.emitFormattedBook(pairId, book);
+    }
+
+    private emitFormattedBook(pairId: string, book: {bids: Order[], asks: Order[]}) {
+        const formattedBook = this.formatOrderBook(book);
+        this.emit('orderbook_update', { pairId, ...formattedBook });
+    }
+
+    private formatOrderBook(book: { bids: Order[], asks: Order[] }) {
+        const aggregate = (orders: Order[], isBid: boolean) => {
+            const map = new Map<number, number>();
+            orders.forEach(o => {
+                const price = Number(o.price);
+                const qty = Number(o.quantity);
+                map.set(price, (map.get(price) || 0) + qty);
+            });
+    
+            const sorted = Array.from(map.entries()).sort((a, b) => isBid ? b[0] - a[0] : a[0] - b[0]);
+            return sorted.map(([price, qty]) => [price.toFixed(4), qty.toString()]);
+        };
+    
+        return { bids: aggregate(book.bids, true), asks: aggregate(book.asks, false) };
+    }
+
+    private async updateOrderStatusInDB(order: Order) {
+        const isFilled = order.quantity <= 0;
+        const status = isFilled ? 'fulfilled' : 'processing';
+
+        // Don't try to update virtual LP orders in the DB
+        if (order.id === 'LP_ORDER') return;
+
+        const { error } = await this.supabase
+            .from('orders')
+            .update({ quantity: order.quantity.toString(), status })
+            .eq('id', order.id);
+
+        if (error) {
+            console.error(`[DB_SYNC_ERROR] Failed to update order ${order.id}:`, error);
         }
     }
 }
