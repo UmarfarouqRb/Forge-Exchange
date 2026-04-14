@@ -429,7 +429,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
 
         <div className="mt-4">
-          <AgentLog logs={agentLogs} />
+          <AgentLog logs={agentLogs} clearLogs={clearLogs} />
         </div>
 
         <OrderConfirmationDialog

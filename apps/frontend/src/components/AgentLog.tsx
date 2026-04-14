@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 export interface LogEntry {
   orderId: string;
@@ -13,13 +14,15 @@ export interface LogEntry {
 
 interface AgentLogProps {
   logs: LogEntry[];
+  clearLogs: () => void;
 }
 
-export function AgentLog({ logs }: AgentLogProps) {
+export function AgentLog({ logs, clearLogs }: AgentLogProps) {
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Agent Status</CardTitle>
+        <Button variant="outline" size="sm" onClick={clearLogs}>Clear</Button>
       </CardHeader>
       <CardContent className="flex-grow overflow-hidden">
         <ScrollArea className="h-full">
