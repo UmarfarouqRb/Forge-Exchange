@@ -88,9 +88,6 @@ export class MatchingEngine extends EventEmitter {
     }
     
     public async processOrder(order: Order) {
-        // --- DEBUG TRICK ---
-        console.log(" [Engine] Received order with pairId:", order.trading_pair_id);
-
         if (!order.intent || !order.intent.id || !order.intent.user) {
             console.error('[MatchingEngine] Received malformed order payload:', order);
             return;
@@ -131,14 +128,14 @@ export class MatchingEngine extends EventEmitter {
     
         const spread = 0.002; // 0.2% spread for LP
     
-        const lpPrice = side === 'buy' ? price * (1 - spread) : price * (1 + spread);
+        const lpPrice = side === 'buy' ? price * (1 + spread) : price * (1 - spread);
     
         return {
             id: 'LP_ORDER',
             user_address: LP_ADDRESS,
             side,
             price: lpPrice,
-            quantity: Infinity, // Represents effectively infinite liquidity for this transaction
+            quantity: Infinity, 
             isLP: true
         };
     }
@@ -146,55 +143,56 @@ export class MatchingEngine extends EventEmitter {
     private async fillMarketOrder(marketOrder: Order) {
         const pairId = marketOrder.trading_pair_id;
         let remainingQuantity = Number(marketOrder.quantity);
-    
+
+        // Phase 1: Match internal order book
         const book = this.books.get(pairId) || { bids: [], asks: [] };
         const counterOrders = marketOrder.side === 'buy' ? book.asks : book.bids;
 
-        // Create a combined list of potential matches: internal book + virtual LP order
-        const potentialMatches = [...counterOrders];
-        const lpOrder = this.getLPOrder(pairId, marketOrder.side === 'buy' ? 'sell' : 'buy');
-        if (lpOrder) {
-            potentialMatches.push(lpOrder);
-            // Ensure LP order is sorted correctly
-            potentialMatches.sort((a,b) => marketOrder.side === 'buy' ? Number(a.price) - Number(b.price) : Number(b.price) - Number(a.price))
-        }
-        
-        for (const counterOrder of potentialMatches) {
+        for (const counterOrder of counterOrders) {
             if (remainingQuantity <= 0) break;
-
-            if (counterOrder.isLP) {
-                // NOTE: Implement checkLPLiquidity in LiquidityEngine
-                const hasLiquidity = true; // await this.liquidityEngine.checkLPLiquidity(pairId, remainingQuantity);
-                if (hasLiquidity) {
-                    await this.executeLPMatch(marketOrder, counterOrder, remainingQuantity);
-                    remainingQuantity = 0; // LP fills the rest
-                }
-                continue; 
-            }
             
             const fillQuantity = Math.min(remainingQuantity, Number(counterOrder.quantity));
             
-            // Use immutable copies for execution
             await this.executeInternalMatch(
                 marketOrder.side === 'buy' ? marketOrder : { ...counterOrder },
                 marketOrder.side === 'buy' ? { ...counterOrder } : marketOrder,
                 fillQuantity,
                 Number(counterOrder.price)
             );
-    
+
             remainingQuantity -= fillQuantity;
-            marketOrder.quantity = remainingQuantity.toString(); // Update remaining quantity for the loop
+            marketOrder.quantity = remainingQuantity.toString();
         }
-    
+
+        // Phase 2: Try external DEX
         if (remainingQuantity > 0) {
-            this.emit('agent_status', { 
-                orderId: marketOrder.intent.id,
-                userAddress: marketOrder.intent.user,
-                msg: `[${this.agentName}] No sufficient internal/LP liquidity. Falling back to external DEX...`,
-                type: 'info' 
-            });
-            marketOrder.quantity = remainingQuantity;
-            await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature);
+            const simulation = await this.liquidityEngine.simulateExternalSwap(marketOrder.intent, marketOrder.signature);
+            if (simulation.success && simulation.amountOut >= marketOrder.intent.minAmountOut) {
+                this.emit('agent_status', { orderId: marketOrder.intent.id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation successful. Executing swap...`, type: 'info' });
+                try {
+                    await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature);
+                    remainingQuantity = 0; // Assume full fill from DEX
+                } catch (err) {
+                     console.warn(`DEX execution failed after successful simulation: ${(err as Error).message}. Falling back to LP.`);
+                     this.emit('agent_status', { orderId: marketOrder.intent.id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] DEX execution failed. Falling back to LP.`, type: 'warning' });
+                }
+            } else {
+                this.emit('agent_status', { orderId: marketOrder.intent.id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation failed or insufficient liquidity. Falling back to LP.`, type: 'info' });
+            }
+        }
+
+        // Phase 3: FINAL fallback to LP
+        if (remainingQuantity > 0) {
+            const oppositeSide = marketOrder.side === 'buy' ? 'sell' : 'buy';
+            const lpOrder = this.getLPOrder(pairId, oppositeSide);
+
+            if (lpOrder) {
+                 this.emit('agent_status', { orderId: marketOrder.intent.id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] Executing final fill for ${remainingQuantity} with LP.`, type: 'info' });
+                await this.executeLPMatch(marketOrder, lpOrder, remainingQuantity);
+                remainingQuantity = 0;
+            } else {
+                this.emit('agent_status', { orderId: marketOrder.intent.id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] CRITICAL: No LP fallback available for pair ${pairId}. Order may be partially filled.`, type: 'error' });
+            }
         }
     }
 
@@ -215,29 +213,25 @@ export class MatchingEngine extends EventEmitter {
     }
 
     private async executeLPMatch(taker: Order, lpOrder: Order, quantity: number) {
-        this.emit('agent_status', {
-            orderId: taker.intent.id,
-            msg: `[${this.agentName}] Executing ${quantity} against LP at price ${lpOrder.price}.`,
-            type: 'info'
-        });
-    
-        await this.liquidityEngine.settleMatchedTrade({
-            buyer: taker.side === 'buy' ? taker : { ...lpOrder, user_address: LP_ADDRESS },
-            seller: taker.side === 'sell' ? taker : { ...lpOrder, user_address: LP_ADDRESS },
-            quantity,
-            price: lpOrder.price,
-            pair: taker.pair
-        });
-
-        // Update taker order status (LP order is virtual and not in the book)
-        const updatedTaker = { ...taker, quantity: Number(taker.quantity) - quantity };
-        this.updateOrderStatusInDB(updatedTaker);
+        const orderForLp = { ...taker, quantity };
+        await this.liquidityEngine.executeWithLP(orderForLp);
+        this.updateOrderStatusInDB({ ...taker, quantity: Number(taker.quantity) - quantity });
     }
 
     private async executeInternalMatch(buyer: Order, seller: Order, quantity: number, price: number) {
+        const msg = `[${this.agentName}] Found internal match for ${quantity} @ ${price}.`;
+
         this.emit('agent_status', { 
             orderId: buyer.intent.id, 
-            msg: `[${this.agentName}] Found internal match for ${quantity} @ ${price}.`,
+            userAddress: buyer.intent.user,
+            msg,
+            type: 'info' 
+        });
+
+        this.emit('agent_status', { 
+            orderId: seller.intent.id, 
+            userAddress: seller.intent.user,
+            msg,
             type: 'info' 
         });
         
@@ -283,7 +277,6 @@ export class MatchingEngine extends EventEmitter {
         const isFilled = order.quantity <= 0;
         const status = isFilled ? 'fulfilled' : 'processing';
 
-        // Don't try to update virtual LP orders in the DB
         if (order.id === 'LP_ORDER') return;
 
         const { error } = await this.supabase

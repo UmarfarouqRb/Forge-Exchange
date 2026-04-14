@@ -2,7 +2,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import { getTradingPairs } from '../../packages/markets/tradingPairs/trading-pairs';
-import { getMarket } from '../../packages/markets/markets/market';
+import { getMarket, setBook } from '@forge/markets';
 
 let wss: WebSocketServer;
 
@@ -17,21 +17,21 @@ export function createWebSocketServer(server: Server) {
   wss.on('connection', (ws: WebSocket) => {
     console.log('Client connected');
 
-    ws.on('message', (message: string) => {
+    ws.on('message', async (message: string) => {
       try {
         const data = JSON.parse(message);
         console.log('Received message:', data);
         
         if (data.type === 'subscribe') {
             if (data.topic) {
-                subscribeClient(ws, data.topic);
+                await subscribeClient(ws, data.topic);
             } else if (data.userAddress) {
                 // When a user connects, they should send their address
                 // to be associated with the websocket connection.
                 const userAddress = data.userAddress;
                 userConnections.set(userAddress, ws);
                 // Automatically subscribe them to their orders topic
-                subscribeClient(ws, `orders:${userAddress}`);
+                await subscribeClient(ws, `orders:${userAddress}`);
             }
         }
         
@@ -60,12 +60,20 @@ export function createWebSocketServer(server: Server) {
   console.log('WebSocket server created');
 }
 
-function subscribeClient(ws: WebSocket, topic: string) {
+async function subscribeClient(ws: WebSocket, topic: string) {
   if (!subscriptions.has(topic)) {
     subscriptions.set(topic, new Set());
   }
   subscriptions.get(topic)!.add(ws);
   console.log(`Client subscribed to ${topic}`);
+
+  if (topic.startsWith('market:')) {
+      const pairId = topic.split(':')[1];
+      const marketData = await getMarket(pairId);
+      if(marketData) {
+        ws.send(JSON.stringify({ topic, ...marketData }));
+      }
+  }
 }
 
 function unsubscribeClient(ws: WebSocket, topic: string) {
@@ -135,5 +143,5 @@ async function broadcastPrices() {
 }
 
 function startPriceBroadcasting() {
-  setInterval(broadcastPrices, 60000); // Broadcast every 1 minute
+  setInterval(broadcastPrices, 5000); // Broadcast every 1 minute
 }

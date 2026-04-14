@@ -120,6 +120,39 @@ export class LiquidityEngine extends EventEmitter {
         }
     }
 
+    public async simulateExternalSwap(intent: any, signature: any): Promise<{ success: boolean; amountOut: bigint; }> {
+        try {
+            const parsedIntent = {
+                ...intent,
+                amountIn: BigInt(intent.amountIn),
+                minAmountOut: BigInt(intent.minAmountOut),
+                deadline: BigInt(intent.deadline),
+                nonce: BigInt(intent.nonce),
+                relayerFee: BigInt(intent.relayerFee),
+            };
+
+            const { result } = await publicClient.simulateContract({
+                address: this.intentSpotRouterAddress,
+                abi: IntentSpotRouterAbi,
+                functionName: 'executeSwap',
+                args: [parsedIntent, signature],
+                account: this.account
+            });
+
+            return {
+                success: true,
+                amountOut: result
+            };
+
+        } catch (err) {
+            console.warn(`External DEX simulation failed: ${(err as Error).message}`);
+            return {
+                success: false,
+                amountOut: 0n
+            };
+        }
+    }
+
     public async settleMatchedTrade(trade: any) {
         const { buyer, seller, quantity, price, pair } = trade;
         const amountBase = parseUnits(quantity.toString(), pair.base.decimals);

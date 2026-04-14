@@ -11,12 +11,12 @@ app.use(express.json());
 
 const API_URL = process.env.API_URL || 'http://localhost:3001';
 
-async function broadcastToApi(topic: string, data: any, orderId?: string) {
+async function broadcastToApi(topic: string, data: any) {
   try {
     await fetch(`${API_URL}/api/broadcast`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, data: { ...data, orderId } }),
+      body: JSON.stringify({ topic, data }),
     });
   } catch (error) {
     console.error('Error broadcasting to API:', error);
@@ -34,7 +34,7 @@ matchingEngine.on('agent_status', (data) => {
     const { userAddress, orderId } = data;
     if (userAddress && orderId) {
         const topic = `orders:${userAddress}`;
-        broadcastToApi(topic, data, orderId);
+        broadcastToApi(topic, data);
     }
 });
 
