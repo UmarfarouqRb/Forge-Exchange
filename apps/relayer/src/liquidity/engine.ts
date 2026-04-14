@@ -18,6 +18,22 @@ function safeAddress(addr?: string | null): `0x${string}` | null {
     return getAddress(addr);
 }
 
+// Helper function to create a clean intent object for contract calls
+function createCleanIntent(intent: any) {
+  // Ensure we don't pass any extra fields to the contract
+  return {
+    user: intent.user,
+    tokenIn: intent.tokenIn,
+    tokenOut: intent.tokenOut,
+    amountIn: BigInt(intent.amountIn),
+    minAmountOut: BigInt(intent.minAmountOut),
+    deadline: BigInt(intent.deadline),
+    nonce: BigInt(intent.nonce),
+    adapter: intent.adapter ?? '0x0000000000000000000000000000000000000000', // Default if null
+    relayerFee: BigInt(intent.relayerFee || 0), // Default if null
+  };
+}
+
 const publicClient = createPublicClient({
     chain: baseSepolia,
     transport: http(),
@@ -98,20 +114,13 @@ export class LiquidityEngine extends EventEmitter {
     
     public async getOnChainQuote(order: any): Promise<bigint> {
         try {
-            const parsedIntent = {
-                ...order.intent,
-                amountIn: BigInt(order.intent.amountIn),
-                minAmountOut: BigInt(order.intent.minAmountOut),
-                deadline: BigInt(order.intent.deadline),
-                nonce: BigInt(order.intent.nonce),
-                relayerFee: BigInt(order.intent.relayerFee),
-            };
+            const cleanIntent = createCleanIntent(order.intent);
 
             const data = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'executeSwap',
-                args: [parsedIntent, order.signature],
+                args: [cleanIntent, order.signature],
             });
             return data.result;
         } catch (error) {
@@ -122,20 +131,13 @@ export class LiquidityEngine extends EventEmitter {
 
     public async simulateExternalSwap(intent: any, signature: any): Promise<{ success: boolean; amountOut: bigint; }> {
         try {
-            const parsedIntent = {
-                ...intent,
-                amountIn: BigInt(intent.amountIn),
-                minAmountOut: BigInt(intent.minAmountOut),
-                deadline: BigInt(intent.deadline),
-                nonce: BigInt(intent.nonce),
-                relayerFee: BigInt(intent.relayerFee),
-            };
+            const cleanIntent = createCleanIntent(intent);
 
             const { result } = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'executeSwap',
-                args: [parsedIntent, signature],
+                args: [cleanIntent, signature],
                 account: this.account
             });
 
@@ -236,20 +238,13 @@ export class LiquidityEngine extends EventEmitter {
         });
         
         try {
-            const parsedIntent = {
-                ...intent,
-                amountIn: BigInt(intent.amountIn),
-                minAmountOut: BigInt(intent.minAmountOut),
-                deadline: BigInt(intent.deadline),
-                nonce: BigInt(intent.nonce),
-                relayerFee: BigInt(intent.relayerFee),
-            };
+            const cleanIntent = createCleanIntent(intent);
 
             const { request, result: amountOut } = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'executeSwap',
-                args: [parsedIntent, signature], 
+                args: [cleanIntent, signature], 
                 account: this.account
             });
 
@@ -273,20 +268,13 @@ export class LiquidityEngine extends EventEmitter {
             if(amountOut < intent.minAmountOut) {
                 throw new Error("Slippage exceeded");
             }
-            const parsedIntent = {
-                ...intent,
-                amountIn: BigInt(intent.amountIn),
-                minAmountOut: BigInt(intent.minAmountOut),
-                deadline: BigInt(intent.deadline),
-                nonce: BigInt(intent.nonce),
-                relayerFee: BigInt(intent.relayerFee),
-            };
+            const cleanIntent = createCleanIntent(intent);
 
             const { request } = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'settleTrade',
-                args: [parsedIntent, signature, counterparty, amountOut],
+                args: [cleanIntent, signature, counterparty, amountOut],
                 account: this.account
             });
 
