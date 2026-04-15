@@ -30,10 +30,10 @@ export const TOKENS: Record<string, Token> = {
     decimals: 8,
   },
   LINK: {
-    id: "LINK",
-    address: "0xE4aB69C077896252FAFBD49EFD26B5D171A32410",
-    name: "Chainlink",
-    symbol: "LINK",
-    decimals: 18,
+    id: "EUROC",
+    address: "0x808456652fdb597867f38412077A9182bf77359F",
+    name: "EURO Coin",
+    symbol: "EUROC",
+    decimals: 6,
   },
 };

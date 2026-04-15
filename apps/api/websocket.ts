@@ -143,5 +143,5 @@ async function broadcastPrices() {
 }
 
 function startPriceBroadcasting() {
-  setInterval(broadcastPrices, 5000); // Broadcast every 1 minute
+  setInterval(broadcastPrices, 20000); // Broadcast every 1 minute
 }

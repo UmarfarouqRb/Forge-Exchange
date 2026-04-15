@@ -1,4 +1,3 @@
-
 import { useVault } from "@/contexts/VaultContext";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -22,17 +21,23 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
     return assets
       .filter(asset => {
         if (!asset || !asset.token) return false;
+        // Asset filtering based on deposit/withdraw enabled
         if (type === 'deposit') return asset.deposit_enabled;
         if (type === 'withdraw') return asset.withdraw_enabled;
         return true;
       })
       .map(asset => ({ 
         value: asset.token.symbol,
-        label: asset.token.symbol
+        label: asset.token.symbol === 'WETH' ? 'ETH' : asset.token.symbol
       }));
   }, [assets, type, isLoading]);
 
-  const selectedAssetLabel = asset || "Select asset";
+  const selectedAssetLabel = useMemo(() => {
+    if (!asset) return "Select asset";
+    // Find the asset in our list to get the correct display label ('ETH' for 'WETH')
+    const selected = filteredAssets.find(a => a.value === asset);
+    return selected ? selected.label : "Select asset";
+  }, [asset, filteredAssets]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

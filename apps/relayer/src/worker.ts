@@ -49,18 +49,16 @@ export class RetryWorker {
                         .update({ retries: order.retries + 1, status: 'processing' })
                         .eq('id', order.id);
 
-                    // --- STRICT SHAPE CONTROL ---
-                    // FORCE UUID ONLY and map explicitly
                     const formattedOrder = {
                         id: order.id,
-                        trading_pair_id: order.trading_pair_id, // This should be the UUID
+                        intent_id: order.intent_id,
+                        trading_pair_id: order.trading_pair_id,
                         side: order.side,
                         price: order.price,
                         quantity: order.quantity,
                         order_type: order.order_type,
-                        pair: order.pair || null, // Optional, can be enriched later
+                        pair: order.pair || null,
                         intent: {
-                            id: order.intent_id,
                             user: order.user_address,
                             tokenIn: order.token_in,
                             tokenOut: order.token_out,
@@ -74,17 +72,13 @@ export class RetryWorker {
                         signature: order.signature
                     };
 
-                    // --- EXTRA SAFETY GUARD ---
                     if (!formattedOrder.trading_pair_id || formattedOrder.trading_pair_id.length !== 36) {
                         console.error(" [Worker] Invalid or missing UUID detected for trading_pair_id:", formattedOrder.trading_pair_id);
-                        // Mark order as failed to prevent retry loops
                         await this.supabase.from('orders').update({ status: 'failed', failure_reason: 'Invalid trading_pair_id' }).eq('id', order.id);
-                        continue; // Skip to next order
+                        continue;
                     }
 
-                    // --- DEBUG TRICK ---
                     console.log(" [Worker] Sending clean order to engine with pairId:", formattedOrder.trading_pair_id);
-
                     await this.matchingEngine.processOrder(formattedOrder);
 
                 } catch (e: any) {

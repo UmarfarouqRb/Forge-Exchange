@@ -91,9 +91,8 @@ export async function forwardOrderToRelayer(order: any): Promise<void> {
     }
 
     const payloadForRelayer = {
+        intent_id: order.intent_id, // Keep ID at top level
         intent: {
-            id: order.intent_id,
-            chainId,
             user: order.user_address,
             tokenIn: order.token_in,
             tokenOut: order.token_out,

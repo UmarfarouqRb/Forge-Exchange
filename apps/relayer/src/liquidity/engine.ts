@@ -74,7 +74,7 @@ export class LiquidityEngine extends EventEmitter {
         if (this.lpAddress) {
             console.log(`Liquidity Engine initialized with LP: ${this.lpAddress}`);
         } else {
-            console.error("CRITICAL: No valid LP_ADDRESS configured. Liquidity Engine will not be able to execute trades with LP.");
+            console.log("CRITICAL: No valid LP_ADDRESS configured. Liquidity Engine will not be able to execute trades with LP.");
         }
     }
 
@@ -161,8 +161,10 @@ export class LiquidityEngine extends EventEmitter {
         const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
         const amountQuote = (amountBase * priceBigInt) / (10n ** BigInt(pair.base.decimals));
 
+        const buyerIntentId = buyer.intent_id;
+
         this.emit('agent_status', { 
-            orderId: buyer.intent.id,
+            orderId: buyerIntentId,
             userAddress: buyer.intent.user,
             msg: `[${this.agentName}] Settling internal match for ${quantity} ${pair.base.symbol}.`,
             type: 'info' 
@@ -172,7 +174,8 @@ export class LiquidityEngine extends EventEmitter {
             intent: buyer.side === 'buy' ? buyer.intent : seller.intent,
             signature: buyer.side === 'buy' ? buyer.signature : seller.signature,
             counterparty: buyer.side === 'buy' ? seller.intent.user : buyer.intent.user,
-            amountOut: amountQuote
+            amountOut: amountQuote,
+            intent_id: buyerIntentId
         });
     }
 
@@ -180,7 +183,7 @@ export class LiquidityEngine extends EventEmitter {
         if (!this.lpAddress) {
             console.error("Cannot execute with LP: LP Address is not configured or invalid.");
             this.emit('agent_status', { 
-                orderId: order.intent.id, 
+                orderId: order.intent_id, 
                 userAddress: order.intent.user,
                 msg: `[${this.agentName}] Cannot execute with LP, address not configured.`, 
                 type: 'error' 
@@ -192,7 +195,7 @@ export class LiquidityEngine extends EventEmitter {
         if (price === null) {
             console.error(`Cannot settle with LP: No internal price for pair ${order.tradingPairId}`);
             this.emit('agent_status', { 
-                orderId: order.intent.id, 
+                orderId: order.intent_id, 
                 userAddress: order.intent.user,
                 msg: `[${this.agentName}] Cannot settle with LP, no internal price for ${order.pair.symbol}.`, 
                 type: 'error' 
@@ -215,7 +218,7 @@ export class LiquidityEngine extends EventEmitter {
         }
 
         this.emit('agent_status', { 
-            orderId: order.intent.id,
+            orderId: order.intent_id,
             userAddress: order.intent.user,
             msg: `[${this.agentName}] No external liquidity found. Settling ${order.quantity} ${pair.base.symbol} with internal LP.`,
             type: 'info' 
@@ -225,13 +228,14 @@ export class LiquidityEngine extends EventEmitter {
             intent: order.intent,
             signature: order.signature,
             counterparty: this.lpAddress,
-            amountOut: amountOut
+            amountOut: amountOut,
+            intent_id: order.intent_id
         });
     }
 
-    public async executeWithExternalDex(intent: any, signature: any) {
+    public async executeWithExternalDex(intent: any, signature: any, intent_id: string) {
         this.emit('agent_status', {
-            orderId: intent.id,
+            orderId: intent_id,
             userAddress: intent.user,
             msg: `[${this.agentName}] Routing to external DEX to fill intent.`,
             type: 'info' 
@@ -262,7 +266,7 @@ export class LiquidityEngine extends EventEmitter {
     }
 
     private async settleOnChain(params: any) {
-        const { intent, signature, counterparty, amountOut } = params;
+        const { intent, signature, counterparty, amountOut, intent_id } = params;
         
         try {
             if(amountOut < intent.minAmountOut) {
@@ -291,7 +295,7 @@ export class LiquidityEngine extends EventEmitter {
         } catch (error: any) {
             console.error("On-chain settlement failed:", error);
             this.emit('agent_status', {
-                orderId: intent.id, 
+                orderId: intent_id, 
                 userAddress: intent.user,
                 msg: `[${this.agentName}] On-chain settlement failed.`,
                 type: 'error'

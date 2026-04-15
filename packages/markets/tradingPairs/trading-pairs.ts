@@ -18,6 +18,11 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
     base: "WETH",
     quote: "USDC",
   },
+  {
+    id: "USDCEUROC",
+    base: "USDC",
+    quote: "EUROC", 
+  }
 ];
 
 let tradingPairs: TradingPair[] | null = null;

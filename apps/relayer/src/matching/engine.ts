@@ -88,13 +88,13 @@ export class MatchingEngine extends EventEmitter {
     }
     
     public async processOrder(order: Order) {
-        if (!order.intent || !order.intent.id || !order.intent.user) {
+        if (!order.intent || !order.intent_id || !order.intent.user) {
             console.error('[MatchingEngine] Received malformed order payload:', order);
             return;
         }
         
         this.emit('agent_status', { 
-            orderId: order.intent.id, 
+            orderId: order.intent_id, 
             userAddress: order.intent.user, 
             msg: `[${this.agentName}] Order received. Processing...`,
             type: 'info' 
@@ -107,7 +107,7 @@ export class MatchingEngine extends EventEmitter {
             this.enqueueMatch();
         } else {
              this.emit('agent_status', { 
-                orderId: order.intent.id, 
+                orderId: order.intent_id, 
                 userAddress: order.intent.user,
                 msg: `[${this.agentName}] Invalid order type: ${order.order_type}`,
                 type: 'error' 
@@ -168,16 +168,16 @@ export class MatchingEngine extends EventEmitter {
         if (remainingQuantity > 0) {
             const simulation = await this.liquidityEngine.simulateExternalSwap(marketOrder.intent, marketOrder.signature);
             if (simulation.success && simulation.amountOut >= marketOrder.intent.minAmountOut) {
-                this.emit('agent_status', { orderId: marketOrder.intent.id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation successful. Executing swap...`, type: 'info' });
+                this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation successful. Executing swap...`, type: 'info' });
                 try {
-                    await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature);
+                    await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature, marketOrder.intent_id);
                     remainingQuantity = 0; // Assume full fill from DEX
                 } catch (err) {
                      console.warn(`DEX execution failed after successful simulation: ${(err as Error).message}. Falling back to LP.`);
-                     this.emit('agent_status', { orderId: marketOrder.intent.id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] DEX execution failed. Falling back to LP.`, type: 'warning' });
+                     this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] DEX execution failed. Falling back to LP.`, type: 'warning' });
                 }
             } else {
-                this.emit('agent_status', { orderId: marketOrder.intent.id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation failed or insufficient liquidity. Falling back to LP.`, type: 'info' });
+                this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation failed or insufficient liquidity. Falling back to LP.`, type: 'info' });
             }
         }
 
@@ -187,11 +187,11 @@ export class MatchingEngine extends EventEmitter {
             const lpOrder = this.getLPOrder(pairId, oppositeSide);
 
             if (lpOrder) {
-                 this.emit('agent_status', { orderId: marketOrder.intent.id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] Executing final fill for ${remainingQuantity} with LP.`, type: 'info' });
+                 this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] Executing final fill for ${remainingQuantity} with LP.`, type: 'info' });
                 await this.executeLPMatch(marketOrder, lpOrder, remainingQuantity);
                 remainingQuantity = 0;
             } else {
-                this.emit('agent_status', { orderId: marketOrder.intent.id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] CRITICAL: No LP fallback available for pair ${pairId}. Order may be partially filled.`, type: 'error' });
+                this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] CRITICAL: No LP fallback available for pair ${pairId}. Order may be partially filled.`, type: 'error' });
             }
         }
     }
@@ -222,20 +222,20 @@ export class MatchingEngine extends EventEmitter {
         const msg = `[${this.agentName}] Found internal match for ${quantity} @ ${price}.`;
 
         this.emit('agent_status', { 
-            orderId: buyer.intent.id, 
+            orderId: buyer.intent_id, 
             userAddress: buyer.intent.user,
             msg,
             type: 'info' 
         });
 
         this.emit('agent_status', { 
-            orderId: seller.intent.id, 
+            orderId: seller.intent_id, 
             userAddress: seller.intent.user,
             msg,
             type: 'info' 
         });
         
-        await this.liquidityEngine.settleMatchedTrade({ buyer, seller, quantity, price, pair: buyer.pair || seller.pair });
+        await this.liquidityEngine.settleMatchedTrade({ buyer, seller, quantity, price, pair: buyer.pair || seller.pair, intentId: buyer.intent_id });
         
         const updatedBuyer = { ...buyer, quantity: Number(buyer.quantity) - quantity };
         const updatedSeller = { ...seller, quantity: Number(seller.quantity) - quantity };
