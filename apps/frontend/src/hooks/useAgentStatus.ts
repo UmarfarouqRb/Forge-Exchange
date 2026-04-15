@@ -3,6 +3,23 @@ import { LogEntry } from '@/components/AgentLog';
 import { useAgentSocket } from '@/lib/ws/agent';
 import { usePrivy } from '@privy-io/react-auth';
 
+// Helper to map old log types to new ones
+const mapLogType = (type: string): LogEntry['type'] => {
+  switch (type) {
+    case 'info':
+    case 'pending':
+      return 'pending';
+    case 'processing':
+      return 'processing';
+    case 'success':
+      return 'success';
+    case 'error':
+      return 'error';
+    default:
+      return 'processing';
+  }
+};
+
 export function useAgentStatus(orderId?: string) {
   const { user } = usePrivy();
   const userAddress = user?.wallet?.address || '';
@@ -13,16 +30,15 @@ export function useAgentStatus(orderId?: string) {
     if (lastMessage) {
       try {
         const data = JSON.parse(lastMessage.data);
-        console.log('Agent Status Update:', data); // Log the received data
-        
         const isTargetOrder = !orderId || data.orderId === orderId;
         
         if (isTargetOrder && data.msg) {
             const newLog: LogEntry = {
-                orderId: data.orderId,
+                id: `${Date.now()}-${Math.random()}`,
                 msg: data.msg,
-                type: data.type || 'info',
+                type: mapLogType(data.type || 'processing'),
                 timestamp: Date.now(),
+                details: data.details
             };
             setLogs(prevLogs => [...prevLogs, newLog]);
         }
@@ -32,15 +48,16 @@ export function useAgentStatus(orderId?: string) {
     }
   }, [lastMessage, orderId]);
 
-  const addLog = useCallback((message: string, type: LogEntry['type'] = 'info') => {
+  const addLog = useCallback((message: string, type: LogEntry['type'] | 'info' = 'pending', details?: any) => {
     const newLog: LogEntry = {
-        orderId: orderId || 'general',
+        id: `${Date.now()}-${Math.random()}`,
         msg: message,
-        type: type,
+        type: mapLogType(type),
         timestamp: Date.now(),
+        details,
     };
     setLogs(prevLogs => [...prevLogs, newLog]);
-  }, [orderId]);
+  }, []);
 
   const clearLogs = useCallback(() => {
     setLogs([]);

@@ -29,7 +29,7 @@ export const TOKENS: Record<string, Token> = {
     symbol: "BTC",
     decimals: 8,
   },
-  LINK: {
+  EUROC: {
     id: "EUROC",
     address: "0x808456652fdb597867f38412077A9182bf77359F",
     name: "EURO Coin",

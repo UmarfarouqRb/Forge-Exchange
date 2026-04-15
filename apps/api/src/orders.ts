@@ -106,7 +106,7 @@ export async function forwardOrderToRelayer(order: any): Promise<void> {
         signature: order.signature,
         side: order.side,
         order_type: order.order_type,
-        tradingPairId: order.trading_pair_id,
+        trading_pair_id: order.trading_pair_id,
         quantity: order.quantity,
         price: order.price,
         pair: pairData,
