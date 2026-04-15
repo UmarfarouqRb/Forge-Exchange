@@ -37,6 +37,29 @@ export class MatchingEngine extends EventEmitter {
         this.hydrateFromDB().catch(err => console.error("Failed to hydrate order book from DB:", err));
     }
 
+    private formatOrder(order: any): Order {
+        // If intent exists, assume it's already the new, correct format.
+        if (order.intent) {
+            return order;
+        }
+        // This is for raw DB orders (old format)
+        return {
+            ...order,
+            intent_id: order.intent_id || order.id, // Fallback to main ID for hydrated orders
+            intent: {
+                user: order.user_address,
+                tokenIn: order.token_in,
+                tokenOut: order.token_out,
+                amountIn: order.amount_in,
+                minAmountOut: order.min_amount_out,
+                deadline: order.deadline,
+                nonce: order.nonce,
+                adapter: order.adapter,
+                relayerFee: order.relayer_fee,
+            }
+        };
+    }
+
     async hydrateFromDB() {
         console.log("Hydrating order book from database...");
         const { data, error } = await this.supabase
@@ -49,7 +72,10 @@ export class MatchingEngine extends EventEmitter {
             return;
         }
 
-        data?.forEach(order => this.addToOrderBook(order, true));
+        data?.forEach(order => {
+            const formatted = this.formatOrder(order);
+            this.addToOrderBook(formatted, true);
+        });
         console.log(`Hydrated ${data?.length || 0} orders.`);
     }
 
@@ -122,9 +148,9 @@ export class MatchingEngine extends EventEmitter {
         return this.matchQueue;
     }
 
-    private getLPOrder(pairId: string, side: 'buy' | 'sell') {
-        const price = this.liquidityEngine.getPrice(pairId);
-        if (!price) return null;
+    private async getLPOrder(pairId: string, side: 'buy' | 'sell') {
+        const price = await this.liquidityEngine.getPrice(pairId);
+        if (!price || price <= 0) return null;
     
         const spread = 0.002; // 0.2% spread for LP
     
@@ -184,7 +210,13 @@ export class MatchingEngine extends EventEmitter {
         // Phase 3: FINAL fallback to LP
         if (remainingQuantity > 0) {
             const oppositeSide = marketOrder.side === 'buy' ? 'sell' : 'buy';
-            const lpOrder = this.getLPOrder(pairId, oppositeSide);
+
+            // --- Start of Diagnostic Logging ---
+            console.log("Looking for pair:", pairId);
+            console.log("Available pairs:", this.liquidityEngine.getTradingPairs().map(p => p.id));
+            // --- End of Diagnostic Logging ---
+
+            const lpOrder = await this.getLPOrder(pairId, oppositeSide);
 
             if (lpOrder) {
                  this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] Executing final fill for ${remainingQuantity} with LP.`, type: 'info' });
@@ -219,6 +251,16 @@ export class MatchingEngine extends EventEmitter {
     }
 
     private async executeInternalMatch(buyer: Order, seller: Order, quantity: number, price: number) {
+        if (!buyer.intent || !seller.intent) {
+            console.error('CRITICAL: Invalid match payload due to missing intent structure.', {
+                buyerId: buyer.id,
+                sellerId: seller.id,
+                hasBuyerIntent: !!buyer.intent,
+                hasSellerIntent: !!seller.intent
+            });
+            return;
+        }
+
         const msg = `[${this.agentName}] Found internal match for ${quantity} @ ${price}.`;
 
         this.emit('agent_status', { 

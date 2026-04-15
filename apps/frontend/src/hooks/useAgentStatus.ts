@@ -30,8 +30,10 @@ export function useAgentStatus(orderId?: string) {
     if (lastMessage) {
       try {
         const data = JSON.parse(lastMessage.data);
-        const isTargetOrder = !orderId || data.orderId === orderId;
-        
+        console.log('Agent WebSocket Message:', data);
+
+        const isTargetOrder = data.orderId === orderId;
+
         if (isTargetOrder && data.msg) {
             const newLog: LogEntry = {
                 id: `${Date.now()}-${Math.random()}`,

@@ -80,8 +80,8 @@ export function Navigation() {
       <div className="flex items-center justify-between h-16 pl-0 pr-6">
         <div className="flex items-center gap-0 md:gap-4">
           <NavLink to="/" className="flex items-center gap-1 hover-elevate px-2 md:px-3 py-2 rounded-md" data-testid="link-home-logo">
-            <img src="/assets/1761614392004_1761638995733.jpg" alt="Forge Logo" className="w-14 h-14 md:w-16 md:h-16 object-contain dark:hidden"/>
-            <img src="/assets/IMG_20260306_220913.jpg" alt="Forge Logo" className="w-14 h-14 md:w-16 md:h-16 object-contain hidden dark:block"/>
+            <img src="/assets/ForgeX.png" alt="Forge Logo" className="w-14 h-14 md:w-16 md:h-16 object-contain dark:hidden"/>
+            <img src="/assets/ForgeX dark.png" alt="Forge Logo" className="w-14 h-14 md:w-16 md:h-16 object-contain hidden dark:block"/>
             <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">Forge</span>
           </NavLink>
           <div className="hidden md:flex items-center gap-1">
