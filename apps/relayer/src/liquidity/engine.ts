@@ -91,7 +91,7 @@ export class LiquidityEngine extends EventEmitter {
 
     private async getCoinGeckoPrice(pairId: string): Promise<number | null> {
         try {
-            const pair = this.tradingPairs.find(p => p.id === pairId);
+            const pair = this.tradingPairs.find(p => p.id === pairId || p.symbol === pairId);
             if (!pair) {
                 console.error(`[CoinGecko] Pair NOT FOUND for ID: ${pairId}`);
                 console.log("Available pair IDs:", this.tradingPairs.map(p => p.id));
@@ -186,7 +186,7 @@ export class LiquidityEngine extends EventEmitter {
         const { buyer, seller, quantity, price, intentId } = trade;
     
         const pairId = buyer.trading_pair_id || seller.trading_pair_id;
-        const pair = this.tradingPairs.find(p => p.id === pairId);
+        const pair = this.tradingPairs.find(p => p.id === pairId || p.symbol === pairId);
     
         if (!pair) {
             console.error(`[settleMatchedTrade] Pair not found for ID: ${pairId}`);
@@ -222,7 +222,7 @@ export class LiquidityEngine extends EventEmitter {
             return;
         }
 
-        const pair = this.tradingPairs.find(p => p.id === order.trading_pair_id);
+        const pair = this.tradingPairs.find(p => p.id === order.trading_pair_id || p.symbol === order.trading_pair_id);
         if (!pair) {
             console.error(`[executeWithLP] Pair not found for id: ${order.trading_pair_id}`);
             console.log("Available pair IDs:", this.tradingPairs.map(p => p.id));
