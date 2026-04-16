@@ -277,7 +277,7 @@ export class MatchingEngine extends EventEmitter {
             type: 'info' 
         });
         
-        await this.liquidityEngine.settleMatchedTrade({ buyer, seller, quantity, price, pair: buyer.pair || seller.pair, intentId: buyer.intent_id });
+        await this.liquidityEngine.settleMatchedTrade({ buyer, seller, quantity, price, intentId: buyer.intent_id });
         
         const updatedBuyer = { ...buyer, quantity: Number(buyer.quantity) - quantity };
         const updatedSeller = { ...seller, quantity: Number(seller.quantity) - quantity };

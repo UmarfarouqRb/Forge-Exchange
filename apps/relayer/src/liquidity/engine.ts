@@ -183,14 +183,24 @@ export class LiquidityEngine extends EventEmitter {
     }
 
     public async settleMatchedTrade(trade: any) {
-        const { buyer, seller, quantity, price, pair, intentId } = trade;
+        const { buyer, seller, quantity, price, intentId } = trade;
+    
+        const pairId = buyer.trading_pair_id || seller.trading_pair_id;
+        const pair = this.tradingPairs.find(p => p.id === pairId);
+    
+        if (!pair) {
+            console.error(`[settleMatchedTrade] Pair not found for ID: ${pairId}`);
+            console.log("Available pairs:", this.tradingPairs.map(p => p.id));
+            throw new Error(`Pair not found: ${pairId}`);
+        }
+    
         const amountBase = parseUnits(quantity.toString(), pair.base.decimals);
         const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
         const baseDecimals = BigInt(10) ** BigInt(pair.base.decimals);
         const amountQuote = (amountBase * priceBigInt) / baseDecimals;
-
+    
         this.emit('agent_status', { orderId: intentId, userAddress: buyer.intent.user, msg: `Settling internal match...`, type: 'info' });
-
+    
         await this.settleOnChain({
             intent: buyer.intent, 
             signature: buyer.signature,
