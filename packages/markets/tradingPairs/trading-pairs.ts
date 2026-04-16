@@ -7,21 +7,24 @@ export type TradingPair = {
   symbol: string;
 };
 
-const rawPairs: { id: string; base: string; quote: string }[] = [
+const rawPairs: { id: string; base: string; quote: string, symbol: string }[] = [
   {
-    id: "BTCUSDC",
+    id: "f38210ef-f97d-48c3-a959-90553428f3cd",
     base: "BTC",
     quote: "USDC",
+    symbol: "BTCUSDC"
   },
   {
-    id: "WETHUSDC",
+    id: "5ee40335-adc1-449d-8842-52198e70f598",
     base: "WETH",
     quote: "USDC",
+    symbol: "WETHUSDC"
   },
   {
-    id: "EURCUSDC",
+    id: "1ec60f1a-2f9a-4ce2-857a-d2f597851620",
     base: "EURC",
     quote: "USDC", 
+    symbol: "EUROCUSDC"
   }
 ];
 
@@ -41,13 +44,11 @@ export function getTradingPairs(): TradingPair[] {
       return null;
     }
 
-    const symbol = `${p.base}${p.quote}`;
-
     return {
-      id: symbol,
+      id: p.id,
       base: baseToken,
       quote: quoteToken,
-      symbol: symbol,
+      symbol: p.symbol,
     };
   }).filter((p): p is TradingPair => p !== null);
 
