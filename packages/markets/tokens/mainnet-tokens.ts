@@ -37,11 +37,11 @@ export const MAINNET_TOKENS: Record<string, Token> = {
     symbol: "BTC",
     decimals: 8,
   },
-  LINK: {
-    id: "EUROC",
+  EURC: {
+    id: "EURC",
     address: "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
     name: "EURO Coin",
-    symbol: "EUROC",
+    symbol: "EURC",
     decimals: 6,
   },
 };

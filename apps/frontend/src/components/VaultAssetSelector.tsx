@@ -21,7 +21,6 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
     return assets
       .filter(asset => {
         if (!asset || !asset.token) return false;
-        // Asset filtering based on deposit/withdraw enabled
         if (type === 'deposit') return asset.deposit_enabled;
         if (type === 'withdraw') return asset.withdraw_enabled;
         return true;
@@ -32,11 +31,9 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
       }));
   }, [assets, type, isLoading]);
 
-  const selectedAssetLabel = useMemo(() => {
-    if (!asset) return "Select asset";
-    // Find the asset in our list to get the correct display label ('ETH' for 'WETH')
-    const selected = filteredAssets.find(a => a.value === asset);
-    return selected ? selected.label : "Select asset";
+  const selectedAsset = useMemo(() => {
+    if (!asset) return null;
+    return filteredAssets.find(a => a.value === asset || a.label === asset) || null;
   }, [asset, filteredAssets]);
 
   return (
@@ -49,7 +46,7 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
           className="w-full justify-between"
           disabled={isLoading || filteredAssets.length === 0}
         >
-          {isLoading ? "Loading..." : selectedAssetLabel}
+          {isLoading ? "Loading..." : selectedAsset ? selectedAsset.label : "Select asset"}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -63,14 +60,14 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
                 key={a.value}
                 value={a.value}
                 onSelect={(currentValue) => {
-                  setAsset(currentValue === asset ? "" : currentValue);
+                  setAsset(currentValue === selectedAsset?.value ? "" : currentValue);
                   setOpen(false);
                 }}
               >
                 <Check
                   className={cn(
                     "mr-2 h-4 w-4",
-                    asset === a.value ? "opacity-100" : "opacity-0"
+                    selectedAsset?.value === a.value ? "opacity-100" : "opacity-0"
                   )}
                 />
                 {a.label}

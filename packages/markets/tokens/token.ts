@@ -29,11 +29,11 @@ export const TOKENS: Record<string, Token> = {
     symbol: "BTC",
     decimals: 8,
   },
-  EUROC: {
-    id: "EUROC",
+  EURC: {
+    id: "EURC",
     address: "0x808456652fdb597867f38412077A9182bf77359F",
     name: "EURO Coin",
-    symbol: "EUROC",
+    symbol: "EURC",
     decimals: 6,
   },
 };

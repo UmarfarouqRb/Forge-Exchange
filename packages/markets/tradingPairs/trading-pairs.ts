@@ -19,8 +19,8 @@ const rawPairs: { id: string; base: string; quote: string }[] = [
     quote: "USDC",
   },
   {
-    id: "EUROCUSDC",
-    base: "EUROC",
+    id: "EURCUSDC",
+    base: "EURC",
     quote: "USDC", 
   }
 ];

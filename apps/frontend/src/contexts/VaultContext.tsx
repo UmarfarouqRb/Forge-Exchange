@@ -69,7 +69,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const marketMap = new Map(markets.map(m => [m.symbol.split('-')[0], m]));
-    const stablecoins = ['USDC', 'DAI', 'USDT'];
+    const stablecoins = ['USDC', 'EURC', 'USDT'];
     let totalValue = 0;
     const ethPrice = markets.find(m => m.symbol === 'WETHUSDC')?.lastPrice || '0';
 
