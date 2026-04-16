@@ -29,8 +29,7 @@ export class MatchingEngine extends EventEmitter {
         this.agentName = agentName;
         this.supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-        // Pass-through events from the liquidity engine
-        this.liquidityEngine.on('settlement_status', (data) => this.emit('agent_status', data));
+        // Pass-through events from the liquidity engine for frontend logging
         this.liquidityEngine.on('agent_status', (data) => this.emit('agent_status', data));
         
         // Hydrate the order book from the DB on startup

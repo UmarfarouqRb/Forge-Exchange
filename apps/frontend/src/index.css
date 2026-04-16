@@ -76,7 +76,7 @@
   --chart-4: 280 67% 55%;
   --chart-5: 0 84% 60%;
 
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'JetBrains Mono', 'Roboto Mono', Menlo, monospace;
   --radius: .5rem; /* 8px */
@@ -239,6 +239,8 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
   }
 }
 

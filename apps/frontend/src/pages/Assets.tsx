@@ -29,18 +29,18 @@ function AssetRow({ asset }: { asset: VaultAsset }) {
             </div>
 
             <div className="flex justify-between items-center md:block md:text-right">
-                <span className="text-sm text-muted-foreground md:hidden">Available</span>
-                <div className="font-mono">{asset.balanceFormatted}</div>
+                <span className="text-sm text-muted-foreground md:hidden shrink-0">Available</span>
+                <div className="font-mono break-all text-right">{asset.balanceFormatted}</div>
             </div>
 
             <div className="flex justify-between items-center md:block md:text-right">
-                <span className="text-sm text-muted-foreground md:hidden">Price</span>
-                <div className="font-mono">{asset.price ? formatUSD(asset.price) : '-'}</div>
+                <span className="text-sm text-muted-foreground md:hidden shrink-0">Price</span>
+                <div className="font-mono break-all text-right">{asset.price ? formatUSD(asset.price) : '-'}</div>
             </div>
 
             <div className="flex justify-between items-center md:block md:text-right">
-                <span className="text-sm text-muted-foreground md:hidden">Value (USD)</span>
-                <div className="font-mono">{availableUSD}</div>
+                <span className="text-sm text-muted-foreground md:hidden shrink-0">Value (USD)</span>
+                <div className="font-mono break-all text-right">{availableUSD}</div>
             </div>
 
             <div className="flex justify-between items-center mt-2 md:mt-0 md:block md:text-right">
@@ -131,19 +131,21 @@ export default function Assets() {
 
                     {/* Deposit/Withdraw Card for Mobile */}
                     <Card className="mb-6 md:hidden">
-                        <CardContent className="p-4 flex flex-wrap gap-4">
-                            <Button className="flex-1" onClick={() => navigate('/assets/deposit')}>
-                                <FiDownload className="w-4 h-4 mr-2" />
-                                Deposit
-                            </Button>
-                            <Button className="flex-1" variant="outline" onClick={() => navigate('/assets/transfer')}>
-                                <FiSend className="w-4 h-4 mr-2" />
-                                Transfer
-                            </Button>
-                            <Button className="flex-1" variant="outline" onClick={() => navigate('/assets/withdraw')}>
-                                <FiUpload className="w-4 h-4 mr-2" />
-                                Withdraw
-                            </Button>
+                        <CardContent className="p-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <Button onClick={() => navigate('/assets/deposit')}>
+                                    <FiDownload className="w-4 h-4 mr-2" />
+                                    Deposit
+                                </Button>
+                                <Button variant="outline" onClick={() => navigate('/assets/transfer')}>
+                                    <FiSend className="w-4 h-4 mr-2" />
+                                    Transfer
+                                </Button>
+                                <Button variant="outline" onClick={() => navigate('/assets/withdraw')}>
+                                    <FiUpload className="w-4 h-4 mr-2" />
+                                    Withdraw
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
 

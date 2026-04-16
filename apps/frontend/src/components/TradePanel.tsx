@@ -193,8 +193,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     }
 
     const safeAddress = getAddress(userAddress);
-    console.log("Signing with address (original):", userAddress);
-    console.log("Signing with address (safe):", safeAddress);
     
     const isBuy = side === 'buy';
     const tokenIn = isBuy ? quoteToken : baseToken;
@@ -215,7 +213,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         relayerFee: 0n
     };
 
-    console.log("Intent user:", intent.user);
     addLog('Awaiting signature for trade intent...');
     const serializedIntent = serialize(intent);
 
@@ -290,7 +287,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     return <SkeletonTradePanel />;
   }
 
-  // Mobile view remains unchanged
   if (isMobile) {
     return (
       <div className="p-2 bg-background h-full flex flex-col text-xs">
@@ -312,7 +308,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
               type="number"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="w-2/3 bg-transparent border-0"
+              className="flex-grow bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               placeholder={`Price (${displayQuoteSymbol})`}
             />
             <span className="text-xs text-muted-foreground p-2">BBO</span>
@@ -325,15 +321,15 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-2/3 bg-transparent border-0"
+            className="flex-grow bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             placeholder={`Quantity (${displayBaseSymbol})`}
           />
           <span className="text-xs text-muted-foreground p-2">{displayBaseSymbol}</span>
         </div>
         
-        <div className="mb-2 p-2 bg-input rounded-md">
+        <div className="mb-2 p-2 bg-input rounded-md flex justify-between items-center">
           <span className="text-xs text-muted-foreground">Total</span>
-          <span className="text-sm font-mono float-right">{total.toFixed(2)} {displayQuoteSymbol}</span>
+          <span className="text-sm font-mono">{total.toFixed(2)} {displayQuoteSymbol}</span>
         </div>
         
         <div className="mb-2 flex items-center">
