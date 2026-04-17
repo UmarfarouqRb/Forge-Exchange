@@ -1,3 +1,4 @@
+
 import { EventEmitter } from 'events';
 import { parseUnits, isAddress, createPublicClient, http, getAddress, createWalletClient, WalletClient, Account } from 'viem';
 import { privateKeyToAccount } from "viem/accounts";
@@ -5,7 +6,7 @@ import { baseSepolia } from 'viem/chains';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
 
-import { getTradingPairs, TradingPair, getMarket, MarketState } from '@forge/markets';
+import { getTradingPairs, TradingPair, getMarketBySymbol } from '@forge/markets';
 
 import { INTENT_SPOT_ROUTER_ADDRESS } from '../contracts/baseSepolia/IntentSpotRouter';
 import { IntentSpotRouterAbi } from '../contracts/IntentSpotRouter';
@@ -130,33 +131,52 @@ export class LiquidityEngine extends EventEmitter {
             return cached.price;
         }
     
-        if (!this.pricePromises[pairId]) {
-            this.pricePromises[pairId] = this.getCoinGeckoPrice(pairId)
-                .finally(() => {
-                    delete this.pricePromises[pairId];
-                });
+        // If a request for this pair is already in flight, return the existing promise
+        if (this.pricePromises[pairId]) {
+            return this.pricePromises[pairId];
         }
-    
-        const cgPrice = await this.pricePromises[pairId];
-    
-        if (cgPrice) {
-            this.priceCache[pairId] = { price: cgPrice, timestamp: Date.now() };
-            return cgPrice;
-        }
-    
-        try {
-            const market = await getMarket(pairId);
-            if (market && market.price != null && market.price > 0) {
-                console.warn(`[Price] Using fallback on-chain price for ${pairId}`);
-                this.priceCache[pairId] = { price: market.price, timestamp: Date.now() };
-                return market.price;
+
+        // Create a new promise to fetch the price
+        const fetchPricePromise = async (): Promise<number | null> => {
+            // 1. Try CoinGecko first
+            const cgPrice = await this.getCoinGeckoPrice(pairId);
+            if (cgPrice) {
+                return cgPrice;
             }
-        } catch (err) {
-            // Ignore
-        }
-    
-        console.error(`[Price] Could not retrieve a valid price for ${pairId} from any source.`);
-        return null;
+
+            // 2. Fallback to on-chain AMM price
+            try {
+                console.warn(`[Price] Falling back to on-chain AMM for ${pairId}`);
+                const pair = this.tradingPairs.find(p => p.id === pairId || p.symbol === pairId);
+                if (!pair) {
+                    console.error(`[getPrice] Pair NOT FOUND for ID: ${pairId}`);
+                    return null;
+                }
+                const market = await getMarketBySymbol(pair.symbol);
+                if (market && market.price != null && market.price > 0) {
+                    return market.price;
+                }
+            } catch (err) {
+                console.error(`[Price] On-chain fallback failed for ${pairId}:`, err);
+            }
+
+            console.error(`[Price] Could not retrieve a valid price for ${pairId} from any source.`);
+            return null;
+        };
+
+        this.pricePromises[pairId] = fetchPricePromise()
+            .then((price) => {
+                if (price) {
+                    this.priceCache[pairId] = { price, timestamp: Date.now() };
+                }
+                return price;
+            })
+            .finally(() => {
+                // Once the promise is settled, remove it from the map
+                delete this.pricePromises[pairId];
+            });
+
+        return this.pricePromises[pairId];
     }
 
     private async updateOrderStatusInDB(signature: string, status: 'fulfilled' | 'failed', last_error?: string) {

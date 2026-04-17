@@ -3,7 +3,7 @@ import { Token, MAINNET_TOKENS } from '../tokens/mainnet-tokens';
 const COINGECKO_ID_MAP: Record<string, string> = {
     'ETH': 'ethereum',
     'USDC': 'usd-coin',
-    'DAI': 'dai',
+    'EURC': 'euro-coin',
     'BTC': 'wrapped-bitcoin',
  
 };
