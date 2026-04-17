@@ -278,6 +278,10 @@ export class LiquidityEngine extends EventEmitter {
         const { intent, signature, counterparty, amountOut, intent_id } = params;
         
         try {
+            if (amountOut === 0n) {
+                throw new Error("Zero output amount — aborting");
+            }
+    
             if(amountOut < intent.minAmountOut) {
                 throw new Error(`Slippage exceeded on settlement: minAmountOut was ${intent.minAmountOut}, but got ${amountOut}`);
             }

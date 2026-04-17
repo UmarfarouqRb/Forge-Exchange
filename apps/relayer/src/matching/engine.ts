@@ -1,4 +1,3 @@
-
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { LiquidityEngine } from '../liquidity/engine';
 import { EventEmitter } from 'events';
@@ -250,6 +249,10 @@ export class MatchingEngine extends EventEmitter {
     }
 
     private async executeInternalMatch(buyer: Order, seller: Order, quantity: number, price: number) {
+        if (!price || isNaN(price)) {
+            throw new Error(`Invalid price for trade: ${price}`);
+        }
+    
         if (!buyer.intent || !seller.intent) {
             console.error('CRITICAL: Invalid match payload due to missing intent structure.', {
                 buyerId: buyer.id,
@@ -315,6 +318,12 @@ export class MatchingEngine extends EventEmitter {
     }
 
     private async updateOrderStatusInDB(order: Order) {
+        const orderId = order.id || order.intent_id;
+        if (!orderId) {
+            console.error("Missing order ID:", order);
+            return;
+        }
+    
         const isFilled = order.quantity <= 0;
         const status = isFilled ? 'fulfilled' : 'processing';
 
@@ -323,10 +332,10 @@ export class MatchingEngine extends EventEmitter {
         const { error } = await this.supabase
             .from('orders')
             .update({ quantity: order.quantity.toString(), status })
-            .eq('id', order.id);
+            .eq('id', orderId);
 
         if (error) {
-            console.error(`[DB_SYNC_ERROR] Failed to update order ${order.id}:`, error);
+            console.error(`[DB_SYNC_ERROR] Failed to update order ${orderId}:`, error);
         }
     }
 }

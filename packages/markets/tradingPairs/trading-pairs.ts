@@ -24,7 +24,7 @@ const rawPairs: { id: string; base: string; quote: string, symbol: string }[] = 
     id: "1ec60f1a-2f9a-4ce2-857a-d2f597851620",
     base: "EURC",
     quote: "USDC", 
-    symbol: "EUROCUSDC"
+    symbol: "EURCUSDC"
   }
 ];
 
