@@ -4,9 +4,8 @@ import { parseUnits, isAddress, createPublicClient, http, getAddress, createWall
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from 'viem/chains';
 import { createClient } from '@supabase/supabase-js';
-import axios from 'axios';
 
-import { getTradingPairs, TradingPair, getMarketBySymbol } from '@forge/markets';
+import { getTradingPairs, TradingPair, getExecutionPrice } from '@forge/markets';
 
 import { INTENT_SPOT_ROUTER_ADDRESS } from '../contracts/baseSepolia/IntentSpotRouter';
 import { IntentSpotRouterAbi } from '../contracts/IntentSpotRouter';
@@ -37,13 +36,6 @@ function createCleanIntent(intent: any) {
 const publicClient = createPublicClient({ chain: baseSepolia, transport: http() });
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-const COINGECKO_ID_MAP: Record<string, string> = {
-    'USDC': 'usd-coin',
-    'EUROC': 'euro-coin',
-    'WETH': 'weth',
-    'WBTC': 'wrapped-bitcoin',
-};
-
 export class LiquidityEngine extends EventEmitter {
     private agentName: string;
     private tradingPairs: TradingPair[] = [];
@@ -55,7 +47,6 @@ export class LiquidityEngine extends EventEmitter {
     private isReady = false;
     private priceCache: Record<string, { price: number; timestamp: number }> = {};
     private PRICE_TTL = 5000; // 5 seconds
-    private pricePromises: Record<string, Promise<number | null>> = {};
 
     constructor(agentName: string = 'Agent01') {
         super();
@@ -90,36 +81,6 @@ export class LiquidityEngine extends EventEmitter {
         return this.tradingPairs;
     }
 
-    private async getCoinGeckoPrice(pairId: string): Promise<number | null> {
-        try {
-            const pair = this.tradingPairs.find(p => p.id === pairId || p.symbol === pairId);
-            if (!pair) {
-                console.error(`[CoinGecko] Pair NOT FOUND for ID: ${pairId}`);
-                console.log("Available pair IDs:", this.tradingPairs.map(p => p.id));
-                return null;
-            }
-
-            const baseId = COINGECKO_ID_MAP[pair.base.symbol];
-            const quoteId = COINGECKO_ID_MAP[pair.quote.symbol];
-            if (!baseId || !quoteId) return null;
-
-            const response = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
-                params: { ids: `${baseId},${quoteId}`, vs_currencies: 'usd' }
-            });
-
-            const base = response.data[baseId]?.usd;
-            const quote = response.data[quoteId]?.usd;
-
-            if (typeof base === 'number' && typeof quote === 'number' && base > 0 && quote > 0) {
-                return base / quote;
-            }
-            return null;
-        } catch (error) {
-            console.error(`[CoinGecko] Error fetching price for ${pairId}:`, error);
-            return null;
-        }
-    }
-
     public async getPrice(pairId: string): Promise<number | null> {
         if (!this.isReady) {
             console.warn("[LiquidityEngine] Not ready yet, skipping price fetch");
@@ -131,53 +92,17 @@ export class LiquidityEngine extends EventEmitter {
             return cached.price;
         }
     
-        // If a request for this pair is already in flight, return the existing promise
-        if (this.pricePromises[pairId]) {
-            return this.pricePromises[pairId];
+        const price = await getExecutionPrice(pairId);
+
+        if (price && price > 0) {
+            this.priceCache[pairId] = { price, timestamp: Date.now() };
+            return price;
         }
 
-        // Create a new promise to fetch the price
-        const fetchPricePromise = async (): Promise<number | null> => {
-            // 1. Try CoinGecko first
-            const cgPrice = await this.getCoinGeckoPrice(pairId);
-            if (cgPrice) {
-                return cgPrice;
-            }
-
-            // 2. Fallback to on-chain AMM price
-            try {
-                console.warn(`[Price] Falling back to on-chain AMM for ${pairId}`);
-                const pair = this.tradingPairs.find(p => p.id === pairId || p.symbol === pairId);
-                if (!pair) {
-                    console.error(`[getPrice] Pair NOT FOUND for ID: ${pairId}`);
-                    return null;
-                }
-                const market = await getMarketBySymbol(pair.symbol);
-                if (market && market.price != null && market.price > 0) {
-                    return market.price;
-                }
-            } catch (err) {
-                console.error(`[Price] On-chain fallback failed for ${pairId}:`, err);
-            }
-
-            console.error(`[Price] Could not retrieve a valid price for ${pairId} from any source.`);
-            return null;
-        };
-
-        this.pricePromises[pairId] = fetchPricePromise()
-            .then((price) => {
-                if (price) {
-                    this.priceCache[pairId] = { price, timestamp: Date.now() };
-                }
-                return price;
-            })
-            .finally(() => {
-                // Once the promise is settled, remove it from the map
-                delete this.pricePromises[pairId];
-            });
-
-        return this.pricePromises[pairId];
+        console.error(`[Price] Invalid price received for ${pairId}: ${price}`);
+        return null;
     }
+
 
     private async updateOrderStatusInDB(signature: string, status: 'fulfilled' | 'failed', last_error?: string) {
         const { error } = await supabase.from('orders').update({ status, last_error }).eq('signature', signature);
@@ -204,6 +129,10 @@ export class LiquidityEngine extends EventEmitter {
 
     public async settleMatchedTrade(trade: any) {
         const { buyer, seller, quantity, price, intentId } = trade;
+
+        if (!price || price <= 0) {
+            throw new Error(`Invalid price for trade: ${price}`);
+        }
     
         const pairId = buyer.trading_pair_id || seller.trading_pair_id;
         const pair = this.tradingPairs.find(p => p.id === pairId || p.symbol === pairId);
@@ -238,14 +167,13 @@ export class LiquidityEngine extends EventEmitter {
 
         const price = await this.getPrice(order.trading_pair_id);
         if (price === null || price <= 0) {
-            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Cannot settle with LP: No valid price for ${order.trading_pair_id}.`, type: 'error' });
+            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Cannot settle with LP: Invalid execution price for ${order.trading_pair_id}.`, type: 'error' });
             return;
         }
 
         const pair = this.tradingPairs.find(p => p.id === order.trading_pair_id || p.symbol === order.trading_pair_id);
         if (!pair) {
             console.error(`[executeWithLP] Pair not found for id: ${order.trading_pair_id}`);
-            console.log("Available pair IDs:", this.tradingPairs.map(p => p.id));
             throw new Error(`Trading pair not found for id: ${order.trading_pair_id}`);
         }
 

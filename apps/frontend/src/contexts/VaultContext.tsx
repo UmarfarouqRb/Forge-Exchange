@@ -72,6 +72,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     const stablecoins = ['USDC', 'EURC', 'USDT'];
     let totalValue = 0;
     const ethPrice = markets.find(m => m.symbol === 'WETHUSDC')?.lastPrice || '0';
+    const btcPrice = markets.find(m => m.symbol === 'BTCUSDC')?.lastPrice || '0';
 
     const assetsWithPrices: VaultAsset[] = vaultTokensStatic.map((asset: VaultToken, i: number) => {
       const token = asset.token;
@@ -83,6 +84,8 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (displaySymbol === 'ETH') {
         price = parseFloat(ethPrice);
+      } else if (displaySymbol === 'BTC') {
+        price = parseFloat(btcPrice);
       } else if (stablecoins.includes(displaySymbol)) {
         price = 1;
       } else {
@@ -161,6 +164,34 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     },
     onLogs: () => {
         console.log('InternalTransfer event detected, refetching vault data');
+        refetchVault();
+    },
+  });
+
+  useWatchContractEvent({
+    address: vaultAddress,
+    abi: VaultSpotAbi,
+    eventName: 'Credit',
+    chainId: selectedChain.id,
+    args: {
+        user: address,
+    },
+    onLogs: () => {
+        console.log('Credit event detected, refetching vault data');
+        refetchVault();
+    },
+  });
+
+  useWatchContractEvent({
+    address: vaultAddress,
+    abi: VaultSpotAbi,
+    eventName: 'Debit',
+    chainId: selectedChain.id,
+    args: {
+        user: address,
+    },
+    onLogs: () => {
+        console.log('Debit event detected, refetching vault data');
         refetchVault();
     },
   });

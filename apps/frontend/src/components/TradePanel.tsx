@@ -199,14 +199,17 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     const tokenOut = isBuy ? baseToken : quoteToken;
     
     const amountIn = isBuy ? safeParseUnits(total.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
-    const amountOutMin = isBuy ? safeParseUnits(amount, tokenOut.decimals) : safeParseUnits(total.toString(), tokenOut.decimals);
+    const expectedAmountOut = isBuy ? safeParseUnits(amount, tokenOut.decimals) : safeParseUnits(total.toString(), tokenOut.decimals);
+
+    // Apply 2% slippage tolerance
+    const minAmountOut = expectedAmountOut - (expectedAmountOut * 2n / 100n);
 
     const intent = {
         user: safeAddress,
         tokenIn: getAddress(tokenIn.address),
         tokenOut: getAddress(tokenOut.address),
         amountIn: amountIn, 
-        minAmountOut: amountOutMin,
+        minAmountOut: minAmountOut,
         deadline: BigInt(Math.floor(Date.now() / 1000) + 300),
         nonce: BigInt(Date.now()),
         adapter: '0x0000000000000000000000000000000000000000' as const,

@@ -12,7 +12,7 @@ import type { Token } from '../tokens/mainnet-tokens';
 import { MAINNET_TOKENS } from '../tokens/mainnet-tokens';
 import { getTradingPairs } from '../tradingPairs/trading-pairs';
 import { get24hMarketData } from './market-data';
-import { getBook as getLiveOrderbook } from './order-book-store'; 
+import { getBook as getLiveOrderbook, AggregatedOrderBook } from './order-book-store'; 
 
 // --- TYPE DEFINITIONS ---
 
@@ -226,4 +226,43 @@ export async function getMarketBySymbol(symbol: string): Promise<MarketState | n
         return null;
     }
     return getMarket(pair.id);
+}
+
+export async function getExecutionPrice(pairId: string): Promise<number | null> {
+    const pair = getTradingPairs().find(p => p.id === pairId);
+    if (!pair) {
+        console.error(`[ExecutionPrice] Trading pair not found for ID: ${pairId}`);
+        return null;
+    }
+
+    const baseToken = MAINNET_TOKENS[pair.base.symbol];
+    const quoteToken = MAINNET_TOKENS[pair.quote.symbol];
+
+    // 1. Try orderbook mid price from a live book
+    const liveBook = getLiveOrderbook(pairId);
+    if (liveBook) {
+        const markPrice = getMarkPrice({ ...liveBook, lastTradePrice: null });
+        if (markPrice && markPrice > 0) {
+            return markPrice;
+        }
+    }
+
+    // 2. Fallback to AMM price
+    try {
+        console.warn(`[ExecutionPrice] Falling back to AMM for ${pairId}`);
+        const ammPrice = await getAMMPrice(
+            baseToken,
+            quoteToken
+        );
+
+        if (ammPrice && ammPrice > 0) {
+            return ammPrice;
+        }
+    } catch (err) {
+        console.warn("[ExecutionPrice] AMM fallback failed:", err);
+    }
+
+
+    console.error(`[ExecutionPrice] Could not determine a valid execution price for ${pairId}`);
+    return null;
 }

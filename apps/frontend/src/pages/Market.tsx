@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import { MarketRow } from '@/components/MarketRow';
 import { TradingPair } from '@/types';
 import { Market } from '@/types/market-data';
@@ -11,10 +12,12 @@ import { getAllPairs, getMarkets } from '@/lib/api';
 export default function MarketPage() {
   const [pairsList, setPairsList] = useState<TradingPair[]>([]);
   const [markets, setMarkets] = useState<Map<string, Market>>(new Map());
+  const [isLoading, setIsLoading] = useState(true);
   const [isErrorPairs, setIsErrorPairs] = useState(false);
 
   useEffect(() => {
     const fetchTradingPairs = async () => {
+      setIsLoading(true);
       setIsErrorPairs(false);
       try {
         const data = await getAllPairs();
@@ -22,6 +25,8 @@ export default function MarketPage() {
       } catch (error) {
         console.error("Failed to fetch trading pairs:", error);
         setIsErrorPairs(true);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -79,10 +84,43 @@ export default function MarketPage() {
     };
   }, [pairsList]);
 
+  const renderSkeleton = () => (
+    <TableBody>
+      {[...Array(5)].map((_, i) => (
+        <TableRow key={i}>
+          <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+          <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
+          <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
+          <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
+          <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
+          <TableCell className="text-right"><Skeleton className="h-5 w-24" /></TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  );
+
   const renderContent = () => {
     if (isErrorPairs) {
       return (
         <div className="p-4 text-center text-destructive">Error loading trading pairs. Please try again later.</div>
+      );
+    }
+
+    if (isLoading) {
+      return (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Pair</TableHead>
+              <TableHead className="text-right">Price</TableHead>
+              <TableHead className="text-right">24h Change</TableHead>
+              <TableHead className="text-right">24h High</TableHead>
+              <TableHead className="text-right">24h Low</TableHead>
+              <TableHead className="text-right">24h Volume</TableHead>
+            </TableRow>
+          </TableHeader>
+          {renderSkeleton()}
+        </Table>
       );
     }
 
@@ -117,7 +155,7 @@ export default function MarketPage() {
     <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="container mx-auto max-w-7xl">
         <h1 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 text-foreground">Markets</h1>
-        <Card className="border-border/50 overflow-.hidden">
+        <Card className="border-border/50 overflow-hidden">
           <CardContent className="p-0">
             {renderContent()}
           </CardContent>
