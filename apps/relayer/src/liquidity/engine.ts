@@ -19,20 +19,6 @@ function safeAddress(addr?: string | null): `0x${string}` | null {
     return getAddress(addr);
 }
 
-function createCleanIntent(intent: any) {
-  return {
-    user: intent.user,
-    tokenIn: intent.tokenIn,
-    tokenOut: intent.tokenOut,
-    amountIn: BigInt(intent.amountIn),
-    minAmountOut: BigInt(intent.minAmountOut),
-    deadline: BigInt(intent.deadline),
-    nonce: BigInt(intent.nonce),
-    adapter: intent.adapter ?? '0x0000000000000000000000000000000000000000',
-    relayerFee: BigInt(intent.relayerFee || 0),
-  };
-}
-
 const publicClient = createPublicClient({ chain: baseSepolia, transport: http() });
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -113,11 +99,26 @@ export class LiquidityEngine extends EventEmitter {
     
     public async simulateExternalSwap(intent: any, signature: any): Promise<{ success: boolean; amountOut: bigint; }> {
         try {
+            // The intent arrives from the API with stringified BigInts.
+            // We perform faithful normalization here to convert them back to BigInts
+            // and checksum addresses for the contract call.
+            const normalizedIntent = {
+                user: getAddress(intent.user),
+                tokenIn: getAddress(intent.tokenIn),
+                tokenOut: getAddress(intent.tokenOut),
+                amountIn: BigInt(intent.amountIn),
+                minAmountOut: BigInt(intent.minAmountOut),
+                deadline: BigInt(intent.deadline),
+                nonce: BigInt(intent.nonce),
+                adapter: getAddress(intent.adapter),
+                relayerFee: BigInt(intent.relayerFee),
+            };
+
             const { result } = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'executeSwap',
-                args: [createCleanIntent(intent), signature],
+                args: [normalizedIntent, signature],
                 account: this.account
             });
             return { success: true, amountOut: result };
@@ -139,7 +140,6 @@ export class LiquidityEngine extends EventEmitter {
     
         if (!pair) {
             console.error(`[settleMatchedTrade] Pair not found for ID: ${pairId}`);
-            console.log("Available pairs:", this.tradingPairs.map(p => p.id));
             throw new Error(`Pair not found: ${pairId}`);
         }
     
@@ -167,26 +167,23 @@ export class LiquidityEngine extends EventEmitter {
 
         const price = await this.getPrice(order.trading_pair_id);
         if (price === null || price <= 0) {
-            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Cannot settle with LP: Invalid execution price for ${order.trading_pair_id}.`, type: 'error' });
+            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Cannot settle with LP: Invalid execution price.`, type: 'error' });
             return;
         }
 
-        const pair = this.tradingPairs.find(p => p.id === order.trading_pair_id || p.symbol === order.trading_pair_id);
-        if (!pair) {
-            console.error(`[executeWithLP] Pair not found for id: ${order.trading_pair_id}`);
-            throw new Error(`Trading pair not found for id: ${order.trading_pair_id}`);
-        }
+        const pair = this.tradingPairs.find(p => p.id === order.trading_pair_id);
+        if (!pair) throw new Error(`Trading pair not found: ${order.trading_pair_id}`);
 
         const amountBase = parseUnits(order.quantity.toString(), pair.base.decimals);
         const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
         const baseDecimals = BigInt(10) ** BigInt(pair.base.decimals);
         const amountOut = (amountBase * priceBigInt) / baseDecimals;
 
-        if(amountOut < order.intent.minAmountOut) {
+        if(amountOut < BigInt(order.intent.minAmountOut)) {
             throw new Error(`Slippage exceeded: LP quote was ${amountOut}, minAmountOut was ${order.intent.minAmountOut}`);
         }
 
-        this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Settling ${order.quantity} ${pair.base.symbol} with internal LP.`, type: 'info' });
+        this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Settling ${order.quantity} with internal LP.`, type: 'info' });
 
         await this.settleOnChain({
             intent: order.intent,
@@ -201,15 +198,27 @@ export class LiquidityEngine extends EventEmitter {
         this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `Routing to external DEX...`, type: 'info' });
         
         try {
+             const normalizedIntent = {
+                user: getAddress(intent.user),
+                tokenIn: getAddress(intent.tokenIn),
+                tokenOut: getAddress(intent.tokenOut),
+                amountIn: BigInt(intent.amountIn),
+                minAmountOut: BigInt(intent.minAmountOut),
+                deadline: BigInt(intent.deadline),
+                nonce: BigInt(intent.nonce),
+                adapter: getAddress(intent.adapter),
+                relayerFee: BigInt(intent.relayerFee),
+            };
+
             const { request, result: amountOut } = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'executeSwap',
-                args: [createCleanIntent(intent), signature], 
+                args: [normalizedIntent, signature], 
                 account: this.account
             });
 
-            if(amountOut < intent.minAmountOut) {
+            if(amountOut < normalizedIntent.minAmountOut) {
                 throw new Error("Slippage exceeded on external swap");
             }
             
@@ -226,19 +235,29 @@ export class LiquidityEngine extends EventEmitter {
         const { intent, signature, counterparty, amountOut, intent_id } = params;
         
         try {
-            if (amountOut === 0n) {
-                throw new Error("Zero output amount — aborting");
-            }
+            if (amountOut === 0n) throw new Error("Zero output amount — aborting");
     
-            if(amountOut < intent.minAmountOut) {
-                throw new Error(`Slippage exceeded on settlement: minAmountOut was ${intent.minAmountOut}, but got ${amountOut}`);
+            const normalizedIntent = {
+                user: getAddress(intent.user),
+                tokenIn: getAddress(intent.tokenIn),
+                tokenOut: getAddress(intent.tokenOut),
+                amountIn: BigInt(intent.amountIn),
+                minAmountOut: BigInt(intent.minAmountOut),
+                deadline: BigInt(intent.deadline),
+                nonce: BigInt(intent.nonce),
+                adapter: getAddress(intent.adapter),
+                relayerFee: BigInt(intent.relayerFee),
+            };
+
+            if(amountOut < normalizedIntent.minAmountOut) {
+                throw new Error(`Slippage exceeded on settlement: minAmountOut was ${normalizedIntent.minAmountOut}, but got ${amountOut}`);
             }
 
             const { request } = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
                 abi: IntentSpotRouterAbi,
                 functionName: 'settleTrade',
-                args: [createCleanIntent(intent), signature, counterparty, amountOut],
+                args: [normalizedIntent, signature, getAddress(counterparty), amountOut],
                 account: this.account
             });
 

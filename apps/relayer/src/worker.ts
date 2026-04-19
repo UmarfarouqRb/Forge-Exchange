@@ -1,6 +1,7 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { MatchingEngine } from './matching/engine';
+import { getAddress } from 'viem';
 
 export class RetryWorker {
     private supabase: SupabaseClient;
@@ -43,11 +44,24 @@ export class RetryWorker {
             console.log(`[Worker] Found ${orders.length} orders to process.`);
             for (const order of orders) {
                 try {
-                    // Increment retry count
+                    // Increment retry count before processing
                     await this.supabase
                         .from('orders')
-                        .update({ retries: order.retries + 1, status: 'processing' })
+                        .update({ retries: (order.retries || 0) + 1, status: 'processing' })
                         .eq('id', order.id);
+
+                    // Faithfully reconstruct and normalize the intent, just as the API does.
+                    const normalizedIntent = {
+                        user: getAddress(order.user_address),
+                        tokenIn: getAddress(order.token_in),
+                        tokenOut: getAddress(order.token_out),
+                        amountIn: BigInt(order.amount_in),
+                        minAmountOut: BigInt(order.min_amount_out),
+                        deadline: BigInt(order.deadline),
+                        nonce: BigInt(order.nonce),
+                        adapter: getAddress(order.adapter),
+                        relayerFee: BigInt(order.relayer_fee),
+                    };
 
                     const formattedOrder = {
                         id: order.id,
@@ -57,35 +71,25 @@ export class RetryWorker {
                         price: order.price,
                         quantity: order.quantity,
                         order_type: order.order_type,
-                        pair: order.pair || null,
-                        intent: {
-                            user: order.user_address,
-                            tokenIn: order.token_in,
-                            tokenOut: order.token_out,
-                            amountIn: order.amount_in,
-                            minAmountOut: order.min_amount_out,
-                            deadline: order.deadline,
-                            nonce: order.nonce,
-                            adapter: order.adapter,
-                            relayerFee: order.relayer_fee,
-                        },
+                        pair: order.pair || null, // Ensure pair is not undefined
+                        intent: normalizedIntent, // Use the normalized intent
                         signature: order.signature
                     };
 
                     if (!formattedOrder.trading_pair_id || formattedOrder.trading_pair_id.length !== 36) {
-                        console.error(" [Worker] Invalid or missing UUID detected for trading_pair_id:", formattedOrder.trading_pair_id);
-                        await this.supabase.from('orders').update({ status: 'failed', failure_reason: 'Invalid trading_pair_id' }).eq('id', order.id);
+                        console.error("[Worker] Invalid or missing UUID detected for trading_pair_id:", formattedOrder.trading_pair_id);
+                        await this.supabase.from('orders').update({ status: 'failed', last_error: 'Invalid trading_pair_id' }).eq('id', order.id);
                         continue;
                     }
 
-                    console.log(" [Worker] Sending clean order to engine with pairId:", formattedOrder.trading_pair_id);
+                    console.log("[Worker] Sending normalized order to engine with pairId:", formattedOrder.trading_pair_id);
                     await this.matchingEngine.processOrder(formattedOrder);
 
                 } catch (e: any) {
                     console.error(`[Worker] Failed to process order ${order.id}:`, e);
                     await this.supabase
                         .from('orders')
-                        .update({ status: 'failed', failure_reason: e.message })
+                        .update({ status: 'failed', last_error: e.message })
                         .eq('id', order.id);
                 }
             }

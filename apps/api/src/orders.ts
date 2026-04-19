@@ -93,15 +93,15 @@ export async function forwardOrderToRelayer(order: any): Promise<void> {
     const payloadForRelayer = {
         intent_id: order.intent_id, // Keep ID at top level
         intent: {
-            user: order.user_address,
-            tokenIn: order.token_in,
-            tokenOut: order.token_out,
-            amountIn: order.amount_in,
-            minAmountOut: order.min_amount_out,
-            deadline: order.deadline,
-            nonce: order.nonce,
-            adapter: order.adapter,
-            relayerFee: order.relayer_fee,
+            user: getAddress(order.user_address),
+            tokenIn: getAddress(order.token_in),
+            tokenOut: getAddress(order.token_out),
+            amountIn: BigInt(order.amount_in),
+            minAmountOut: BigInt(order.min_amount_out),
+            deadline: BigInt(order.deadline),
+            nonce: BigInt(order.nonce),
+            adapter: getAddress(order.adapter),
+            relayerFee: BigInt(order.relayer_fee),
         },
         signature: order.signature,
         side: order.side,
@@ -116,7 +116,9 @@ export async function forwardOrderToRelayer(order: any): Promise<void> {
         const res = await rateLimitedFetch(`${RELAYER_URL}/api/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payloadForRelayer),
+            body: JSON.stringify(payloadForRelayer, (_, value) =>
+                typeof value === 'bigint' ? value.toString() : value
+            ),
         });
 
         if (res.ok) {
@@ -163,7 +165,21 @@ export async function createOrder(orderData: any) {
     }
 
     const orderId = crypto.randomUUID();
-    const userAddress = intent.user;
+    
+    // NORMALIZE the incoming intent to create the canonical message for verification.
+    // This ensures that what we verify is exactly what the user signed.
+    const messageToVerify = {
+        user: getAddress(intent.user),
+        tokenIn: getAddress(intent.tokenIn),
+        tokenOut: getAddress(intent.tokenOut),
+        amountIn: BigInt(intent.amountIn),
+        minAmountOut: BigInt(intent.minAmountOut),
+        deadline: BigInt(intent.deadline),
+        nonce: BigInt(intent.nonce),
+        adapter: getAddress(intent.adapter),
+        relayerFee: BigInt(intent.relayerFee),
+    };
+    const userAddress = messageToVerify.user;
 
     // 1. Resolve tradingPairId: Check if it's a symbol and convert to UUID if so
     let tradingPairId = initialTradingPairId;
@@ -182,21 +198,11 @@ export async function createOrder(orderData: any) {
 
     // 2. Verify Signature
     const isValid = await verifyTypedData({
-        address: userAddress as `0x${string}`,
+        address: userAddress,
         domain,
         types,
         primaryType: 'SwapIntent',
-        message: {
-            user: userAddress,
-            tokenIn: intent.tokenIn,
-            tokenOut: intent.tokenOut,
-            amountIn: BigInt(intent.amountIn),
-            minAmountOut: BigInt(intent.minAmountOut),
-            deadline: BigInt(intent.deadline),
-            nonce: BigInt(intent.nonce),
-            adapter: intent.adapter,
-            relayerFee: BigInt(intent.relayerFee),
-        },
+        message: messageToVerify,
         signature,
     });
 
@@ -205,27 +211,28 @@ export async function createOrder(orderData: any) {
     }
 
     // 3. Save FIRST with 'pending' status
+    // Use the normalized and verified data to ensure DB consistency.
     const { data: newOrder, error: insertError } = await supabase
         .from('orders')
         .insert([{
             id: crypto.randomUUID(),
             intent_id: orderId,
-            user_address: userAddress,
+            user_address: messageToVerify.user,
             trading_pair_id: tradingPairId,
             side,
-            order_type: orderType, // Corrected column name
+            order_type: orderType, 
             quantity: quantity,
             price: orderType === 'market' ? null : initialPrice,
             status: 'pending', // <-- SAVE AS PENDING
             signature,
-            token_in: intent.tokenIn,
-            token_out: intent.tokenOut,
-            amount_in: String(intent.amountIn),
-            min_amount_out: String(intent.minAmountOut),
-            deadline: String(intent.deadline),
-            nonce: String(intent.nonce),
-            adapter: intent.adapter,
-            relayer_fee: String(intent.relayerFee),
+            token_in: messageToVerify.tokenIn,
+            token_out: messageToVerify.tokenOut,
+            amount_in: String(messageToVerify.amountIn),
+            min_amount_out: String(messageToVerify.minAmountOut),
+            deadline: String(messageToVerify.deadline),
+            nonce: String(messageToVerify.nonce),
+            adapter: messageToVerify.adapter,
+            relayer_fee: String(messageToVerify.relayerFee),
         }])
         .select('*')
         .single();
