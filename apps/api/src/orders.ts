@@ -1,3 +1,4 @@
+
 import { verifyTypedData, isAddress, getAddress } from 'viem';
 import { createClient } from '@supabase/supabase-js';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@forge/contracts';
@@ -167,17 +168,18 @@ export async function createOrder(orderData: any) {
     const orderId = crypto.randomUUID();
     
     const messageToVerify = {
-        user: getAddress(intent.user),
-        tokenIn: getAddress(intent.tokenIn),
-        tokenOut: getAddress(intent.tokenOut),
+        user: intent.user,
+        tokenIn: intent.tokenIn,
+        tokenOut: intent.tokenOut,
         amountIn: intent.amountIn,
         minAmountOut: intent.minAmountOut,
         deadline: intent.deadline,
         nonce: intent.nonce,
-        adapter: getAddress(intent.adapter),
+        adapter: intent.adapter,
         relayerFee: intent.relayerFee,
     };
-    const userAddress = messageToVerify.user;
+    
+    const userAddress = intent.user as `0x${string}`;
 
     // 1. Resolve tradingPairId: Check if it's a symbol and convert to UUID if so
     let tradingPairId = initialTradingPairId;
@@ -194,7 +196,7 @@ export async function createOrder(orderData: any) {
         tradingPairId = pair.id;
     }
 
-    // 2. Verify Signature
+    // 2. Verify Signature with raw, unmodified data
     console.log("VERIFY PAYLOAD", messageToVerify);
     const isValid = await verifyTypedData({
         address: userAddress,
@@ -209,8 +211,12 @@ export async function createOrder(orderData: any) {
         throw createError('Invalid signature');
     }
     
+    // 3. Normalize data AFTER verification
     const normalizedIntent = {
-        ...messageToVerify,
+        user: getAddress(messageToVerify.user),
+        tokenIn: getAddress(messageToVerify.tokenIn),
+        tokenOut: getAddress(messageToVerify.tokenOut),
+        adapter: getAddress(messageToVerify.adapter),
         amountIn: BigInt(messageToVerify.amountIn),
         minAmountOut: BigInt(messageToVerify.minAmountOut),
         deadline: BigInt(messageToVerify.deadline),
@@ -219,7 +225,7 @@ export async function createOrder(orderData: any) {
     };
 
 
-    // 3. Save FIRST with 'pending' status
+    // 4. Save FIRST with 'pending' status
     // Use the normalized and verified data to ensure DB consistency.
     const { data: newOrder, error: insertError } = await supabase
         .from('orders')
@@ -251,7 +257,7 @@ export async function createOrder(orderData: any) {
         throw createError(`Failed to save order to database: ${insertError.message}`);
     }
 
-    // 4. Handle forwarding based on order type
+    // 5. Handle forwarding based on order type
     if (orderType === 'market') {
         try {
             await forwardOrderToRelayer(newOrder);
@@ -300,7 +306,7 @@ export async function createOrder(orderData: any) {
         }
     }
 
-    // 5. Return response to user
+    // 6. Return response to user
     console.log(`[API] Order ${newOrder.id} processed for creation.`);
     return newOrder;
 }
