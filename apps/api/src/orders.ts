@@ -166,8 +166,6 @@ export async function createOrder(orderData: any) {
 
     const orderId = crypto.randomUUID();
     
-    // NORMALIZE the incoming intent to create the canonical message for verification.
-    // This ensures that what we verify is exactly what the user signed.
     const messageToVerify = {
         user: getAddress(intent.user),
         tokenIn: getAddress(intent.tokenIn),
@@ -197,6 +195,7 @@ export async function createOrder(orderData: any) {
     }
 
     // 2. Verify Signature
+    console.log("VERIFY PAYLOAD", messageToVerify);
     const isValid = await verifyTypedData({
         address: userAddress,
         domain,
@@ -209,6 +208,16 @@ export async function createOrder(orderData: any) {
     if (!isValid) {
         throw createError('Invalid signature');
     }
+    
+    const normalizedIntent = {
+        ...messageToVerify,
+        amountIn: BigInt(messageToVerify.amountIn),
+        minAmountOut: BigInt(messageToVerify.minAmountOut),
+        deadline: BigInt(messageToVerify.deadline),
+        nonce: BigInt(messageToVerify.nonce),
+        relayerFee: BigInt(messageToVerify.relayerFee),
+    };
+
 
     // 3. Save FIRST with 'pending' status
     // Use the normalized and verified data to ensure DB consistency.
@@ -217,7 +226,7 @@ export async function createOrder(orderData: any) {
         .insert([{
             id: crypto.randomUUID(),
             intent_id: orderId,
-            user_address: messageToVerify.user,
+            user_address: normalizedIntent.user,
             trading_pair_id: tradingPairId,
             side,
             order_type: orderType, 
@@ -225,14 +234,14 @@ export async function createOrder(orderData: any) {
             price: orderType === 'market' ? null : initialPrice,
             status: 'pending', // <-- SAVE AS PENDING
             signature,
-            token_in: messageToVerify.tokenIn,
-            token_out: messageToVerify.tokenOut,
-            amount_in: String(messageToVerify.amountIn),
-            min_amount_out: String(messageToVerify.minAmountOut),
-            deadline: String(messageToVerify.deadline),
-            nonce: String(messageToVerify.nonce),
-            adapter: messageToVerify.adapter,
-            relayer_fee: String(messageToVerify.relayerFee),
+            token_in: normalizedIntent.tokenIn,
+            token_out: normalizedIntent.tokenOut,
+            amount_in: String(normalizedIntent.amountIn),
+            min_amount_out: String(normalizedIntent.minAmountOut),
+            deadline: String(normalizedIntent.deadline),
+            nonce: String(normalizedIntent.nonce),
+            adapter: normalizedIntent.adapter,
+            relayer_fee: String(normalizedIntent.relayerFee),
         }])
         .select('*')
         .single();

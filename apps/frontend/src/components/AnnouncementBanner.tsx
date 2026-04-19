@@ -18,7 +18,7 @@ const announcements: Announcement[] = [
   },
   {
     id: 2,
-    title: 'New Market Listing: DEGEN/USDC',
+    title: 'New Market Listing: EURC/USDC',
     content: 'The EURC/USDC market is now live for spot trading.',
     icon: TrendingUp,
   },
