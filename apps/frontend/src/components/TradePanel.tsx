@@ -191,8 +191,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         setIsConfirming(false);
         return;
     }
-
-    const safeAddress = getAddress(userAddress);
     
     const isBuy = side === 'buy';
     const tokenIn = isBuy ? quoteToken : baseToken;
@@ -205,9 +203,9 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     const minAmountOut = expectedAmountOut - (expectedAmountOut * 2n / 100n);
 
     const intent = {
-        user: safeAddress,
-        tokenIn: getAddress(tokenIn.address),
-        tokenOut: getAddress(tokenOut.address),
+        user: userAddress,
+        tokenIn: tokenIn.address,
+        tokenOut: tokenOut.address,
         amountIn: amountIn.toString(),
         minAmountOut: minAmountOut.toString(),
         deadline: (Math.floor(Date.now() / 1000) + 300).toString(),

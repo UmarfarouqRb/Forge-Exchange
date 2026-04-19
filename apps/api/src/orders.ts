@@ -1,4 +1,3 @@
-
 import { verifyTypedData, isAddress, getAddress } from 'viem';
 import { createClient } from '@supabase/supabase-js';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@forge/contracts';
