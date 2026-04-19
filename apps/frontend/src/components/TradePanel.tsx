@@ -25,7 +25,7 @@ const chainId = 84532; // Base Sepolia
 
 // EIP-712 Domain
 const domain = {
-  name: 'IntentSpotRouter',
+  name: 'Forge Exchange',
   version: '1',
   chainId: chainId,
   verifyingContract: getAddress(INTENT_SPOT_ROUTER_ADDRESS[chainId]),
@@ -208,23 +208,22 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         user: safeAddress,
         tokenIn: getAddress(tokenIn.address),
         tokenOut: getAddress(tokenOut.address),
-        amountIn: amountIn, 
-        minAmountOut: minAmountOut,
-        deadline: BigInt(Math.floor(Date.now() / 1000) + 300),
-        nonce: BigInt(Date.now()),
-        adapter: '0x0000000000000000000000000000000000000000' as const,
-        relayerFee: 0n
+        amountIn: amountIn.toString(),
+        minAmountOut: minAmountOut.toString(),
+        deadline: (Math.floor(Date.now() / 1000) + 300).toString(),
+        nonce: Date.now().toString(),
+        adapter: '0x0000000000000000000000000000000000000000',
+        relayerFee: "0"
     };
 
     addLog('Awaiting signature for trade intent...');
-    const serializedIntent = serialize(intent);
 
     try {
       const result:any = await signTypedData({
-        domain: serialize(domain),
+        domain: domain,
         types,
         primaryType: "SwapIntent",
-        message: serializedIntent,
+        message: intent,
       });
       
       let signature: string;
@@ -242,7 +241,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       addLog(`Signature received: ${signature.slice(0,10)}...`);
 
       const rawOrder: CreateOrderRequest = {
-        intent: serializedIntent as CreateOrderRequest['intent'],
+        intent: intent as CreateOrderRequest['intent'],
         signature,
         orderType,
         side,
