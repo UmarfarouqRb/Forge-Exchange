@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { LiquidityEngine } from '../liquidity/engine';
 import { EventEmitter } from 'events';
+import { getAddress } from 'viem';
 
 // --- CONSTANTS ---
 const LP_ADDRESS = process.env.LP_ADDRESS!;
@@ -36,24 +37,39 @@ export class MatchingEngine extends EventEmitter {
     }
 
     private formatOrder(order: any): Order {
-        // If intent exists, assume it's already the new, correct format.
-        if (order.intent) {
-            return order;
+        // If intent_raw exists, we can reconstruct the canonical intent.
+        if (order.intent_raw) {
+            const intent = order.intent_raw;
+            return {
+                ...order,
+                intent: {
+                    user: getAddress(intent.user),
+                    tokenIn: getAddress(intent.tokenIn),
+                    tokenOut: getAddress(intent.tokenOut),
+                    amountIn: BigInt(intent.amountIn),
+                    minAmountOut: BigInt(intent.minAmountOut),
+                    deadline: BigInt(intent.deadline),
+                    nonce: BigInt(intent.nonce),
+                    adapter: getAddress(intent.adapter),
+                    relayerFee: BigInt(intent.relayerFee),
+                },
+            };
         }
-        // This is for raw DB orders (old format)
+
+        // Fallback for old orders without intent_raw
         return {
             ...order,
             intent_id: order.intent_id || order.id, // Fallback to main ID for hydrated orders
             intent: {
-                user: order.user_address,
-                tokenIn: order.token_in,
-                tokenOut: order.token_out,
-                amountIn: order.amount_in,
-                minAmountOut: order.min_amount_out,
-                deadline: order.deadline,
-                nonce: order.nonce,
-                adapter: order.adapter,
-                relayerFee: order.relayer_fee,
+                user: getAddress(order.user_address),
+                tokenIn: getAddress(order.token_in),
+                tokenOut: getAddress(order.token_out),
+                amountIn: BigInt(order.amount_in),
+                minAmountOut: BigInt(order.min_amount_out),
+                deadline: BigInt(order.deadline),
+                nonce: BigInt(order.nonce),
+                adapter: getAddress(order.adapter),
+                relayerFee: BigInt(order.relayer_fee),
             }
         };
     }
