@@ -3,24 +3,19 @@ import { LiquidityEngine } from '../liquidity/engine';
 import { EventEmitter } from 'events';
 import { getAddress } from 'viem';
 
-// --- CONSTANTS ---
 const LP_ADDRESS = process.env.LP_ADDRESS!;
 if (!LP_ADDRESS) {
     throw new Error("CRITICAL: LP_ADDRESS environment variable is not set.");
 }
 
-// --- TYPES ---
-type Order = any; // Replace with a proper shared type definition.
+
+type Order = any; 
 
 export class MatchingEngine extends EventEmitter {
     private agentName: string;
     private liquidityEngine: LiquidityEngine;
     private supabase: SupabaseClient;
-
-    // In-memory order book
     private books: Map<string, { bids: Order[], asks: Order[] }> = new Map();
-
-    // Queue to ensure sequential, non-overlapping match executions
     private matchQueue: Promise<void> = Promise.resolve();
 
     constructor(liquidityEngine: LiquidityEngine, agentName: string = 'Solver01') {
@@ -29,49 +24,53 @@ export class MatchingEngine extends EventEmitter {
         this.agentName = agentName;
         this.supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-        // Pass-through events from the liquidity engine for frontend logging
         this.liquidityEngine.on('agent_status', (data) => this.emit('agent_status', data));
-        
-        // Hydrate the order book from the DB on startup
         this.hydrateFromDB().catch(err => console.error("Failed to hydrate order book from DB:", err));
     }
 
     private formatOrder(order: any): Order {
-        // If intent_raw exists, we can reconstruct the canonical intent.
-        if (order.intent_raw) {
-            const intent = order.intent_raw;
-            return {
-                ...order,
-                intent: {
-                    user: getAddress(intent.user),
-                    tokenIn: getAddress(intent.tokenIn),
-                    tokenOut: getAddress(intent.tokenOut),
-                    amountIn: BigInt(intent.amountIn),
-                    minAmountOut: BigInt(intent.minAmountOut),
-                    deadline: BigInt(intent.deadline),
-                    nonce: BigInt(intent.nonce),
-                    adapter: getAddress(intent.adapter),
-                    relayerFee: BigInt(intent.relayerFee),
-                },
+        let sourceIntent: any;
+
+        if (order.intent && order.intent.user) {
+            sourceIntent = order.intent; // Order from API
+        } else if (order.user_address) {
+            sourceIntent = { // Reconstruct from DB fields
+                user: order.user_address,
+                tokenIn: order.token_in,
+                tokenOut: order.token_out,
+                amountIn: order.amount_in,
+                minAmountOut: order.min_amount_out,
+                deadline: order.deadline,
+                nonce: order.nonce,
+                adapter: order.adapter,
+                relayerFee: order.relayer_fee,
             };
+        } else {
+            if (order.intent && typeof order.intent.amountIn === 'bigint') {
+                return order; // Assume already formatted
+            }
+            throw new Error(`[formatOrder] Invalid order structure: ${JSON.stringify(order)}`);
         }
 
-        // Fallback for old orders without intent_raw
-        return {
-            ...order,
-            intent_id: order.intent_id || order.id, // Fallback to main ID for hydrated orders
-            intent: {
-                user: getAddress(order.user_address),
-                tokenIn: getAddress(order.token_in),
-                tokenOut: getAddress(order.token_out),
-                amountIn: BigInt(order.amount_in),
-                minAmountOut: BigInt(order.min_amount_out),
-                deadline: BigInt(order.deadline),
-                nonce: BigInt(order.nonce),
-                adapter: getAddress(order.adapter),
-                relayerFee: BigInt(order.relayer_fee),
-            }
+        const formattedOrder = { ...order };
+
+        formattedOrder.intent = {
+            user: getAddress(sourceIntent.user),
+            tokenIn: getAddress(sourceIntent.tokenIn),
+            tokenOut: getAddress(sourceIntent.tokenOut),
+            amountIn: BigInt(sourceIntent.amountIn),
+            minAmountOut: BigInt(sourceIntent.minAmountOut),
+            deadline: BigInt(sourceIntent.deadline),
+            nonce: BigInt(sourceIntent.nonce),
+            adapter: getAddress(sourceIntent.adapter),
+            relayerFee: BigInt(sourceIntent.relayerFee),
         };
+        
+        if (!order.intent) { // If it was a DB order
+            formattedOrder.intent_id = order.intent_id || order.id;
+        }
+
+        return formattedOrder;
     }
 
     async hydrateFromDB() {
@@ -115,7 +114,7 @@ export class MatchingEngine extends EventEmitter {
         const book = this.books.get(trading_pair_id)!;
         const orderList = order.side === 'buy' ? book.bids : book.asks;
         
-        if (orderList.some(o => o.id === id)) return; // Avoid duplicates during hydration
+        if (orderList.some(o => o.id === id)) return;
 
         orderList.push(order);
         orderList.sort((a, b) => 
@@ -127,12 +126,14 @@ export class MatchingEngine extends EventEmitter {
         }
     }
     
-    public async processOrder(order: Order) {
-        if (!order.intent || !order.intent_id || !order.intent.user) {
-            console.error('[MatchingEngine] Received malformed order payload:', order);
+    public async processOrder(rawOrder: any) {
+        if (!rawOrder.intent || !rawOrder.intent_id || !rawOrder.intent.user) {
+            console.error('[MatchingEngine] Received malformed order payload:', rawOrder);
             return;
         }
         
+        const order = this.formatOrder(rawOrder);
+
         this.emit('agent_status', { 
             orderId: order.intent_id, 
             userAddress: order.intent.user, 
@@ -166,7 +167,7 @@ export class MatchingEngine extends EventEmitter {
         const price = await this.liquidityEngine.getPrice(pairId);
         if (!price || price <= 0) return null;
     
-        const spread = 0.002; // 0.2% spread for LP
+        const spread = 0.002;
     
         const lpPrice = side === 'buy' ? price * (1 + spread) : price * (1 - spread);
     
@@ -184,7 +185,6 @@ export class MatchingEngine extends EventEmitter {
         const pairId = marketOrder.trading_pair_id;
         let remainingQuantity = Number(marketOrder.quantity);
 
-        // Phase 1: Match internal order book
         const book = this.books.get(pairId) || { bids: [], asks: [] };
         const counterOrders = marketOrder.side === 'buy' ? book.asks : book.bids;
 
@@ -204,14 +204,13 @@ export class MatchingEngine extends EventEmitter {
             marketOrder.quantity = remainingQuantity.toString();
         }
 
-        // Phase 2: Try external DEX
         if (remainingQuantity > 0) {
             const simulation = await this.liquidityEngine.simulateExternalSwap(marketOrder.intent, marketOrder.signature);
             if (simulation.success && simulation.amountOut >= marketOrder.intent.minAmountOut) {
                 this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation successful. Executing swap...`, type: 'info' });
                 try {
                     await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature, marketOrder.intent_id);
-                    remainingQuantity = 0; // Assume full fill from DEX
+                    remainingQuantity = 0; 
                 } catch (err) {
                      console.warn(`DEX execution failed after successful simulation: ${(err as Error).message}. Falling back to LP.`);
                      this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] DEX execution failed. Falling back to LP.`, type: 'warning' });
@@ -221,14 +220,11 @@ export class MatchingEngine extends EventEmitter {
             }
         }
 
-        // Phase 3: FINAL fallback to LP
         if (remainingQuantity > 0) {
             const oppositeSide = marketOrder.side === 'buy' ? 'sell' : 'buy';
 
-            // --- Start of Diagnostic Logging ---
             console.log("Looking for pair:", pairId);
             console.log("Available pairs:", this.liquidityEngine.getTradingPairs().map(p => p.id));
-            // --- End of Diagnostic Logging ---
 
             const lpOrder = await this.getLPOrder(pairId, oppositeSide);
 
@@ -252,7 +248,7 @@ export class MatchingEngine extends EventEmitter {
                     const fillQuantity = Math.min(Number(bestBid.quantity), Number(bestAsk.quantity));
                     await this.executeInternalMatch({ ...bestBid }, { ...bestAsk }, fillQuantity, Number(bestAsk.price));
                 } else {
-                    break; // Prices don't cross
+                    break;
                 }
             }
         }

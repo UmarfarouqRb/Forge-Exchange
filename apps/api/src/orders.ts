@@ -15,7 +15,7 @@ const RELAYER_URL = process.env.RELAYER_URL || 'http://localhost:3000';
 
 // EIP-712 Domain for an Intent
 const domain = {
-    name: 'IntentSpotRouter',
+    name: 'Forge Exchange',
     version: '1',
     chainId: chainId,
     verifyingContract: getAddress(INTENT_SPOT_ROUTER_ADDRESS[chainId] as `0x${string}`),
@@ -172,12 +172,12 @@ export async function createOrder(orderData: any) {
         user: getAddress(intent.user),
         tokenIn: getAddress(intent.tokenIn),
         tokenOut: getAddress(intent.tokenOut),
-        amountIn: BigInt(intent.amountIn),
-        minAmountOut: BigInt(intent.minAmountOut),
-        deadline: BigInt(intent.deadline),
-        nonce: BigInt(intent.nonce),
+        amountIn: intent.amountIn,
+        minAmountOut: intent.minAmountOut,
+        deadline: intent.deadline,
+        nonce: intent.nonce,
         adapter: getAddress(intent.adapter),
-        relayerFee: BigInt(intent.relayerFee),
+        relayerFee: intent.relayerFee,
     };
     const userAddress = messageToVerify.user;
 

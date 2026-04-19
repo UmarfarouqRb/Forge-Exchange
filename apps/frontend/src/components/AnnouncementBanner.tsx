@@ -1,25 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AnimatedCard } from './AnimatedCard';
-import { Gift } from 'lucide-react';
+import { Gift, TrendingUp, Zap } from 'lucide-react';
 
 interface Announcement {
   id: number;
   title: string;
   content: string;
+  icon: React.ElementType;
 }
 
 const announcements: Announcement[] = [
   {
     id: 1,
     title: 'BTC Trading Competition',
-    content: 'Join the BTC/USDC trading competition and win up to $10,000!'
+    content: 'Join the BTC/USDC trading competition and win up to $10,000!',
+    icon: Gift,
   },
-  // Add more announcements here
+  {
+    id: 2,
+    title: 'New Market Listing: DEGEN/USDC',
+    content: 'The EURC/USDC market is now live for spot trading.',
+    icon: TrendingUp,
+  },
+   {
+    id: 3,
+    title: 'Scheduled Maintenance',
+    content: 'The platform will undergo scheduled maintenance on Sunday at 2:00 AM UTC.',
+    icon: Zap,
+  },
 ];
 
 export function AnnouncementBanner() {
   const [visible, setVisible] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFading, setIsFading] = useState(false);
+
+  useEffect(() => {
+    if (announcements.length > 1) {
+      const interval = setInterval(() => {
+        setIsFading(true);
+        setTimeout(() => {
+          setCurrentIndex((prevIndex) => (prevIndex + 1) % announcements.length);
+          setIsFading(false);
+        }, 500); // Fade-out duration
+      }, 5000); // 5 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, []);
 
   const handleClose = () => {
     setVisible(false);
@@ -30,13 +58,17 @@ export function AnnouncementBanner() {
   if (!visible || !currentAnnouncement) return null;
 
   return (
-    <AnimatedCard
-      variant="banner"
-      title={currentAnnouncement.title}
-      content={currentAnnouncement.content}
-      icon={Gift}
-      onClose={handleClose}
-      className="w-full max-w-4xl mx-auto"
-    />
+    <div
+      key={currentAnnouncement.id}
+      className={`transition-opacity duration-500 ${isFading ? 'opacity-0' : 'opacity-100'}`}>
+      <AnimatedCard
+        variant="banner"
+        title={currentAnnouncement.title}
+        content={currentAnnouncement.content}
+        icon={currentAnnouncement.icon}
+        onClose={handleClose}
+        className="w-full max-w-4xl mx-auto"
+      />
+    </div>
   );
 }

@@ -1,7 +1,5 @@
-
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { MatchingEngine } from './matching/engine';
-import { getAddress } from 'viem';
 
 export class RetryWorker {
     private supabase: SupabaseClient;
@@ -32,8 +30,8 @@ export class RetryWorker {
         const { data: orders, error } = await this.supabase
             .from('orders')
             .select('*')
-            .in('status', ['pending', 'processing'])
-            .lt('retries', 3); // Limit retries to 3
+            .eq('status', 'pending') // Only pick up orders that haven't been touched yet
+            .lt('retry_count', 3);    // Limit retries
 
         if (error) {
             console.error('[Worker] Error fetching retryable orders:', error);
@@ -44,52 +42,30 @@ export class RetryWorker {
             console.log(`[Worker] Found ${orders.length} orders to process.`);
             for (const order of orders) {
                 try {
-                    // Increment retry count before processing
-                    await this.supabase
+                    // Mark as processing and increment retry count
+                    const { error: updateError } = await this.supabase
                         .from('orders')
-                        .update({ retries: (order.retries || 0) + 1, status: 'processing' })
+                        .update({ 
+                            retry_count: (order.retry_count || 0) + 1, 
+                            status: 'processing',
+                            last_attempt_at: new Date().toISOString()
+                        })
                         .eq('id', order.id);
 
-                    // Faithfully reconstruct and normalize the intent, just as the API does.
-                    const normalizedIntent = {
-                        user: getAddress(order.user_address),
-                        tokenIn: getAddress(order.token_in),
-                        tokenOut: getAddress(order.token_out),
-                        amountIn: BigInt(order.amount_in),
-                        minAmountOut: BigInt(order.min_amount_out),
-                        deadline: BigInt(order.deadline),
-                        nonce: BigInt(order.nonce),
-                        adapter: getAddress(order.adapter),
-                        relayerFee: BigInt(order.relayer_fee),
-                    };
-
-                    const formattedOrder = {
-                        id: order.id,
-                        intent_id: order.intent_id,
-                        trading_pair_id: order.trading_pair_id,
-                        side: order.side,
-                        price: order.price,
-                        quantity: order.quantity,
-                        order_type: order.order_type,
-                        pair: order.pair || null, // Ensure pair is not undefined
-                        intent: normalizedIntent, // Use the normalized intent
-                        signature: order.signature
-                    };
-
-                    if (!formattedOrder.trading_pair_id || formattedOrder.trading_pair_id.length !== 36) {
-                        console.error("[Worker] Invalid or missing UUID detected for trading_pair_id:", formattedOrder.trading_pair_id);
-                        await this.supabase.from('orders').update({ status: 'failed', last_error: 'Invalid trading_pair_id' }).eq('id', order.id);
-                        continue;
+                    if (updateError) {
+                        console.error(`[Worker] Failed to mark order ${order.id} as processing:`, updateError);
+                        continue; // Skip this order
                     }
 
-                    console.log("[Worker] Sending normalized order to engine with pairId:", formattedOrder.trading_pair_id);
-                    await this.matchingEngine.processOrder(formattedOrder);
+                    // The Matching Engine now expects the raw DB order and will format it internally.
+                    console.log(`[Worker] Sending order ${order.id} to the Matching Engine.`);
+                    await this.matchingEngine.processOrder(order);
 
                 } catch (e: any) {
-                    console.error(`[Worker] Failed to process order ${order.id}:`, e);
+                    console.error(`[Worker] Unhandled error processing order ${order.id}:`, e);
                     await this.supabase
                         .from('orders')
-                        .update({ status: 'failed', last_error: e.message })
+                        .update({ status: 'failed', last_error: `Worker Error: ${e.message}` })
                         .eq('id', order.id);
                 }
             }
