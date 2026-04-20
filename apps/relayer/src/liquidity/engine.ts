@@ -113,68 +113,76 @@ export class LiquidityEngine extends EventEmitter {
 
     public async settleMatchedTrade(trade: any) {
         const { buyer, seller, quantity, price, intentId } = trade;
+        try {
+            if (!price || price <= 0) {
+                throw new Error(`Invalid price for trade: ${price}`);
+            }
 
-        if (!price || price <= 0) {
-            throw new Error(`Invalid price for trade: ${price}`);
+            const pairId = buyer.trading_pair_id || seller.trading_pair_id;
+            const pair = this.tradingPairs.find(p => p.id === pairId || p.symbol === pairId);
+
+            if (!pair) {
+                throw new Error(`Pair not found: ${pairId}`);
+            }
+
+            const amountBase = parseUnits(quantity.toString(), pair.base.decimals);
+            const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
+            const baseDecimals = BigInt(10) ** BigInt(pair.base.decimals);
+            const amountQuote = (amountBase * priceBigInt) / baseDecimals;
+
+            this.emit('agent_status', { orderId: intentId, userAddress: buyer.intent.user, msg: `Settling internal match...`, type: 'info' });
+
+            await this.settleOnChain({
+                intent: buyer.intent,
+                signature: buyer.signature,
+                counterparty: seller.intent.user,
+                amountOut: amountQuote,
+                intent_id: intentId
+            });
+        } catch (error: any) {
+            console.error(`[settleMatchedTrade] Failed for intentId ${intentId}:`, error);
+            this.emit('agent_status', { orderId: intentId, userAddress: buyer.intent.user, msg: `Internal match settlement failed: ${error.message}`.substring(0, 100), type: 'error' });
+            this.updateOrderStatusInDB(buyer.signature, 'failed', error.message);
         }
-    
-        const pairId = buyer.trading_pair_id || seller.trading_pair_id;
-        const pair = this.tradingPairs.find(p => p.id === pairId || p.symbol === pairId);
-    
-        if (!pair) {
-            console.error(`[settleMatchedTrade] Pair not found for ID: ${pairId}`);
-            throw new Error(`Pair not found: ${pairId}`);
-        }
-    
-        const amountBase = parseUnits(quantity.toString(), pair.base.decimals);
-        const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
-        const baseDecimals = BigInt(10) ** BigInt(pair.base.decimals);
-        const amountQuote = (amountBase * priceBigInt) / baseDecimals;
-    
-        this.emit('agent_status', { orderId: intentId, userAddress: buyer.intent.user, msg: `Settling internal match...`, type: 'info' });
-    
-        await this.settleOnChain({
-            intent: buyer.intent, 
-            signature: buyer.signature,
-            counterparty: seller.intent.user,
-            amountOut: amountQuote, 
-            intent_id: intentId
-        });
     }
 
     public async executeWithLP(order: any) {
-        if (!this.lpAddress) {
-            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Cannot execute with LP: Address not configured.`, type: 'error' });
-            return;
+        try {
+            if (!this.lpAddress) {
+                throw new Error("Cannot execute with LP: Address not configured.");
+            }
+    
+            const price = await this.getPrice(order.trading_pair_id);
+            if (price === null || price <= 0) {
+                throw new Error("Cannot settle with LP: Invalid execution price.");
+            }
+    
+            const pair = this.tradingPairs.find(p => p.id === order.trading_pair_id);
+            if (!pair) throw new Error(`Trading pair not found: ${order.trading_pair_id}`);
+    
+            const amountBase = parseUnits(order.quantity.toString(), pair.base.decimals);
+            const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
+            const baseDecimals = BigInt(10) ** BigInt(pair.base.decimals);
+            const amountOut = (amountBase * priceBigInt) / baseDecimals;
+    
+            if(amountOut < BigInt(order.intent.minAmountOut)) {
+                throw new Error(`Slippage exceeded: LP quote was ${amountOut}, minAmountOut was ${order.intent.minAmountOut}`);
+            }
+    
+            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Settling ${order.quantity} with internal LP.`, type: 'info' });
+    
+            await this.settleOnChain({
+                intent: order.intent,
+                signature: order.signature,
+                counterparty: this.lpAddress,
+                amountOut: amountOut, 
+                intent_id: order.intent_id
+            });
+        } catch (error: any) {
+            console.error(`[executeWithLP] Failed for order ${order.intent_id}:`, error);
+            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `LP execution failed: ${error.message}`.substring(0, 100), type: 'error' });
+            this.updateOrderStatusInDB(order.signature, 'failed', error.message);
         }
-
-        const price = await this.getPrice(order.trading_pair_id);
-        if (price === null || price <= 0) {
-            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Cannot settle with LP: Invalid execution price.`, type: 'error' });
-            return;
-        }
-
-        const pair = this.tradingPairs.find(p => p.id === order.trading_pair_id);
-        if (!pair) throw new Error(`Trading pair not found: ${order.trading_pair_id}`);
-
-        const amountBase = parseUnits(order.quantity.toString(), pair.base.decimals);
-        const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
-        const baseDecimals = BigInt(10) ** BigInt(pair.base.decimals);
-        const amountOut = (amountBase * priceBigInt) / baseDecimals;
-
-        if(amountOut < BigInt(order.intent.minAmountOut)) {
-            throw new Error(`Slippage exceeded: LP quote was ${amountOut}, minAmountOut was ${order.intent.minAmountOut}`);
-        }
-
-        this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Settling ${order.quantity} with internal LP.`, type: 'info' });
-
-        await this.settleOnChain({
-            intent: order.intent,
-            signature: order.signature,
-            counterparty: this.lpAddress,
-            amountOut: amountOut, 
-            intent_id: order.intent_id
-        });
     }
 
     public async executeWithExternalDex(intent: any, signature: any, intent_id: string) {
@@ -189,7 +197,7 @@ export class LiquidityEngine extends EventEmitter {
                 account: this.account
             });
 
-            if(amountOut < intent.minAmountOut) {
+            if(amountOut < BigInt(intent.minAmountOut)) {
                 throw new Error("Slippage exceeded on external swap");
             }
             
@@ -208,7 +216,7 @@ export class LiquidityEngine extends EventEmitter {
         try {
             if (amountOut === 0n) throw new Error("Zero output amount — aborting");
     
-            if(amountOut < intent.minAmountOut) {
+            if(amountOut < BigInt(intent.minAmountOut)) {
                 throw new Error(`Slippage exceeded on settlement: minAmountOut was ${intent.minAmountOut}, but got ${amountOut}`);
             }
 
@@ -229,6 +237,7 @@ export class LiquidityEngine extends EventEmitter {
             console.error("On-chain settlement failed:", error);
             this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `On-chain settlement failed: ${error.message}`.substring(0, 100), type: 'error' });
             this.updateOrderStatusInDB(signature, 'failed', error.message);
+            throw error;
         }
     }
 }

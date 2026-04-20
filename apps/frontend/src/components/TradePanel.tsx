@@ -20,6 +20,9 @@ import { toast } from 'sonner';
 import { AgentLog } from './AgentLog';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
 import { serialize } from '@/lib/serializers';
+import { usePublicClient } from 'wagmi';
+import { IntentSpotRouterAbi } from '@/config/IntentSpotRouter';
+import { useCorrectNonce } from '@/hooks/useCorrectNonce';
 
 const chainId = 84532; // Base Sepolia
 
@@ -89,6 +92,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const { getVaultBalance, isLoading: isVaultLoading } = useVault();
   const { signTypedData } = useSignTypedData();
   const { logs: agentLogs, addLog, clearLogs } = useAgentStatus();
+  const publicClient = usePublicClient();
+  const { getNonce } = useCorrectNonce();
 
   const connectedWallet = wallets[0];
   const currentPrice = market?.lastPrice || '0';
@@ -197,10 +202,12 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     const tokenOut = isBuy ? baseToken : quoteToken;
     
     const amountIn = isBuy ? safeParseUnits(total.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
-    const expectedAmountOut = isBuy ? safeParseUnits(amount, tokenOut.decimals) : safeParseUnits(total.toString(), tokenOut.decimals);
+    const expectedAmountOut = safeParseUnits(total.toString(), tokenOut.decimals);
 
     // Apply 2% slippage tolerance
     const minAmountOut = expectedAmountOut - (expectedAmountOut * 2n / 100n);
+
+    const nonce = await getNonce();
 
     const intent = {
         user: userAddress,
@@ -209,7 +216,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         amountIn: amountIn.toString(),
         minAmountOut: minAmountOut.toString(),
         deadline: (Math.floor(Date.now() / 1000) + 300).toString(),
-        nonce: Date.now().toString(),
+        nonce: nonce,
         adapter: '0x0000000000000000000000000000000000000000',
         relayerFee: "0"
     };
