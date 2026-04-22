@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,10 +6,10 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { VAULT_SPOT_ADDRESS, WETH_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
-import { parseUnits } from 'viem';
+import { parseUnits, formatUnits } from 'viem';
 import { useAccount } from 'wagmi';
 import { useTrackedTx } from '@/hooks/useTrackedTx';
-import { FiLoader } from 'react-icons/fi';
+import { FiExternalLink, FiLoader } from 'react-icons/fi';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useVault } from '@/contexts/VaultContext';
 import { VaultAssetSelector } from '@/components/VaultAssetSelector';
@@ -24,7 +23,7 @@ export default function Withdraw() {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawTxHash, setWithdrawTxHash] = useState<`0x${string}` | undefined>();
   const [selectedAssetSymbol, setSelectedAssetSymbol] = useState<string | '' >('');
-  const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string; txHash?: `0x${string}` } | null>(null);
   const [gasEstimate, setGasEstimate] = useState<string | null>(null);
 
   const { search } = useLocation();
@@ -99,7 +98,7 @@ export default function Withdraw() {
     hash: withdrawTxHash,
     onSuccess: () => {
       refetchVault();
-      setMessage({ type: 'success', text: 'Withdrawal successful! Your balance will update shortly.' });
+      setMessage({ type: 'success', text: 'Withdrawal successful!', txHash: withdrawTxHash });
       toast.success('Withdrawal successful!');
       setIsWithdrawing(false);
       setAmount('');
@@ -196,8 +195,13 @@ export default function Withdraw() {
             <p>Currently Deposits and withdrawals are processed on the Base Sepolia network.</p>
           </div>
           {message && (
-            <div className={`p-4 rounded-md my-4 ${message.type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' : 'bg-green-100 border border-green-400 text-green-700'}`}>
+            <div className={`p-4 rounded-md my-4 ${message.type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' : 'italic border border-green-200 bg-green-50 text-green-800'}`}>
               <p>{message.text}</p>
+              {message.txHash && message.type === 'success' && (
+                <a href={`https://sepolia.basescan.org/tx/${message.txHash}`} target="_blank" rel="noopener noreferrer" className="text-xs flex items-center gap-1 hover:underline mt-2">
+                  View on Explorer <FiExternalLink />
+                </a>
+              )}
             </div>
           )}
           <div className="space-y-4 py-4">
@@ -210,15 +214,33 @@ export default function Withdraw() {
               />
             </div>
             <div className="spacey-2">
-              <Label htmlFor="withdraw-amount">Amount</Label>
-              <Input
-                id="withdraw-amount"
-                type="number"
-                placeholder={`0.00`}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                disabled={isWithdrawing || !selectedAssetSymbol}
-              />
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="withdraw-amount">Amount</Label>
+                    {selectedAsset && settlementToken && (
+                        <span className="text-xs text-muted-foreground">
+                            Balance: {formatUnits(selectedAsset.balance, settlementToken.decimals)} {settlementToken.symbol}
+                        </span>
+                    )}
+                </div>
+              <div className="relative">
+                <Input
+                    id="withdraw-amount"
+                    type="number"
+                    placeholder={`0.00`}
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    disabled={isWithdrawing || !selectedAssetSymbol}
+                />
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8"
+                    onClick={() => selectedAsset && settlementToken && setAmount(formatUnits(selectedAsset.balance, settlementToken.decimals))}
+                    disabled={!selectedAsset || !settlementToken}
+                >
+                    Max
+                </Button>
+              </div>
             </div>
             {gasEstimate && (
               <div className="text-xs text-muted-foreground">

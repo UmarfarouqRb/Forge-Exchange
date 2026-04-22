@@ -202,10 +202,16 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     const tokenOut = isBuy ? baseToken : quoteToken;
     
     const amountIn = isBuy ? safeParseUnits(total.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
-    const expectedAmountOut = safeParseUnits(total.toString(), tokenOut.decimals);
+    
+    // Convert price to BigInt (quote per base)
+    const priceBigInt = parseUnits(currentPrice, quoteToken.decimals);
+
+    // amountOut = amountIn / price
+    const expectedAmountOut =
+      (amountIn * (10n ** BigInt(baseToken.decimals))) / priceBigInt;
 
     // Apply 2% slippage tolerance
-    const minAmountOut = expectedAmountOut - (expectedAmountOut * 2n / 100n);
+    const minAmountOut = expectedAmountOut * 98n / 100n;
 
     const nonce = await getNonce();
 
