@@ -165,7 +165,10 @@ export class MatchingEngine extends EventEmitter {
 
     private async getLPOrder(pairId: string, side: 'buy' | 'sell') {
         const price = await this.liquidityEngine.getPrice(pairId);
-        if (!price || price <= 0) return null;
+        if (!price || price <= 0) {
+            console.error("LP price unavailable for pair:", pairId);
+            return null;
+        }
     
         const spread = 0.002;
     
@@ -188,8 +191,18 @@ export class MatchingEngine extends EventEmitter {
         const book = this.books.get(pairId) || { bids: [], asks: [] };
         const counterOrders = marketOrder.side === 'buy' ? book.asks : book.bids;
 
+        if (counterOrders.length === 0) {
+            console.log("No internal liquidity, going to external/LP immediately");
+        }
+
         for (const counterOrder of counterOrders) {
             if (remainingQuantity <= 0) break;
+
+            const tradePrice = Number(counterOrder.price);
+            if (!tradePrice || isNaN(tradePrice)) {
+                console.warn("Skipping invalid counter order price:", counterOrder);
+                continue;
+            }
             
             const fillQuantity = Math.min(remainingQuantity, Number(counterOrder.quantity));
             
@@ -197,7 +210,7 @@ export class MatchingEngine extends EventEmitter {
                 marketOrder.side === 'buy' ? marketOrder : { ...counterOrder },
                 marketOrder.side === 'buy' ? { ...counterOrder } : marketOrder,
                 fillQuantity,
-                Number(counterOrder.price)
+                tradePrice
             );
 
             remainingQuantity -= fillQuantity;
@@ -227,6 +240,10 @@ export class MatchingEngine extends EventEmitter {
             console.log("Available pairs:", this.liquidityEngine.getTradingPairs().map(p => p.id));
 
             const lpOrder = await this.getLPOrder(pairId, oppositeSide);
+
+            if (!lpOrder || !lpOrder.price) {
+                throw new Error("LP fallback failed: no valid price");
+            }
 
             if (lpOrder) {
                  this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] Executing final fill for ${remainingQuantity} with LP.`, type: 'info' });
@@ -261,8 +278,9 @@ export class MatchingEngine extends EventEmitter {
     }
 
     private async executeInternalMatch(buyer: Order, seller: Order, quantity: number, price: number) {
-        if (!price || isNaN(price)) {
-            throw new Error(`Invalid price for trade: ${price}`);
+        if (!price || isNaN(price) || price <= 0) {
+            console.error("Invalid trade price detected:", price);
+            return;
         }
     
         if (!buyer.intent || !seller.intent) {
