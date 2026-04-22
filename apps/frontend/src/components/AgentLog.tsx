@@ -61,10 +61,8 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
       if (log.details) {
         details = JSON.stringify(log.details, null, 2);
       }
-      return `[${timestamp}] [${log.type.toUpperCase()}] ${log.msg}${details ? `
-${details}` : ''}`;
-    }).join('
-');
+      return `[${timestamp}] [${log.type.toUpperCase()}] ${log.msg}${details ? `\n${details}` : ''}`;
+    }).join('\n');
     navigator.clipboard.writeText(logString);
   };
 
