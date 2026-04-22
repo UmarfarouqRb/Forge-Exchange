@@ -5,6 +5,7 @@ import { baseSepolia } from 'viem/chains';
 import { createClient } from '@supabase/supabase-js';
 
 import { getTradingPairs, TradingPair, getExecutionPrice } from '@forge/markets';
+import { getTokenBySymbol } from '../utils/tokens';
 
 import { INTENT_SPOT_ROUTER_ADDRESS } from '../contracts/baseSepolia/IntentSpotRouter';
 import { IntentSpotRouterAbi } from '../contracts/IntentSpotRouter';
@@ -95,7 +96,7 @@ export class LiquidityEngine extends EventEmitter {
         }
     }
     
-    public async simulateExternalSwap(intent: any, signature: any): Promise<{ success: boolean; amountOut: bigint; }> {
+    public async simulateExternalSwap(intent: any, signature: any): Promise<{ success: boolean; amountOut: bigint; tokenOut?: string; }> {
         try {
             const { result } = await publicClient.simulateContract({
                 address: this.intentSpotRouterAddress,
@@ -104,7 +105,7 @@ export class LiquidityEngine extends EventEmitter {
                 args: [intent, signature],
                 account: this.account
             });
-            return { success: true, amountOut: result };
+            return { success: true, amountOut: result, tokenOut: intent.tokenOut };
         } catch (err) {
             console.warn(`External DEX simulation failed: ${(err as Error).message}`);
             return { success: false, amountOut: 0n };

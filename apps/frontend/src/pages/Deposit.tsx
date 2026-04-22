@@ -19,7 +19,6 @@ import { useTransaction } from '@/hooks/useTransaction';
 import { Token } from '@/types/market-data';
 import { TransactionError } from '@/types/errors';
 import { safeAddress } from '@/lib/utils';
-import { getDisplaySymbolBySymbol } from '@/utils/tokenDisplay';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Deposit() {
@@ -47,6 +46,8 @@ export default function Deposit() {
 
   const { address } = useAccount();
 
+  const getDisplaySymbol = (symbol: string) => symbol === 'WETH' ? 'ETH' : symbol;
+
   const selectedAsset = allAssets.find(a => a.token.symbol === selectedAssetSymbol);
   const settlementToken = selectedAsset?.token;
 
@@ -59,7 +60,7 @@ export default function Deposit() {
     functionName: 'allowance',
     args: address && vaultAddress ? [address, vaultAddress] : undefined,
     query: {
-      enabled: !!address && !!tokenAddress && !!vaultAddress && settlementToken && getDisplaySymbolBySymbol(settlementToken.symbol) !== 'ETH',
+      enabled: !!address && !!tokenAddress && !!vaultAddress && settlementToken && getDisplaySymbol(settlementToken.symbol) !== 'ETH',
     },
   });
 
@@ -81,7 +82,7 @@ export default function Deposit() {
       const parsedAmount = parseUnits(amount, settlementToken.decimals);
       let args: any;
 
-      if (getDisplaySymbolBySymbol(settlementToken.symbol) === 'ETH') {
+      if (getDisplaySymbol(settlementToken.symbol) === 'ETH') {
         args = {
           address: vaultAddress,
           abi: VaultSpotAbi,
@@ -226,7 +227,7 @@ export default function Deposit() {
     setIsDepositing(true);
     setAmount('');
 
-    if (settlementToken && getDisplaySymbolBySymbol(settlementToken.symbol) === 'ETH') {
+    if (settlementToken && getDisplaySymbol(settlementToken.symbol) === 'ETH') {
       handleEthDeposit(parsedAmount);
     } else {
       handleErc20Deposit(parsedAmount, settlementToken);
@@ -258,7 +259,7 @@ export default function Deposit() {
             <div className="grid w-full items-center gap-1.5">
               <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
               <VaultAssetSelector
-                asset={getDisplaySymbolBySymbol(selectedAssetSymbol)}
+                asset={getDisplaySymbol(selectedAssetSymbol)}
                 setAsset={setSelectedAssetSymbol}
                 type="deposit"
               />
@@ -269,7 +270,7 @@ export default function Deposit() {
                 <Label htmlFor="deposit-amount">Amount</Label>
                 {walletBalance && settlementToken && (
                   <span className="text-xs text-muted-foreground">
-                    Balance: {formatUnits(walletBalance.value, settlementToken.decimals)} {walletBalance.symbol}
+                    Balance: {formatUnits(walletBalance.value, settlementToken.decimals)} {getDisplaySymbol(walletBalance.symbol)}
                   </span>
                 )}
               </div>

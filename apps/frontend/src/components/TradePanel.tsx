@@ -168,18 +168,18 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
   const handleConfirmOrder = async () => {
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-      toast.error("Invalid amount");
-      return;
+        toast.error("Invalid amount");
+        return;
     }
 
     if (orderType === 'limit' && (!price || isNaN(Number(price)))) {
-      toast.error("Invalid price");
-      return;
+        toast.error("Invalid price");
+        return;
     }
 
-    if (!currentPrice || isNaN(Number(currentPrice))) {
-      toast.error("Invalid market price");
-      return;
+    if (!currentPrice || isNaN(Number(currentPrice)) || Number(currentPrice) <= 0) {
+        toast.error("Invalid market price. Cannot execute trade.");
+        return;
     }
 
     if (!user?.wallet?.address || !baseToken || !quoteToken || !connectedWallet) {
@@ -196,22 +196,48 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         setIsConfirming(false);
         return;
     }
-    
+
     const isBuy = side === 'buy';
     const tokenIn = isBuy ? quoteToken : baseToken;
     const tokenOut = isBuy ? baseToken : quoteToken;
     
     const amountIn = isBuy ? safeParseUnits(total.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
     
-    // Convert price to BigInt (quote per base)
-    const priceBigInt = parseUnits(currentPrice, quoteToken.decimals);
+    let expectedAmountOut: bigint;
 
-    // amountOut = amountIn / price
-    const expectedAmountOut =
-      (amountIn * (10n ** BigInt(baseToken.decimals))) / priceBigInt;
+    if (isBuy) {
+        // BUY: quote -> base (e.g. USDC -> WETH)
+        const amountInFloat = parseFloat(total.toString()); // Total is in quote currency
+        const priceFloat = parseFloat(currentPrice);
+        if (priceFloat === 0) {
+            toast.error("Cannot execute trade with a price of zero.");
+            setIsConfirming(false);
+            return;
+        }
+        const out = amountInFloat / priceFloat;
+        expectedAmountOut = parseUnits(out.toFixed(tokenOut.decimals), tokenOut.decimals);
+    } else {
+        // SELL: base -> quote (e.g. WETH -> USDC)
+        const amountInFloat = parseFloat(amount); // Amount is in base currency
+        const priceFloat = parseFloat(currentPrice);
+        const out = amountInFloat * priceFloat;
+        expectedAmountOut = parseUnits(out.toFixed(tokenOut.decimals), tokenOut.decimals);
+    }
 
     // Apply 2% slippage tolerance
     const minAmountOut = expectedAmountOut * 98n / 100n;
+
+    // Logging for debug purposes
+    console.log("=== TRADE DEBUG ===");
+    console.log("Side:", side);
+    console.log("Input Amount:", amount);
+    console.log("Total (Quote Value):", total.toString());
+    console.log("Price:", currentPrice);
+    console.log("Token In:", tokenIn.symbol, `(Decimals: ${tokenIn.decimals})`);
+    console.log("Token Out:", tokenOut.symbol, `(Decimals: ${tokenOut.decimals})`);
+    console.log("Calculated amountIn (wei):", amountIn.toString());
+    console.log("Calculated expectedAmountOut (wei):", expectedAmountOut.toString());
+    console.log("Calculated minAmountOut (wei):", minAmountOut.toString());
 
     const nonce = await getNonce();
 
@@ -271,6 +297,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         setIsConfirming(false);
     }
   };
+
 
   const getButtonText = () => {
     if (disabled) return 'Disabled';

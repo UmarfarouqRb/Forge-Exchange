@@ -33,7 +33,10 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
 
   const selectedAsset = useMemo(() => {
     if (!asset) return null;
-    return filteredAssets.find(a => a.value === asset || a.label === asset) || null;
+    const assetLower = asset.toLowerCase();
+    return filteredAssets.find(a => 
+      a.value.toLowerCase() === assetLower || a.label.toLowerCase() === assetLower
+    ) || null;
   }, [asset, filteredAssets]);
 
   return (
@@ -58,9 +61,13 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
             {filteredAssets.map((a) => (
               <CommandItem
                 key={a.value}
-                value={a.value}
-                onSelect={(currentValue) => {
-                  setAsset(currentValue === selectedAsset?.value ? "" : currentValue);
+                value={a.value} // e.g. WETH
+                onSelect={(currentValue) => { // is lowercased: e.g. weth
+                  const matchingAsset = filteredAssets.find(f => f.value.toLowerCase() === currentValue);
+                  if (matchingAsset) {
+                    const isDeselecting = selectedAsset && matchingAsset.value === selectedAsset.value;
+                    setAsset(isDeselecting ? "" : matchingAsset.value);
+                  }
                   setOpen(false);
                 }}
               >

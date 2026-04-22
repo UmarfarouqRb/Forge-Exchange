@@ -219,6 +219,23 @@ export class MatchingEngine extends EventEmitter {
 
         if (remainingQuantity > 0) {
             const simulation = await this.liquidityEngine.simulateExternalSwap(marketOrder.intent, marketOrder.signature);
+
+            if (simulation.success && simulation.tokenOut && simulation.tokenOut.toLowerCase() !== marketOrder.intent.tokenOut.toLowerCase()) {
+                this.emit('agent_status', { 
+                    orderId: marketOrder.intent_id, 
+                    userAddress: marketOrder.intent.user, 
+                    msg: `[${this.agentName}] CRITICAL: Token mismatch in simulation! Expected ${marketOrder.intent.tokenOut}, got ${simulation.tokenOut}. Aborting.`, 
+                    type: 'error' 
+                });
+                return; // Abort to prevent unsafe execution
+            }
+            
+            console.log("Simulation vs MinOut:", {
+                simulation: simulation.amountOut.toString(),
+                min: marketOrder.intent.minAmountOut.toString(),
+                isGreater: simulation.amountOut >= marketOrder.intent.minAmountOut
+            });
+
             if (simulation.success && simulation.amountOut >= marketOrder.intent.minAmountOut) {
                 this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation successful. Executing swap...`, type: 'info' });
                 try {
