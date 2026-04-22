@@ -25,17 +25,43 @@ export function AnimatedCard({
   className
 }: AnimatedCardProps) {
   if (variant === 'banner') {
-    // New banner variant, styled like the image and common announcements
     return (
-      <div className={cn("bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-md shadow-md flex items-center justify-between w-full", className)}>
+      <div className={cn(
+        "p-4 rounded-lg flex items-center justify-between w-full",
+        "dark:bg-[#0D111C] dark:border dark:border-[#2A3547]", // Dark theme
+        "bg-white border border-gray-200 shadow-sm", // Light theme
+        className
+      )}>
         <div className="flex items-center">
-          <Icon className="h-6 w-6 mr-4 text-blue-500" />
+          <div className={cn(
+            "p-2 rounded-full mr-4",
+            "dark:bg-[#171E2D]", // Dark theme
+            "bg-gray-100" // Light theme
+          )}>
+            <Icon className={cn(
+              "h-5 w-5",
+              "dark:text-[#94A3B8]", // Dark theme
+              "text-gray-600" // Light theme
+            )} />
+          </div>
           <div>
-            <p className="font-bold text-base">{title}</p>
-            <p className="text-sm">{content}</p>
+            <p className={cn(
+              "font-semibold text-base",
+              "dark:text-[#E2E8F0]", // Dark theme
+              "text-gray-900" // Light theme
+            )}>{title}</p>
+            <p className={cn(
+              "text-sm",
+              "dark:text-[#94A3B8]", // Dark theme
+              "text-gray-600" // Light theme
+            )}>{content}</p>
           </div>
         </div>
-        <button onClick={onClose} className="text-blue-700 hover:bg-blue-200 rounded-full p-1 text-xl leading-none">
+        <button onClick={onClose} className={cn(
+          "rounded-full p-1.5 text-xl leading-none",
+          "dark:text-[#94A3B8] dark:hover:bg-[#171E2D]", // Dark theme
+          "text-gray-500 hover:bg-gray-100" // Light theme
+        )}>
           &times;
         </button>
       </div>
