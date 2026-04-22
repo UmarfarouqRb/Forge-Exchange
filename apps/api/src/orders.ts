@@ -15,8 +15,8 @@ const RELAYER_URL = process.env.RELAYER_URL || 'http://localhost:3000';
 
 // EIP-712 Domain for an Intent
 const domain = {
-    name: 'Forge Exchange',
-    version: '1',
+    name: 'IntentSpotRouter',
+    version: '1.0',
     chainId: chainId,
     verifyingContract: getAddress(INTENT_SPOT_ROUTER_ADDRESS[chainId] as `0x${string}`),
 };

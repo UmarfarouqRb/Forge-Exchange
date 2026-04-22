@@ -28,8 +28,8 @@ const chainId = 84532; // Base Sepolia
 
 // EIP-712 Domain
 const domain = {
-  name: 'Forge Exchange',
-  version: '1',
+  name: 'IntentSpotRouter',
+  version: '1.0',
   chainId: chainId,
   verifyingContract: getAddress(INTENT_SPOT_ROUTER_ADDRESS[chainId]),
 };

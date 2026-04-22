@@ -1,9 +1,9 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, Info, XCircle, Loader, Trash2, Pause, Play } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Info, XCircle, Loader, Trash2, Copy } from 'lucide-react';
 
 export interface LogEntry {
   id: string; 
@@ -44,23 +44,28 @@ const logConfig = {
 
 export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    if (!isPaused && scrollAreaRef.current) {
+    if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({
         top: scrollAreaRef.current.scrollHeight,
         behavior: 'smooth',
       });
     }
-  }, [logs, isPaused]);
+  }, [logs]);
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    const isAtBottom = scrollHeight - scrollTop === clientHeight;
-    if (!isAtBottom && !isPaused) {
-      setIsPaused(true);
-    }
+  const handleCopy = () => {
+    const logString = logs.map(log => {
+      const timestamp = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      let details = '';
+      if (log.details) {
+        details = JSON.stringify(log.details, null, 2);
+      }
+      return `[${timestamp}] [${log.type.toUpperCase()}] ${log.msg}${details ? `
+${details}` : ''}`;
+    }).join('
+');
+    navigator.clipboard.writeText(logString);
   };
 
   const displayedLogs = logs.slice(-maxLogs);
@@ -70,15 +75,15 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
       <div className="flex items-center justify-between px-4 py-2 border-b border-[#1E293B] flex-shrink-0">
         <h3 className="font-semibold text-base text-[#E2E8F0]">Agent Status</h3>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => setIsPaused(!isPaused)} className="h-7 w-7 text-[#94A3B8] hover:text-[#E2E8F0]">
-            {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+          <Button variant="ghost" size="icon" onClick={handleCopy} className="h-7 w-7 text-[#94A3B8] hover:text-[#E2E8F0]">
+            <Copy className="h-4 w-4" />
           </Button>
           <Button variant="ghost" size="icon" onClick={clearLogs} className="h-7 w-7 text-[#94A3B8] hover:text-[#E2E8F0]">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
-      <div className="flex-grow overflow-hidden relative" onScroll={handleScroll}>
+      <div className="flex-grow overflow-hidden relative">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
           <AnimatePresence initial={false}>
             {displayedLogs.map((log) => (
