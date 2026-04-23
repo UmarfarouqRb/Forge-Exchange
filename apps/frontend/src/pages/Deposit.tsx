@@ -48,6 +48,8 @@ export default function Deposit() {
 
   const getDisplaySymbol = (symbol: string) => symbol === 'WETH' ? 'ETH' : symbol;
 
+  const isEthSelected = getDisplaySymbol(selectedAssetSymbol) === 'ETH';
+
   const selectedAsset = allAssets.find(a => a.token.symbol === selectedAssetSymbol);
   const settlementToken = selectedAsset?.token;
 
@@ -60,17 +62,26 @@ export default function Deposit() {
     functionName: 'allowance',
     args: address && vaultAddress ? [address, vaultAddress] : undefined,
     query: {
-      enabled: !!address && !!tokenAddress && !!vaultAddress && settlementToken && getDisplaySymbol(settlementToken.symbol) !== 'ETH',
+      enabled: !!address && !!tokenAddress && !!vaultAddress && !!settlementToken && !isEthSelected,
     },
   });
 
-  const { data: walletBalance, refetch: refetchWalletBalance } = useBalance({
+  const { data: tokenBalance, refetch: refetchTokenBalance } = useBalance({
     address,
     token: tokenAddress,
     query: {
-      enabled: !!address && !!tokenAddress && !!settlementToken,
+      enabled: !!address && !!tokenAddress && !!settlementToken && !isEthSelected,
     },
   });
+
+  const { data: ethBalance, refetch: refetchEthBalance } = useBalance({
+    address,
+    query: {
+      enabled: !!address && isEthSelected,
+    },
+  });
+
+  const walletBalance = isEthSelected ? ethBalance : tokenBalance;
 
   useEffect(() => {
     const getGasEstimate = async () => {
@@ -82,7 +93,7 @@ export default function Deposit() {
       const parsedAmount = parseUnits(amount, settlementToken.decimals);
       let args: any;
 
-      if (getDisplaySymbol(settlementToken.symbol) === 'ETH') {
+      if (isEthSelected) {
         args = {
           address: vaultAddress,
           abi: VaultSpotAbi,
@@ -114,14 +125,18 @@ export default function Deposit() {
     };
 
     getGasEstimate();
-  }, [amount, selectedAsset, settlementToken, address, allowance, estimateGas, vaultAddress]);
+  }, [amount, selectedAsset, settlementToken, address, allowance, estimateGas, vaultAddress, isEthSelected]);
 
   useTrackedTx({
     hash: depositTxHash,
     onSuccess: () => {
       refetchAllowance();
       refetchVault();
-      refetchWalletBalance();
+      if (isEthSelected) {
+        refetchEthBalance();
+      } else {
+        refetchTokenBalance();
+      }
       setMessage({ type: 'success', text: 'Deposit successful!', txHash: depositTxHash });
       toast.success('Deposit successful!');
       setIsDepositing(false);
@@ -259,7 +274,7 @@ export default function Deposit() {
             <div className="grid w-full items-center gap-1.5">
               <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
               <VaultAssetSelector
-                asset={getDisplaySymbol(selectedAssetSymbol)}
+                asset={getDisplaySybol(selectedAssetSymbol)}
                 setAsset={setSelectedAssetSymbol}
                 type="deposit"
               />
