@@ -220,23 +220,7 @@ export class MatchingEngine extends EventEmitter {
         if (remainingQuantity > 0) {
             const simulation = await this.liquidityEngine.simulateExternalSwap(marketOrder.intent, marketOrder.signature);
 
-            if (simulation.success && simulation.tokenOut && simulation.tokenOut.toLowerCase() !== marketOrder.intent.tokenOut.toLowerCase()) {
-                this.emit('agent_status', { 
-                    orderId: marketOrder.intent_id, 
-                    userAddress: marketOrder.intent.user, 
-                    msg: `[${this.agentName}] CRITICAL: Token mismatch in simulation! Expected ${marketOrder.intent.tokenOut}, got ${simulation.tokenOut}. Aborting.`, 
-                    type: 'error' 
-                });
-                return; // Abort to prevent unsafe execution
-            }
-            
-            console.log("Simulation vs MinOut:", {
-                simulation: simulation.amountOut.toString(),
-                min: marketOrder.intent.minAmountOut.toString(),
-                isGreater: simulation.amountOut >= marketOrder.intent.minAmountOut
-            });
-
-            if (simulation.success && simulation.amountOut >= marketOrder.intent.minAmountOut) {
+            if (simulation.success) {
                 this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation successful. Executing swap...`, type: 'info' });
                 try {
                     await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature, marketOrder.intent_id);
@@ -246,7 +230,13 @@ export class MatchingEngine extends EventEmitter {
                      this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] DEX execution failed. Falling back to LP.`, type: 'warning' });
                 }
             } else {
-                this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation failed or insufficient liquidity. Falling back to LP.`, type: 'info' });
+                const failMsg = (simulation as any).error || 'External DEX simulation failed or insufficient liquidity';
+                this.emit('agent_status', { 
+                    orderId: marketOrder.intent_id, 
+                    userAddress: marketOrder.intent.user, 
+                    msg: `[${this.agentName}] ${failMsg}. Falling back to LP.`, 
+                    type: 'info' 
+                });
             }
         }
 

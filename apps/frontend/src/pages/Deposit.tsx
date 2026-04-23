@@ -274,7 +274,7 @@ export default function Deposit() {
             <div className="grid w-full items-center gap-1.5">
               <Label htmlFor="asset-selector" className="mb-2">Select Asset</Label>
               <VaultAssetSelector
-                asset={getDisplaySybol(selectedAssetSymbol)}
+                asset={getDisplaySymbol(selectedAssetSymbol)}
                 setAsset={setSelectedAssetSymbol}
                 type="deposit"
               />
