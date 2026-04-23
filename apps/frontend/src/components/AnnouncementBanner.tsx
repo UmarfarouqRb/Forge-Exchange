@@ -43,7 +43,7 @@ export function AnnouncementBanner() {
           setCurrentIndex((prevIndex) => (prevIndex + 1) % announcements.length);
           setIsFading(false);
         }, 500); // Fade-out duration
-      }, 5000); // 5 seconds
+      }, 3000); // 3 seconds interval + 0.5s fade = 3.5 seconds total
 
       return () => clearInterval(interval);
     }

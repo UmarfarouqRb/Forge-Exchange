@@ -1,5 +1,5 @@
 import { useVault } from "@/contexts/VaultContext";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
@@ -38,6 +38,14 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
       a.value.toLowerCase() === assetLower || a.label.toLowerCase() === assetLower
     ) || null;
   }, [asset, filteredAssets]);
+
+  useEffect(() => {
+    // If the passed asset (e.g., "ETH") resolves to a selected asset 
+    // with a different value (e.g., "WETH"), update the parent state.
+    if (asset && selectedAsset && asset !== selectedAsset.value) {
+      setAsset(selectedAsset.value);
+    }
+  }, [asset, selectedAsset, setAsset]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
