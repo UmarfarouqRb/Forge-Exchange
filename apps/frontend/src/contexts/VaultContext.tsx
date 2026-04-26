@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useCallback, useMemo } from 'react';
 import { getVaultTokens, getMarkets } from '@/lib/api';
 import { useChainContext } from '@/contexts/chain-context';
@@ -11,6 +10,7 @@ import { VAULT_SPOT_ADDRESS } from '@/config/contracts';
 import { VaultSpotAbi } from '@/abis/VaultSpot';
 import { safeAddress } from '@/lib/utils';
 import { getDisplaySymbol } from '@/utils/tokenDisplay';
+import { useSound } from '@/hooks/useSound';
 
 interface VaultContextType {
   assets: VaultAsset[];
@@ -26,6 +26,10 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   const { selectedChain } = useChainContext();
   const { address } = useAccount();
   const queryClient = useQueryClient();
+  const { play: playDeposit } = useSound('/sounds/deposit.mp3');
+  const { play: playWithdraw } = useSound('/sounds/withdraw.mp3');
+  const { play: playCredit } = useSound('/sounds/credit.mp3');
+  const { play: playDebit } = useSound('/sounds/debit.mp3');
 
   const { data: vaultTokensStatic, isLoading: tokensLoading } = useQuery<VaultToken[]> ({
     queryKey: ['vaultTokensStatic'],
@@ -136,6 +140,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     },
     onLogs: () => {
         console.log('Deposit event detected, refetching vault data');
+        playDeposit();
         refetchVault();
     },
   });
@@ -150,6 +155,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     },
     onLogs: () => {
         console.log('Withdraw event detected, refetching vault data');
+        playWithdraw();
         refetchVault();
     },
   });
@@ -178,6 +184,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     },
     onLogs: () => {
         console.log('Credit event detected, refetching vault data');
+        playCredit();
         refetchVault();
     },
   });
@@ -192,6 +199,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     },
     onLogs: () => {
         console.log('Debit event detected, refetching vault data');
+        playDebit();
         refetchVault();
     },
   });
