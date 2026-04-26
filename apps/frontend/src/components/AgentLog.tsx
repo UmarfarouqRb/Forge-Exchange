@@ -8,7 +8,7 @@ import { AlertTriangle, CheckCircle, Info, XCircle, Loader, Trash2, Copy } from 
 export interface LogEntry {
   id: string; 
   msg: string;
-  type: 'pending' | 'processing' | 'success' | 'error';
+  type: 'pending' | 'processing' | 'success' | 'error' | 'info';
   timestamp: number;
   details?: any; 
 }
@@ -39,6 +39,11 @@ const logConfig = {
     icon: <XCircle className="h-4 w-4 text-red-400" />,
     color: 'text-red-400',
     label: 'Error',
+  },
+  info: {
+    icon: <Info className="h-4 w-4 text-gray-400" />,
+    color: 'text-gray-400',
+    label: 'Info',
   },
 };
 
@@ -100,7 +105,7 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
                 <div className="mt-0.5">{logConfig[log.type].icon}</div>
                 <div className="flex-1">
                   <span className="font-bold mr-2">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>
-                  <span>{log.msg}</span>
+                  <span className="italic">{log.msg}</span>
                   {log.details && (
                     <details className="mt-1 text-xs text-[#94A3B8]">
                       <summary className="cursor-pointer">View details</summary>

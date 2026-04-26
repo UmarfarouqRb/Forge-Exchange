@@ -298,6 +298,23 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     }
   };
 
+  const handlePercentage = (percentage: number) => {
+    const balance = side === 'buy' ? quoteBalance : baseBalance;
+    const decimals = side === 'buy' ? quoteToken?.decimals : baseToken?.decimals;
+    if (!balance || decimals === undefined) return;
+
+    const balanceAsNumber = parseFloat(formatBalance(balance, decimals));
+    const newAmount = balanceAsNumber * percentage;
+
+    if (side === 'buy') {
+      if (currentPrice && parseFloat(currentPrice) > 0) {
+        setAmount((newAmount / parseFloat(currentPrice)).toFixed(baseToken?.decimals || 18));
+      }
+    } else {
+      setAmount(newAmount.toFixed(baseToken?.decimals || 18));
+    }
+  };
+
 
   const getButtonText = () => {
     if (disabled) return 'Disabled';
@@ -432,6 +449,12 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
                 <span className="text-xs text-muted-foreground">Available: {availableBalance} {availableSymbol}</span>
             </div>
             <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="bg-white/5 border" />
+            <div className="flex justify-between mt-2">
+              <Button size="xs" variant="outline" onClick={() => handlePercentage(0.25)}>25%</Button>
+              <Button size="xs" variant="outline" onClick={() => handlePercentage(0.50)}>50%</Button>
+              <Button size="xs" variant="outline" onClick={() => handlePercentage(0.75)}>75%</Button>
+              <Button size="xs" variant="outline" onClick={() => handlePercentage(1)}>100%</Button>
+            </div>
           </div>
 
           <div className="mb-4">

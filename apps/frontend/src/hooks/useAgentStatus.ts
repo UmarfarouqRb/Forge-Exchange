@@ -7,6 +7,7 @@ import { usePrivy } from '@privy-io/react-auth';
 const mapLogType = (type: string): LogEntry['type'] => {
   switch (type) {
     case 'info':
+      return 'info';
     case 'pending':
       return 'pending';
     case 'processing':
