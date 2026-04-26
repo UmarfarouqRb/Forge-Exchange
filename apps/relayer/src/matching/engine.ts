@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { LiquidityEngine } from '../liquidity/engine';
 import { EventEmitter } from 'events';
-import { getAddress } from 'viem';
+import { getAddress, formatUnits } from 'viem';
 
 const LP_ADDRESS = process.env.LP_ADDRESS!;
 if (!LP_ADDRESS) {
@@ -9,7 +9,7 @@ if (!LP_ADDRESS) {
 }
 
 
-type Order = any; 
+type Order = any;
 
 export class MatchingEngine extends EventEmitter {
     private agentName: string;
@@ -221,14 +221,32 @@ export class MatchingEngine extends EventEmitter {
             const simulation = await this.liquidityEngine.simulateExternalSwap(marketOrder.intent, marketOrder.signature);
 
             if (simulation.success) {
-                this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] External DEX simulation successful. Executing swap...`, type: 'info' });
-                try {
-                    await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature, marketOrder.intent_id);
-                    remainingQuantity = 0; 
-                } catch (err) {
-                     console.warn(`DEX execution failed after successful simulation: ${(err as Error).message}. Falling back to LP.`);
-                     this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] DEX execution failed. Falling back to LP.`, type: 'warning' });
+                const internalPrice = await this.liquidityEngine.getPrice(marketOrder.trading_pair_id);
+                if (internalPrice) {
+                    const internalAmountOut = BigInt(Math.floor(internalPrice * (1 - 0.002) * Number(marketOrder.quantity) * 10**6)); // Assuming 6 decimals for USDC
+                    const profit = BigInt(simulation.amountOut) - internalAmountOut;
+                    const profitInUSD = formatUnits(profit, 6); 
+
+                    this.emit('agent_status', { 
+                        orderId: marketOrder.intent_id, 
+                        userAddress: marketOrder.intent.user, 
+                        msg: `[${this.agentName}] External swap profit: +$${profitInUSD}. Settling internally.`,
+                        type: 'info' 
+                    });
+
+                    await this.executeLPMatch(marketOrder, await this.getLPOrder(pairId, marketOrder.side === 'buy' ? 'sell' : 'buy'), remainingQuantity);
+                    remainingQuantity = 0;
+                } else {
+                    this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] Could not get internal price. Proceeding with external swap.`, type: 'warning' });
+                    try {
+                        await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature, marketOrder.intent_id);
+                        remainingQuantity = 0; 
+                    } catch (err) {
+                         console.warn(`DEX execution failed after successful simulation: ${(err as Error).message}. Falling back to LP.`);
+                         this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `[${this.agentName}] DEX execution failed. Falling back to LP.`, type: 'warning' });
+                    }
                 }
+
             } else {
                 const failMsg = (simulation as any).error || 'External DEX simulation failed or insufficient liquidity';
                 this.emit('agent_status', { 

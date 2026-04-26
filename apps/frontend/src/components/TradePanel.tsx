@@ -7,7 +7,6 @@ import { usePrivy, useWallets, useSignTypedData } from '@privy-io/react-auth';
 import { Market, TradingPair } from '@/types/market-data';
 import { parseUnits, getAddress, isAddress } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
-import { OrderTypeSelector } from './OrderTypeSelector';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -350,12 +349,15 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
          <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => {
           if (value) setSide(value);
         }} className="w-full mb-2">
-          <ToggleGroupItem value="buy" className="w-full data-[state=on]:bg-blue-500 data-[state=on]:text-primary-foreground">Buy</ToggleGroupItem>
+          <ToggleGroupItem value="buy" className="w-full data-[state=on]:bg-blue-400 data-[state=on]:text-primary-foreground">Buy</ToggleGroupItem>
           <ToggleGroupItem value="sell" className="w-full data-[state=on]:bg-orange-500 data-[state=on]:text-primary-foreground">Sell</ToggleGroupItem>
         </ToggleGroup>
 
         <div className="mb-2">
-          <OrderTypeSelector orderType={orderType} setOrderType={setOrderType} />
+            <div className="flex space-x-2">
+                <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'default' : 'outline'} size="sm" className="w-full">Market</Button>
+                <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'default' : 'outline'} size="sm" className="w-full">Limit</Button>
+            </div>
         </div>
 
         {orderType === 'limit' && (
@@ -432,9 +434,10 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             <ToggleGroupItem value="sell" className="w-full data-[state=on]:bg-orange-500 data-[state=on]:text-primary-foreground">Sell</ToggleGroupItem>
           </ToggleGroup>
 
-          <div className="mb-4">
-            <OrderTypeSelector orderType={orderType} setOrderType={setOrderType} />
-          </div>
+          <div className="mb-4 flex space-x-2">
+            <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'default' : 'outline'} size="sm" className="w-full">Market</Button>
+            <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'default' : 'outline'} size="sm" className="w-full">Limit</Button>
+        </div>
 
           {orderType === 'limit' && (
             <div className="mb-4">

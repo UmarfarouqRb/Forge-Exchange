@@ -153,18 +153,23 @@ export class LiquidityEngine extends EventEmitter {
                 throw new Error("Cannot execute with LP: Address not configured.");
             }
     
-            const price = await this.getPrice(order.trading_pair_id);
-            if (price === null || price <= 0) {
-                throw new Error("Cannot settle with LP: Invalid execution price.");
-            }
-    
             const pair = this.tradingPairs.find(p => p.id === order.trading_pair_id);
             if (!pair) throw new Error(`Trading pair not found: ${order.trading_pair_id}`);
     
             const amountBase = parseUnits(order.quantity.toString(), pair.base.decimals);
-            const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
-            const baseDecimals = BigInt(10) ** BigInt(pair.base.decimals);
-            const amountOut = (amountBase * priceBigInt) / baseDecimals;
+            let amountOut: bigint;
+    
+            if (order.side === 'buy') {
+                amountOut = amountBase;
+            } else { // 'sell'
+                const price = await this.getPrice(order.trading_pair_id);
+                if (price === null || price <= 0) {
+                    throw new Error("Cannot settle with LP: Invalid execution price.");
+                }
+                const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
+                const baseDecimals = BigInt(10) ** BigInt(pair.base.decimals);
+                amountOut = (amountBase * priceBigInt) / baseDecimals;
+            }
     
             if(amountOut < BigInt(order.intent.minAmountOut)) {
                 throw new Error(`Slippage exceeded: LP quote was ${amountOut}, minAmountOut was ${order.intent.minAmountOut}`);
