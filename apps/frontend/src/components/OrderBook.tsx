@@ -1,4 +1,3 @@
-
 import { Skeleton } from '@/components/ui/skeleton';
 import { Market, TradingPair } from '@/types/market-data';
 
@@ -20,8 +19,8 @@ export function OrderBookSkeleton() {
 export function OrderBook({ pair, book }: OrderBookProps) {
   const bids = book?.bids || [];
   const asks = book?.asks || [];
-  const baseAsset = pair?.baseToken?.symbol;
-  const quoteAsset = pair?.quoteToken?.symbol;
+  const baseAsset = pair?.base?.symbol;
+  const quoteAsset = pair?.quote?.symbol;
 
   if (!pair) {
     return <OrderBookSkeleton />;
@@ -30,8 +29,8 @@ export function OrderBook({ pair, book }: OrderBookProps) {
   return (
     <div className="h-full flex flex-col bg-background p-2 text-xs">
       <div className="grid grid-cols-2 gap-2 text-muted-foreground mb-2">
-        <div className="text-left">Price {quoteAsset || ''}</div>
-        <div className="text-right">Quantity {baseAsset || ''}</div>
+        <div className="text-left text-xs">Price {quoteAsset || ''}</div>
+        <div className="text-right text-xs">Quantity {baseAsset || ''}</div>
       </div>
 
       <div className="flex-1 overflow-auto">

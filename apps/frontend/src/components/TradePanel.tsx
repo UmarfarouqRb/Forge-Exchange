@@ -355,8 +355,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
         <div className="mb-2">
             <div className="flex space-x-2">
-                <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'default' : 'outline'} size="sm" className="w-full">Market</Button>
-                <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'default' : 'outline'} size="sm" className="w-full">Limit</Button>
+                <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'default' : 'outline'} size="xs" className="w-full">Market</Button>
+                <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'default' : 'outline'} size="xs" className="w-full">Limit</Button>
             </div>
         </div>
 
@@ -402,14 +402,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
         <div className="flex-grow"></div>
 
-        <div className="mb-4">
-          <div className="mt-2">
-              <Button onClick={() => navigate('/assets/deposit')} variant="outline" size="sm" className="w-full">Deposit</Button>
-          </div>
-          <div className="mt-2">
-              <Button onClick={() => navigate('/assets/withdraw')} variant="outline" size="sm" className="w-full">Withdraw</Button>
-          </div>
-        </div>
         
         <Button
           className={`w-full text-base p-6 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
@@ -426,7 +418,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     <Card className="h-full bg-transparent border-0 md:border">
       <CardContent className="p-0 md:p-4 text-xs">
         <div className="mt-0">
-          <h3 className="text-base font-semibold mb-4">Trade</h3>
+          <h3 className="text-sm font-semibold mb-4">Trade</h3>
            <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => {
             if (value) setSide(value);
           }} className="w-full mb-4">
@@ -435,8 +427,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           </ToggleGroup>
 
           <div className="mb-4 flex space-x-2">
-            <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'default' : 'outline'} size="sm" className="w-full">Market</Button>
-            <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'default' : 'outline'} size="sm" className="w-full">Limit</Button>
+            <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'default' : 'outline'} size="xs" className="w-full">Market</Button>
+            <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'default' : 'outline'} size="xs" className="w-full">Limit</Button>
         </div>
 
           {orderType === 'limit' && (
@@ -469,10 +461,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             </div>
           </div>
           
-          <div className="flex gap-2 mt-4 mb-4">
-            <Button onClick={() => navigate('/assets/deposit')} variant="outline" size="sm" className="w-full">Deposit</Button>
-            <Button onClick={() => navigate('/assets/withdraw')} variant="outline" size="sm" className="w-full">Withdraw</Button>
-          </div>
 
           <Button
             className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
