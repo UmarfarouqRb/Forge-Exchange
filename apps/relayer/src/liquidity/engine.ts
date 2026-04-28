@@ -209,9 +209,11 @@ export class LiquidityEngine extends EventEmitter {
             
             const hash = await this.walletClient.writeContract(request);
             console.log("External swap transaction sent:", hash);
+            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade successful. Order filled.`, type: 'success' });
             this.updateOrderStatusInDB(signature, 'fulfilled');
         } catch (error: any) {
             console.error("External DEX execution failed:", error);
+            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade failed.`, type: 'error' });
             this.updateOrderStatusInDB(signature, 'failed', error.message);
         }
     }
@@ -238,10 +240,11 @@ export class LiquidityEngine extends EventEmitter {
             console.log(`Internal settlement transaction sent: ${hash}. Intent ID: ${intent_id}`);
 
             this.emit('settlement_status', { userA: intent.user, userB: counterparty, message: `Settlement complete.`, type: 'success' });
+            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade successful. Order filled.`, type: 'success' });
             this.updateOrderStatusInDB(signature, 'fulfilled');
         } catch (error: any) {
             console.error("On-chain settlement failed:", error);
-            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `On-chain settlement failed: ${error.message}`.substring(0, 100), type: 'error' });
+            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade failed: ${error.message}`.substring(0, 100), type: 'error' });
             this.updateOrderStatusInDB(signature, 'failed', error.message);
             throw error;
         }

@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { LiquidityEngine } from '../liquidity/engine';
 import { EventEmitter } from 'events';
-import { getAddress, formatUnits } from 'viem';
+import { getAddress, formatUnits, parseUnits } from 'viem';
 
 const LP_ADDRESS = process.env.LP_ADDRESS!;
 if (!LP_ADDRESS) {
@@ -222,15 +222,35 @@ export class MatchingEngine extends EventEmitter {
 
             if (simulation.success) {
                 const internalPrice = await this.liquidityEngine.getPrice(marketOrder.trading_pair_id);
-                if (internalPrice) {
-                    const internalAmountOut = BigInt(Math.floor(internalPrice * (1 - 0.002) * Number(marketOrder.quantity) * 10**6)); // Assuming 6 decimals for USDC
+                const pair = this.liquidityEngine.getTradingPairs().find(p => p.id === marketOrder.trading_pair_id);
+
+                if (internalPrice && pair) {
+                    const amountIn = BigInt(marketOrder.intent.amountIn);
+                    const tokenInAddress = getAddress(marketOrder.intent.tokenIn);
+                    const inTokenInfo = getAddress(pair.base.address) === tokenInAddress ? pair.base : pair.quote;
+                    const inDecimals = inTokenInfo.decimals;
+                    const amountInFormatted = Number(formatUnits(amountIn, inDecimals));
+
+                    const tokenOutAddress = getAddress(marketOrder.intent.tokenOut);
+                    const outTokenInfo = getAddress(pair.base.address) === tokenOutAddress ? pair.base : pair.quote;
+                    const outDecimals = outTokenInfo.decimals;
+
+                    let internalAmountOut: bigint;
+                    if (getAddress(pair.base.address) === tokenInAddress) { // tokenIn is base, so selling base for quote
+                        const internalAmountOutNumber = amountInFormatted * internalPrice * (1 - 0.002);
+                        internalAmountOut = parseUnits(internalAmountOutNumber.toString(), outDecimals);
+                    } else { // tokenIn is quote, so buying base with quote
+                        const internalAmountOutNumber = amountInFormatted / internalPrice * (1 - 0.002);
+                        internalAmountOut = parseUnits(internalAmountOutNumber.toString(), outDecimals);
+                    }
+
                     const profit = BigInt(simulation.amountOut) - internalAmountOut;
-                    const profitInUSD = formatUnits(profit, 6); 
+                    const profitFormatted = formatUnits(profit, outDecimals);
 
                     this.emit('agent_status', { 
                         orderId: marketOrder.intent_id, 
                         userAddress: marketOrder.intent.user, 
-                        msg: `[${this.agentName}] External swap profit: +$${profitInUSD}. Settling internally.`,
+                        msg: `[${this.agentName}] External swap profit: ${profitFormatted} ${outTokenInfo.symbol}. Settling internally.`,
                         type: 'info' 
                     });
 
