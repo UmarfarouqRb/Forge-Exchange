@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
-import { getOrders } from '@/lib/api';
+import { getAllPairs, getOrders } from '@/lib/api';
 import type { Order } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 
 export function OrderHistory() {
-  const { user, authenticated } = usePrivy();
+  const { user, authenticated, getAccessToken } = usePrivy();
   const wallet = user?.wallet;
   const isDesktop = useBreakpoint('md');
 
@@ -13,11 +13,16 @@ export function OrderHistory() {
     queryKey: ['user-orders', wallet?.address, 'spot'],
     queryFn: async () => {
       if (!wallet?.address) return [];
-      return getOrders(wallet.address);
+      const accessToken = await getAccessToken();
+      if (!accessToken) return [];
+      return getOrders(wallet.address, accessToken);
     },
     enabled: authenticated && !!wallet?.address,
     refetchInterval: 3000,
   });
+
+  const { data: pairs } = useQuery({ queryKey: ['all-pairs'], queryFn: getAllPairs });
+  const pairMap = new Map(pairs?.map(p => [p.id, p]));
 
   if (isLoading) {
     return <div className="text-center py-8 text-muted-foreground">Loading order history...</div>;
@@ -27,7 +32,7 @@ export function OrderHistory() {
     return <div className="text-center py-8 text-destructive">Failed to load order history.</div>;
   }
 
-  const historicalOrders = userOrders?.filter(order => order.status === 'filled' || order.status === 'canceled');
+  const historicalOrders = userOrders?.filter(order => order.status === 'filled' || order.status === 'cancelled');
 
   if (!historicalOrders || historicalOrders.length === 0) {
     return <div className="text-center py-8 text-muted-foreground">No order history</div>;
@@ -46,25 +51,29 @@ export function OrderHistory() {
           <div className="text-right">Status</div>
         </div>
       )}
-      {historicalOrders.map((order) => (
+      {historicalOrders.map((order) => {
+        const symbol = pairMap.get(order.tradingPairId)?.symbol;
+        const total = Number(order.price) * Number(order.quantity);
+
+        return (
         <div
           key={order.id}
           className={`grid ${!isDesktop ? 'grid-cols-2' : 'grid-cols-7'} gap-1 md:gap-2 text-xs py-2 border-b border-border hover-elevate`}>
           {!isDesktop ? (
             <>
               <div>
-                <div className="font-medium">{order.symbol}</div>
-                <div className="text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}</div>
+                <div className="font-medium">{symbol}</div>
+                <div className="text-muted-foreground">{order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</div>
               </div>
               <div className="text-right">
                 <div className={`font-mono ${order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}`}>{order.side.toUpperCase()}</div>
                 <div className="font-mono">${order.price}</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Amount:</span> {order.amount}
+                <span className="text-muted-foreground">Amount:</span> {order.quantity}
               </div>
               <div className="text-right">
-                <span className="text-muted-foreground">Total:</span> ${order.total}
+                <span className="text-muted-foreground">Total:</span> ${total.toFixed(2)}
               </div>
               <div className="col-span-2 text-right">
                 <span className={`font-mono ${order.status === 'filled' ? 'text-green-500' : 'text-red-500'}`}>{order.status}</span>
@@ -73,24 +82,24 @@ export function OrderHistory() {
           ) : (
             <>
               <div className="text-muted-foreground md:table-cell">
-                {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : ''}
+                {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
               </div>
-              <div>{order.symbol}</div>
+              <div>{symbol}</div>
               <div
                 className={order.side === 'buy' ? 'text-chart-2' : 'text-destructive'}
               >
                 {order.side.toUpperCase()}
               </div>
               <div className="md:text-right font-mono">${order.price}</div>
-              <div className="md:text-right font-mono">{order.amount}</div>
-              <div className="md:text-right font-mono">${order.total}</div>
+              <div className="md:text-right font-mono">{order.quantity}</div>
+              <div className="md:text-right font-mono">${total.toFixed(2)}</div>
               <div className="md:text-right">
                 <span className={`font-mono ${order.status === 'filled' ? 'text-green-500' : 'text-red-500'}`}>{order.status}</span>
               </div>
             </>
           )}
         </div>
-      ))}
+      )})}
     </div>
   );
 }
