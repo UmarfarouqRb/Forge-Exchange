@@ -29,7 +29,6 @@ export type TradingPair = {
     symbol: string;
     base: Token;
     quote: Token;
-    isActive?: boolean;
     status: 'active' | 'inactive';
 }
 
@@ -41,7 +40,7 @@ export type Order = {
   price: string;
   quantity: string;
   filledQuantity: string;
-  status: 'open' | 'filled' | 'cancelled';
+  status: 'open' | 'filled' | 'cancelled' | 'pending' | 'processing' | 'partial' | 'failed' | 'matching';
   createdAt: string;
   intent?: any;
   signature?: string;
