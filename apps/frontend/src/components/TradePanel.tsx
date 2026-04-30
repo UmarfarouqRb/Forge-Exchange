@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets, useSignTypedData } from '@privy-io/react-auth';
 import { Market, TradingPair } from '@/types/market-data';
-import { parseUnits, getAddress, isAddress } from 'viem';
+import { parseUnits, getAddress, isAddress, formatUnits } from 'viem';
 import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNavigate } from 'react-router-dom';
@@ -301,16 +302,20 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     const balance = side === 'buy' ? quoteBalance : baseBalance;
     const decimals = side === 'buy' ? quoteToken?.decimals : baseToken?.decimals;
     if (!balance || decimals === undefined) return;
-
-    const balanceAsNumber = parseFloat(formatBalance(balance, decimals));
-    const newAmount = balanceAsNumber * percentage;
-
+  
+    const percentageBigInt = BigInt(Math.floor(percentage * 100));
+    const HUNDRED = 100n;
+    const newAmountWei = (balance * percentageBigInt) / HUNDRED;
+  
     if (side === 'buy') {
       if (currentPrice && parseFloat(currentPrice) > 0) {
-        setAmount((newAmount / parseFloat(currentPrice)).toFixed(baseToken?.decimals || 18));
+        const priceBigInt = parseUnits(currentPrice, decimals);
+        const amountInQuote = formatUnits(newAmountWei, decimals);
+        const newAmount = parseFloat(amountInQuote) / parseFloat(currentPrice);
+        setAmount(newAmount.toFixed(baseToken?.decimals || 18));
       }
     } else {
-      setAmount(newAmount.toFixed(baseToken?.decimals || 18));
+      setAmount(formatUnits(newAmountWei, decimals));
     }
   };
 
@@ -345,15 +350,15 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
   if (isMobile) {
     return (
-      <div className="p-2 bg-background h-full flex flex-col text-xs">
+      <div className="p-1 bg-background h-full flex flex-col text-xs">
          <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => {
           if (value) setSide(value);
-        }} className="w-full mb-2">
+        }} className="w-full mb-1">
           <ToggleGroupItem value="buy" className="w-full data-[state=on]:bg-blue-400 data-[state=on]:text-primary-foreground">Buy</ToggleGroupItem>
           <ToggleGroupItem value="sell" className="w-full data-[state=on]:bg-orange-500 data-[state=on]:text-primary-foreground">Sell</ToggleGroupItem>
         </ToggleGroup>
 
-        <div className="mb-2">
+        <div className="mb-1">
             <div className="flex space-x-2">
                 <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'default' : 'outline'} size="xs" className="w-full">Market</Button>
                 <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'default' : 'outline'} size="xs" className="w-full">Limit</Button>
@@ -361,7 +366,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         </div>
 
         {orderType === 'limit' && (
-          <div className="mb-2 flex items-center bg-input rounded-md">
+          <div className="mb-1 flex items-center bg-input rounded-md">
             <Input
               id="price"
               type="number"
@@ -370,11 +375,11 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
               className="flex-grow bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               placeholder={`Price (${displayQuoteSymbol})`}
             />
-            <span className="text-xs text-muted-foreground p-2">BBO</span>
+            <span className="text-xs text-muted-foreground p-1">BBO</span>
           </div>
         )}
 
-        <div className="mb-2 flex items-center bg-input rounded-md">
+        <div className="mb-1 flex items-center bg-input rounded-md">
           <Input
             id="amount"
             type="number"
@@ -383,20 +388,20 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             className="flex-grow bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             placeholder={`Quantity (${displayBaseSymbol})`}
           />
-          <span className="text-xs text-muted-foreground p-2">{displayBaseSymbol}</span>
+          <span className="text-xs text-muted-foreground p-1">{displayBaseSymbol}</span>
         </div>
         
-        <div className="mb-2 p-2 bg-input rounded-md flex justify-between items-center">
+        <div className="mb-1 p-1 bg-input rounded-md flex justify-between items-center">
           <span className="text-xs text-muted-foreground">Total</span>
-          <span className="text-sm font-mono">{total.toFixed(2)} {displayQuoteSymbol}</span>
+          <span className="text-xs font-mono">{total.toFixed(2)} {displayQuoteSymbol}</span>
         </div>
         
-        <div className="mb-2 flex items-center">
+        <div className="mb-1 flex items-center">
           <input type="checkbox" id="tp_sl" className="mr-2" />
           <label htmlFor="tp_sl" className="text-xs">TP/SL</label>
         </div>
         
-        <div className="text-xs text-muted-foreground mb-2">
+        <div className="text-xs text-muted-foreground mb-1">
             Available: {availableBalance} {availableSymbol}
         </div>
 
@@ -404,7 +409,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
         
         <Button
-          className={`w-full text-base p-6 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
+          className={`w-full text-sm p-4 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
           onClick={handlePlaceOrder}
           disabled={disabled || isSubmitting || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance}
         >

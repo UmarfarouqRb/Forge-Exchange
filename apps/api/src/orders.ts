@@ -156,6 +156,10 @@ export async function createOrder(orderData: any) {
         quantity,
     } = orderData;
 
+    if ((orderType === 'limit' || orderType === 'stop') && (!initialPrice || Number(initialPrice) <= 0)) {
+        throw createError(`A valid price is required for a ${orderType} order.`, { price: initialPrice });
+    }
+
     if (!intent || !intent.user) {
         throw createError("Invalid intent: missing user", { intent });
     }
@@ -256,54 +260,27 @@ export async function createOrder(orderData: any) {
         throw createError(`Failed to save order to database: ${insertError.message}`);
     }
 
-    // 5. Handle forwarding based on order type
-    if (orderType === 'market') {
-        try {
-            await forwardOrderToRelayer(newOrder);
-        } catch (forwardError: any) {
-            if (forwardError.message === 'RATE_LIMITED') {
-                console.log(`[API] Market order ${newOrder.id} was rate limited. Keeping status as 'pending' for retry.`);
-                await supabase.from('orders').update({
-                    status: 'pending',
-                    retry_count: (newOrder.retry_count || 0) + 1,
-                    last_error: 'Rate limited',
-                    last_attempt_at: new Date().toISOString()
-                }).eq('id', newOrder.id);
-                // Do not throw an error, let the user know it's pending.
-                // The worker will pick it up.
-                await emitOrderUpdate(newOrder, 'info', 'Your order was received and will be processed shortly.');
-            } else {
-                console.error(`[API] Failed to process market order ${newOrder.id}. Setting to failed.`, forwardError);
-                const { error: updateError } = await supabase.from('orders').update({
-                    status: 'failed',
-                    last_error: 'Failed to forward to relayer'
-                }).eq('id', newOrder.id);
-                
+    // 5. Asynchronously forward the order to the relayer without blocking the user response.
+    // This solves the 'cold start' latency problem for the user.
+    forwardOrderToRelayer(newOrder).catch(initialForwardError => {
+        console.warn(
+            `[API] Initial, non-blocking forward for order ${newOrder.id} failed. ` +
+            `This is expected during a cold start. The retry worker will handle it. Error: ${initialForwardError.message}`
+        );
+        // Optionally, update the order to note the initial failure reason for debugging.
+        supabase
+            .from('orders')
+            .update({
+                last_error: `Initial forward failed: ${initialForwardError.message}`,
+                last_attempt_at: new Date().toISOString()
+            })
+            .eq('id', newOrder.id)
+            .then(({ error: updateError }) => {
                 if (updateError) {
-                     console.error(`[API] CRITICAL: Failed to update order status to failed for order ${newOrder.id}`, updateError);
+                    console.error(`[API] Failed to log initial forward error for order ${newOrder.id}:`, updateError);
                 }
-    
-                // Emit failure event
-                await emitOrderUpdate(newOrder, 'failure', 'Failed to send order');
-                
-                throw createError(`Market order failed: ${forwardError.message}`);
-            }
-        }
-    } else {
-        // For limit/stop orders, we still await but handle errors gracefully
-        try {
-            await forwardOrderToRelayer(newOrder);
-        } catch (err: any) {
-            // If rate-limited, we just log it. The order is already 'pending'.
-            // The worker will handle retries.
-            if (err.message === 'RATE_LIMITED') {
-                 console.log(`[API] Limit order ${newOrder.id} was rate limited on initial forward. Worker will handle it.`);
-            } else {
-                // For other errors, it's also non-critical for the user response.
-                console.warn(`[API] Non-critical failure to forward limit order ${newOrder.id}. Worker will retry.`, err);
-            }
-        }
-    }
+            });
+    });
 
     // 6. Return response to user
     console.log(`[API] Order ${newOrder.id} processed for creation.`);
