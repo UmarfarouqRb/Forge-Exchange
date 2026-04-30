@@ -18,14 +18,16 @@ interface TradeProps {
 }
 
 export default function Trade({ pair, market, pairsList }: TradeProps) {
-  const { user, authenticated } = usePrivy();
+  const { user, authenticated, getAccessToken } = usePrivy();
   const wallet = user?.wallet;
 
   const { data: userOrders, isLoading: areUserOrdersLoading, isError: areUserOrdersError } = useQuery<Order[]>({
     queryKey: ['user-orders', wallet?.address, 'spot'],
     queryFn: async (): Promise<Order[]> => {
       if (!wallet?.address) return [];
-      return getOrders(wallet.address);
+      const accessToken = await getAccessToken();
+      if (!accessToken) return [];
+      return getOrders(wallet.address, accessToken);
     },
     enabled: authenticated && !!wallet?.address,
     refetchInterval: 10000,
@@ -38,9 +40,14 @@ export default function Trade({ pair, market, pairsList }: TradeProps) {
     return map;
   }, [pairsList]);
 
-  const renderOpenOrders = () => {
-    const openOrders = userOrders?.filter((order: Order) => order.status === 'open');
+  const { openOrders, historicalOrders } = useMemo(() => {
+    const openOrders = userOrders?.filter((order: Order) => order.status === 'open' || order.status === 'pending' || order.status === 'matching');
+    const historicalOrders = userOrders?.filter((order: Order) => order.status !== 'open' && order.status !== 'pending' && order.status !== 'matching');
+    return { openOrders, historicalOrders };
+  }, [userOrders]);
 
+
+  const renderOpenOrders = () => {
     return (
         <TabsContent value="open-orders" className="flex-1 overflow-auto p-2 md:p-4 mt-0">
             {authenticated ? (
@@ -92,10 +99,10 @@ export default function Trade({ pair, market, pairsList }: TradeProps) {
           </TabsList>
           {renderOpenOrders()}
           <TabsContent value="history" className="flex-1 overflow-auto p-4 mt-0">
-            <OrderHistory />
+            <OrderHistory orders={historicalOrders} isLoading={areUserOrdersLoading} isError={areUserOrdersError} />
           </TabsContent>
           <TabsContent value="trades" className="flex-1 overflow-auto p-4 mt-0">
-            <TradeHistory />
+            <TradeHistory trades={historicalOrders} isLoading={areUserOrdersLoading} isError={areUserOrdersError} />
           </TabsContent>
         </Tabs>
       </CardContent>

@@ -1,11 +1,15 @@
-import { useTradeHistory } from '@/hooks/useTradeHistory';
-import { useBreakpoint } from '@/hooks/use-breakpoint';
-import type { Order } from '../types';
 import { useQuery } from '@tanstack/react-query';
 import { getAllPairs } from '@/lib/api';
+import type { Order } from '../types';
+import { useBreakpoint } from '@/hooks/use-breakpoint';
 
-export function TradeHistory() {
-  const { data: trades, isLoading, isError } = useTradeHistory();
+interface TradeHistoryProps {
+  trades: Order[];
+  isLoading: boolean;
+  isError: boolean;
+}
+
+export function TradeHistory({ trades, isLoading, isError }: TradeHistoryProps) {
   const isDesktop = useBreakpoint('md');
 
   const { data: pairs } = useQuery({ queryKey: ['all-pairs'], queryFn: getAllPairs });

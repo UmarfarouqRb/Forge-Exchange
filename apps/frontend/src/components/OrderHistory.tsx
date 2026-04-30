@@ -1,25 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
-import { usePrivy } from '@privy-io/react-auth';
-import { getAllPairs, getOrders } from '@/lib/api';
+import { getAllPairs } from '@/lib/api';
 import type { Order } from '../types';
 import { useBreakpoint } from '@/hooks/use-breakpoint';
 
-export function OrderHistory() {
-  const { user, authenticated, getAccessToken } = usePrivy();
-  const wallet = user?.wallet;
-  const isDesktop = useBreakpoint('md');
+interface OrderHistoryProps {
+  orders: Order[];
+  isLoading: boolean;
+  isError: boolean;
+}
 
-  const { data: userOrders, isLoading, isError } = useQuery<Order[]>({
-    queryKey: ['user-orders', wallet?.address, 'spot'],
-    queryFn: async () => {
-      if (!wallet?.address) return [];
-      const accessToken = await getAccessToken();
-      if (!accessToken) return [];
-      return getOrders(wallet.address, accessToken);
-    },
-    enabled: authenticated && !!wallet?.address,
-    refetchInterval: 3000,
-  });
+export function OrderHistory({ orders, isLoading, isError }: OrderHistoryProps) {
+  const isDesktop = useBreakpoint('md');
 
   const { data: pairs } = useQuery({ queryKey: ['all-pairs'], queryFn: getAllPairs });
   const pairMap = new Map(pairs?.map(p => [p.id, p]));
@@ -32,9 +23,7 @@ export function OrderHistory() {
     return <div className="text-center py-8 text-destructive">Failed to load order history.</div>;
   }
 
-  const historicalOrders = userOrders?.filter(order => order.status === 'filled' || order.status === 'cancelled');
-
-  if (!historicalOrders || historicalOrders.length === 0) {
+  if (!orders || orders.length === 0) {
     return <div className="text-center py-8 text-muted-foreground">No order history</div>;
   }
 
@@ -51,7 +40,7 @@ export function OrderHistory() {
           <div className="text-right">Status</div>
         </div>
       )}
-      {historicalOrders.map((order) => {
+      {orders.map((order: Order) => {
         const symbol = pairMap.get(order.tradingPairId)?.symbol;
         const total = Number(order.price) * Number(order.quantity);
 
