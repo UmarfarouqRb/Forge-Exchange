@@ -318,16 +318,35 @@ export class MatchingEngine extends EventEmitter {
 
     private async executeLPMatch(taker: Order, lpOrder: Order, quantity: number) {
         const orderForLp = { ...taker, quantity };
-        await this.liquidityEngine.executeWithLP(orderForLp);
+        const settlement = await this.liquidityEngine.executeWithLP(orderForLp);
         this.updateOrderStatusInDB({ ...taker, quantity: Number(taker.quantity) - quantity });
-    }
+    
+        if (!settlement) return;
 
+        const { receipt, amountOut } = settlement;
+        const inTokenPrice = await this.liquidityEngine.getPrice(taker.intent.tokenIn) || 0;
+        const amountUsd = (Number(formatUnits(taker.intent.amountIn, 18)) * inTokenPrice);
+
+        await this.supabase.from('trade_executions').insert({
+            tx_hash: receipt.transactionHash,
+            user_address: taker.intent.user,
+            token_in: taker.intent.tokenIn,
+            token_out: taker.intent.tokenOut,
+            amount_in: taker.intent.amountIn.toString(),
+            amount_out: amountOut.toString(),
+            amount_usd: amountUsd,
+            protocol_fee: '0', //TODO
+            relayer_fee: taker.intent.relayerFee.toString(),
+            created_at: new Date()
+        });
+    }
+    
     private async executeInternalMatch(buyer: Order, seller: Order, quantity: number, price: number) {
         if (!price || isNaN(price) || price <= 0) {
             console.error("Invalid trade price detected:", price);
             return;
         }
-    
+        
         if (!buyer.intent || !seller.intent) {
             console.error('CRITICAL: Invalid match payload due to missing intent structure.', {
                 buyerId: buyer.id,
@@ -337,37 +356,55 @@ export class MatchingEngine extends EventEmitter {
             });
             return;
         }
-
+    
         const msg = `[${this.agentName}] Found internal match for ${quantity} @ ${price}.`;
-
+    
         this.emit('agent_status', { 
             orderId: buyer.intent_id, 
             userAddress: buyer.intent.user,
             msg,
             type: 'info' 
         });
-
+    
         this.emit('agent_status', { 
             orderId: seller.intent_id, 
             userAddress: seller.intent.user,
             msg,
             type: 'info' 
         });
+            
+        const settlement = await this.liquidityEngine.settleMatchedTrade({ buyer, seller, quantity, price, intentId: buyer.intent_id });
+        if (!settlement) return;
         
-        await this.liquidityEngine.settleMatchedTrade({ buyer, seller, quantity, price, intentId: buyer.intent_id });
-        
+        const { receipt, amountOut } = settlement;
+        const inTokenPrice = await this.liquidityEngine.getPrice(buyer.intent.tokenIn) || 0;
+        const amountUsd = (Number(formatUnits(buyer.intent.amountIn, 18)) * inTokenPrice);
+
+        await this.supabase.from('trade_executions').insert({
+            tx_hash: receipt.transactionHash,
+            user_address: buyer.intent.user,
+            token_in: buyer.intent.tokenIn,
+            token_out: buyer.intent.tokenOut,
+            amount_in: buyer.intent.amountIn.toString(),
+            amount_out: amountOut.toString(),
+            amount_usd: amountUsd,
+            protocol_fee: '0', //TODO
+            relayer_fee: buyer.intent.relayerFee.toString(),
+            created_at: new Date()
+        });
+
         const updatedBuyer = { ...buyer, quantity: Number(buyer.quantity) - quantity };
         const updatedSeller = { ...seller, quantity: Number(seller.quantity) - quantity };
-
+    
         const pairId = buyer.trading_pair_id || seller.trading_pair_id;
         const book = this.books.get(pairId)!;
-
+    
         book.bids = book.bids.map(o => o.id === buyer.id ? updatedBuyer : o).filter(o => o.quantity > 0);
         book.asks = book.asks.map(o => o.id === seller.id ? updatedSeller : o).filter(o => o.quantity > 0);
-        
+            
         this.updateOrderStatusInDB(updatedBuyer);
         this.updateOrderStatusInDB(updatedSeller);
-        
+            
         this.emitFormattedBook(pairId, book);
     }
 

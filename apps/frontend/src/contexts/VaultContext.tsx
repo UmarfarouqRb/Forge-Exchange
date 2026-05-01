@@ -16,6 +16,7 @@ interface VaultContextType {
   assets: VaultAsset[];
   isLoading: boolean;
   totalAssetsValue: number;
+  vaultTvl: number;
   refetchVault: () => void;
   getVaultBalance: (tokenAddress: string) => bigint;
 }
@@ -115,6 +116,16 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
     
     return [assetsWithPrices, totalValue];
   }, [vaultTokensStatic, balanceResults, markets]);
+
+  const vaultTvl = useMemo(() => {
+    if (!assets || !markets) return 0;
+
+    return assets.reduce((acc, asset) => {
+      const balanceFormatted = formatBalance(asset.balance, asset.token.decimals);
+      const balanceFloat = parseFloat(balanceFormatted);
+      return acc + balanceFloat * (asset.price || 0);
+    }, 0);
+  }, [assets, markets]);
   
   const isLoading = tokensLoading || marketsLoading || balancesLoading;
 
@@ -205,7 +216,7 @@ export const VaultProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   return (
-    <VaultContext.Provider value={{ assets, isLoading, totalAssetsValue, refetchVault, getVaultBalance }}>
+    <VaultContext.Provider value={{ assets, isLoading, totalAssetsValue, vaultTvl, refetchVault, getVaultBalance }}>
       {children}
     </VaultContext.Provider>
   );

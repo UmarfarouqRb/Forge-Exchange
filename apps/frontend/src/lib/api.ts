@@ -31,6 +31,12 @@ export interface IntentPayload {
     relayerFee: string;
 }
 
+export interface TradeMetrics {
+  twentyFourHourVolume: number;
+  totalTrades: number;
+  uniqueUsers: number;
+}
+
 // --- Aligned with apps/api/routes.ts ---
 
 export async function getAllPairs(): Promise<TradingPair[]> {
@@ -115,6 +121,11 @@ export async function getTokens(chainId: string): Promise<{ [symbol: string]: { 
 export async function getVaultTokens(): Promise<VaultAsset[]> {
     const response = await fetch(`${API_URL}/api/vault/tokens`);
     return handleResponse<VaultAsset[]>(response);
+}
+
+export async function getMetrics(): Promise<TradeMetrics> {
+    const response = await fetch(`${API_URL}/api/metrics`);
+    return handleResponse<TradeMetrics>(response);
 }
 
 // --- Relayer Proxied Routes ---

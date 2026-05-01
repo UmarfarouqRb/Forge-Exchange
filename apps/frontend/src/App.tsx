@@ -15,6 +15,7 @@ import Staking from "@/pages/Staking";
 import Deposit from "@/pages/Deposit";
 import InternalTransfer from "@/pages/InternalTransfer";
 import Withdraw from "@/pages/Withdraw";
+import Dashboard from "@/pages/Dashboard";
 
 function AppLayout() {
   return (
@@ -45,6 +46,7 @@ function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/staking" element={<Staking />} />
+            <Route path="/dashboard" element={<Dashboard />} />
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

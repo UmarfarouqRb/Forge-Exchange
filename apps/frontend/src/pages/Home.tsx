@@ -30,11 +30,13 @@ declare global {
 
 export default function Home() {
   const { data: topGainers } = useQuery<TradingPair[]>({
-    queryKey: ['/api/trading-pairs/top-gainers'],
+    queryKey: ['topGainers'],
+    queryFn: getTopGainers,
   });
 
   const { data: topLosers } = useQuery<TradingPair[]>({
-    queryKey: ['/api/trading-pairs/top-losers'],
+    queryKey: ['topLosers'],
+    queryFn: getTopLosers,
   });
 
   useEffect(() => {
@@ -103,6 +105,13 @@ export default function Home() {
       <div className="relative border-b border-border overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[hsl(27,87%,61%)]/10 via-background to-[hsl(214,66%,54%)]/10" />
         <div className="relative container mx-auto px-4 sm:px-6 py-12 sm:py-20">
+          <div className="absolute top-4 right-4">
+            <Button asChild variant="outline" size="sm">
+                <Link to="/dashboard" data-testid="button-view-dashboard">
+                    View Dashboard
+                </Link>
+            </Button>
+          </div>
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-block mb-4 px-4 py-2 rounded-full bg-accent/20 border border-accent/30">
               <span className="text-sm font-medium text-accent-foreground">
@@ -122,13 +131,13 @@ export default function Home() {
             </p>
             <AnnouncementBanner />
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
-                <Button asChild size="lg" className="w-full sm:w-auto text-base px-8">
+                <Button asChild size="sm" className="w-full sm:w-auto text-base px-8">
                     <Link to="/spot" data-testid="button-start-trading">
                         Start Trading Now
                         <FiArrowRight className="ml-2 w-5 h-5" />
                     </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto text-base px-8">
+                <Button asChild variant="outline" size="sm" className="w-full sm:w-auto text-base px-8">
                     <Link to="/market" data-testid="button-view-markets">
                         Explore Markets
                     </Link>

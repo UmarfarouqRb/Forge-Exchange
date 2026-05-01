@@ -133,7 +133,7 @@ export class LiquidityEngine extends EventEmitter {
 
             this.emit('agent_status', { orderId: intentId, userAddress: buyer.intent.user, msg: `Settling internal match...`, type: 'info' });
 
-            await this.settleOnChain({
+            return await this.settleOnChain({
                 intent: buyer.intent,
                 signature: buyer.signature,
                 counterparty: seller.intent.user,
@@ -177,7 +177,7 @@ export class LiquidityEngine extends EventEmitter {
     
             this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Settling ${order.quantity} with internal LP.`, type: 'info' });
     
-            await this.settleOnChain({
+            return await this.settleOnChain({
                 intent: order.intent,
                 signature: order.signature,
                 counterparty: this.lpAddress,
@@ -242,6 +242,7 @@ export class LiquidityEngine extends EventEmitter {
             this.emit('settlement_status', { userA: intent.user, userB: counterparty, message: `Settlement complete.`, type: 'success' });
             this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade successful. Order filled.`, type: 'success' });
             this.updateOrderStatusInDB(signature, 'fulfilled');
+            return { receipt: { transactionHash: hash }, amountOut };
         } catch (error: any) {
             console.error("On-chain settlement failed:", error);
             this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade failed: ${error.message}`.substring(0, 100), type: 'error' });

@@ -75,6 +75,26 @@ export const markets = pgTable('markets', {
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
+export const trade_executions = pgTable('trade_executions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tx_hash: text('tx_hash'),
+  user_address: text('user_address'),
+  token_in: text('token_in'),
+  token_out: text('token_out'),
+  amount_in: numeric('amount_in'),
+  amount_out: numeric('amount_out'),
+  amount_usd: numeric('amount_usd'),
+  protocol_fee: numeric('protocol_fee'),
+  relayer_fee: numeric('relayer_fee'),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+});
+
+export const tvl_snapshots = pgTable('tvl_snapshots', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tvl_usd: numeric('tvl_usd'),
+  timestamp: timestamp('timestamp', { withTimezone: true }).defaultNow(),
+});
+
 // --- TYPE INFERENCE ---
 // This creates TypeScript types from your schema, ensuring type safety.
 
@@ -89,3 +109,9 @@ export type InsertOrder = InferModel<typeof orders, 'insert'>;
 
 export type Market = InferModel<typeof markets>;
 export type InsertMarket = InferModel<typeof markets, 'insert'>;
+
+export type TradeExecution = InferModel<typeof trade_executions>;
+export type InsertTradeExecution = InferModel<typeof trade_executions, 'insert'>;
+
+export type TvlSnapshot = InferModel<typeof tvl_snapshots>;
+export type InsertTvlSnapshot = InferModel<typeof tvl_snapshots, 'insert'>;

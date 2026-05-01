@@ -5,6 +5,7 @@ export class RetryWorker {
     private supabase: SupabaseClient;
     private matchingEngine: MatchingEngine;
     private intervalId?: NodeJS.Timeout;
+    private tvlIntervalId?: NodeJS.Timeout;
 
     constructor(matchingEngine: MatchingEngine) {
         this.matchingEngine = matchingEngine;
@@ -17,6 +18,7 @@ export class RetryWorker {
     start() {
         console.log('Starting Retry Worker...');
         this.intervalId = setInterval(() => this.processRetries(), 5000); // Check every 5 seconds
+        this.tvlIntervalId = setInterval(() => this.takeTvlSnapshot(), 3600000); // Take a snapshot every hour
     }
 
     stop() {
@@ -24,6 +26,20 @@ export class RetryWorker {
         if (this.intervalId) {
             clearInterval(this.intervalId);
         }
+        if (this.tvlIntervalId) {
+            clearInterval(this.tvlIntervalId);
+        }
+    }
+
+    private async takeTvlSnapshot() {
+        console.log('Taking TVL snapshot...');
+        const { data, error } = await this.supabase.rpc('calculate_tvl');
+        if (error) {
+            console.error('[Worker] Error taking TVL snapshot:', error);
+            return;
+        }
+
+        await this.supabase.from('tvl_snapshots').insert({ tvl_usd: data });
     }
 
     private async processRetries() {

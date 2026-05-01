@@ -5,20 +5,6 @@ import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   const sections = {
-    'user-guide': {
-      title: 'User Guide',
-      content: (
-        <>
-          <p className="mb-6 text-muted-foreground">
-            Forge is a professional CEX-style decentralized cryptocurrency exchange with multi-chain support. Users can trade crypto without KYC by connecting their Email, Socials or Web3 wallet (e.g., MetaMask). The platform features a modern user interface for easy interaction and trade based on intent trading, TradingView integration for live market data, and full mobile responsiveness.
-          </p>
-        </>
-      ),
-    },
-    'developer-guide': {
-      title: 'Developer Guide',
-      content: <p className="text-muted-foreground">This guide provides instructions for developers who want to build on top of or contribute to the Forge Exchange.</p>,
-    },
     'tech-stack': {
       title: 'Tech Stack',
       content: (
@@ -47,14 +33,6 @@ const Footer: React.FC = () => {
                             <span>Download for iOS</span>
                         </a>
                     </div>
-                </div>
-                <div className="col-span-1">
-                    <h3 className="text-lg font-semibold mb-4">User Guide</h3>
-                    {sections['user-guide'].content}
-                </div>
-                <div className="col-span-1">
-                    <h3 className="text-lg font-semibold mb-4">Developer Guide</h3>
-                    {sections['developer-guide'].content}
                 </div>
             </div>
             <div className="mt-8 pt-8 border-t border-border/50">

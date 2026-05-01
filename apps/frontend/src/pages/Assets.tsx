@@ -132,16 +132,16 @@ export default function Assets() {
                     {/* Deposit/Withdraw Card for Mobile */}
                     <Card className="mb-6 md:hidden">
                         <CardContent className="p-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                <Button onClick={() => navigate('/assets/deposit')}>
+                            <div className="flex flex-wrap justify-center gap-2">
+                                <Button size="sm" onClick={() => navigate('/assets/deposit')}>
                                     <FiDownload className="w-4 h-4 mr-2" />
                                     Deposit
                                 </Button>
-                                <Button variant="outline" onClick={() => navigate('/assets/transfer')}>
+                                <Button size="sm" variant="outline" onClick={() => navigate('/assets/transfer')}>
                                     <FiSend className="w-4 h-4 mr-2" />
                                     Transfer
                                 </Button>
-                                <Button variant="outline" onClick={() => navigate('/assets/withdraw')}>
+                                <Button size="sm" variant="outline" onClick={() => navigate('/assets/withdraw')}>
                                     <FiUpload className="w-4 h-4 mr-2" />
                                     Withdraw
                                 </Button>
