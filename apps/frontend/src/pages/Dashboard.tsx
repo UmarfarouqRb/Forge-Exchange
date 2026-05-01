@@ -1,42 +1,50 @@
+
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getMetrics, TradeMetrics } from '../lib/api';
-import { useVault } from '../contexts/VaultContext';
+import { DashboardHeader } from '../components/dashboard/DashboardHeader';
+import { EnhancedMetricsCard } from '../components/dashboard/EnhancedMetricsCard';
 import { TvlChart } from '../components/dashboard/TvlChart';
-import { MetricsCard } from '../components/dashboard/MetricsCard';
+import { DailyVolumeChart } from '../components/dashboard/DailyVolumeChart';
+import { TvlBreakdown } from '../components/dashboard/TvlBreakdown';
+import { TradeMetrics } from '../components/dashboard/TradeMetrics';
+import { UsersOverview } from '../components/dashboard/UsersOverview';
+import { DashboardFooter } from '../components/dashboard/DashboardFooter';
 
 const Dashboard: React.FC = () => {
-  const { data: metrics, isLoading } = useQuery<TradeMetrics>({
-    queryKey: ['tradeMetrics'],
-    queryFn: getMetrics,
-  });
-
-  const { vaultTvl } = useVault();
-
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-4">Forge Metrics Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        <MetricsCard 
-          title="Total Value Locked" 
-          value={`$${vaultTvl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-        />
-        <MetricsCard 
-          title="24h Volume" 
-          value={isLoading ? 'Loading...' : `$${(metrics?.twentyFourHourVolume || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
-        />
-        <MetricsCard 
-          title="Total Trades" 
-          value={isLoading ? 'Loading...' : (metrics?.totalTrades || 0).toLocaleString()} 
-        />
-        <MetricsCard 
-          title="Unique Users" 
-          value={isLoading ? 'Loading...' : (metrics?.uniqueUsers || 0).toLocaleString()} 
-        />
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
+      <DashboardHeader />
+
+      {/* Top Row Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <EnhancedMetricsCard title="Total Value Locked (TVL)" value="$87,175.22" percentageChange={65.36} subtitle="Across 4 assets" />
+        <EnhancedMetricsCard title="24H Volume (USD)" value="$15,482.67" percentageChange={32.18} subtitle="Based on settled trades" />
+        <EnhancedMetricsCard title="Total Trades" value="270+" percentageChange={152.34} subtitle="All time successful trades" />
+        <EnhancedMetricsCard title="Active Users (30D)" value="62" percentageChange={27.59} subtitle="Out of 73 total users" />
+        <EnhancedMetricsCard title="Total Transactions" value="400+" percentageChange={104.37} subtitle="Vault deposits, withdrawals & internal transfers" />
       </div>
-      <div className="w-full h-96">
-        <TvlChart />
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div className="lg:col-span-2">
+            <TvlChart />
+        </div>
+        <div className="lg:col-span-1">
+            <DailyVolumeChart />
+        </div>
       </div>
+
+      {/* Breakdowns */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+        <div className="lg:col-span-2">
+          <TvlBreakdown />
+        </div>
+        <div className="grid grid-cols-1 gap-8">
+            <TradeMetrics />
+            <UsersOverview />
+        </div>
+      </div>
+
+      <DashboardFooter />
     </div>
   );
 };
