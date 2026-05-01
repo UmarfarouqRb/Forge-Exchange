@@ -106,7 +106,7 @@ export default function Home() {
           <div className="absolute top-4 right-4">
             <Button asChild variant="outline" size="sm">
                 <Link to="/dashboard" data-testid="button-view-dashboard">
-                    View Dashboard
+                    Metrics Dashboard
                 </Link>
             </Button>
           </div>

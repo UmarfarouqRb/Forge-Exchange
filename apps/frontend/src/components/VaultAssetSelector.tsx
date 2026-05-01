@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useVault } from "@/contexts/VaultContext";
-import { getDisplaySymbolBySymbol } from "@/utils/tokenDisplay";
+import { getDisplaySymbolBySymbol, getAssetBySymbol } from "@/utils/tokenDisplay";
 import { ChevronsUpDown } from 'lucide-react';
 import { Button } from "./ui/button";
 
@@ -40,10 +40,7 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
 
   const selectedAsset = useMemo(() => {
     if (!asset) return null;
-    const assetLower = asset.toLowerCase();
-    return filteredAssets.find(a => 
-      a.token.symbol.toLowerCase() === assetLower
-    ) || null;
+    return getAssetBySymbol(filteredAssets, asset);
   }, [asset, filteredAssets]);
 
   return (

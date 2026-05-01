@@ -22,3 +22,11 @@ export function getDisplayIcon(token: Token): string {
   if (token.symbol === "WETH") return "/icons/eth.svg";
   return `/icons/${token.symbol.toLowerCase()}.svg`;
 }
+
+export function getAssetBySymbol(assets: any[], symbol: string) {
+    const lowerSymbol = symbol.toLowerCase();
+    if (lowerSymbol === 'eth') {
+        return assets.find(a => a.token.symbol.toLowerCase() === 'weth') || assets.find(a => a.token.symbol.toLowerCase() === 'eth');
+    }
+    return assets.find(a => a.token.symbol.toLowerCase() === lowerSymbol);
+}
