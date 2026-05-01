@@ -30,13 +30,11 @@ declare global {
 
 export default function Home() {
   const { data: topGainers } = useQuery<TradingPair[]>({
-    queryKey: ['topGainers'],
-    queryFn: getTopGainers,
+    queryKey: ['/api/trading-pairs/top-gainers'],
   });
 
   const { data: topLosers } = useQuery<TradingPair[]>({
-    queryKey: ['topLosers'],
-    queryFn: getTopLosers,
+    queryKey: ['/api/trading-pairs/top-losers'],
   });
 
   useEffect(() => {
@@ -131,13 +129,13 @@ export default function Home() {
             </p>
             <AnnouncementBanner />
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
-                <Button asChild size="sm" className="w-full sm:w-auto text-base px-8">
+                <Button asChild size="sm">
                     <Link to="/spot" data-testid="button-start-trading">
                         Start Trading Now
-                        <FiArrowRight className="ml-2 w-5 h-5" />
+                        <FiArrowRight className="ml-2 w-4 h-4" />
                     </Link>
                 </Button>
-                <Button asChild variant="outline" size="sm" className="w-full sm:w-auto text-base px-8">
+                <Button asChild variant="outline" size="sm">
                     <Link to="/market" data-testid="button-view-markets">
                         Explore Markets
                     </Link>
@@ -343,13 +341,13 @@ export default function Home() {
                 Connect your wallet and start trading on multiple chains with professional tools and real-time market data
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild size="lg" className="w-full sm:w-auto px-8">
+                <Button asChild size="sm">
                     <Link to="/spot" data-testid="button-cta-spot">
                         Trade Spot
-                        <FiArrowRight className="ml-2 w-5 h-5" />
+                        <FiArrowRight className="ml-2 w-4 h-4" />
                     </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="w-full sm:w-auto px-8">
+                <Button asChild size="sm" variant="outline">
                     <Link to="/futures" data-testid="button-cta-futures">
                         Trade Futures
                     </Link>
