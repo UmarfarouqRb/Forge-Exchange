@@ -23,6 +23,8 @@ import { serialize } from '@/lib/serializers';
 import { usePublicClient } from 'wagmi';
 import { IntentSpotRouterAbi } from '@/config/IntentSpotRouter';
 import { useCorrectNonce } from '@/hooks/useCorrectNonce';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 const chainId = 84532; // Base Sepolia
 
@@ -350,66 +352,62 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
   if (isMobile) {
     return (
-      <div className="p-1 bg-background h-full flex flex-col text-xs">
-         <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => {
-          if (value) setSide(value);
-        }} className="w-full mb-1">
-          <ToggleGroupItem value="buy" className="w-full data-[state=on]:bg-blue-400 data-[state=on]:text-primary-foreground">Buy</ToggleGroupItem>
-          <ToggleGroupItem value="sell" className="w-full data-[state=on]:bg-orange-500 data-[state=on]:text-primary-foreground">Sell</ToggleGroupItem>
+      <div className="p-2 bg-background h-full flex flex-col text-xs">
+        <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => { if (value) setSide(value); }} className="w-full mb-2 grid grid-cols-2">
+          <ToggleGroupItem value="buy" className="data-[state=on]:bg-green-500/20 data-[state=on]:text-green-500">
+            Buy
+          </ToggleGroupItem>
+          <ToggleGroupItem value="sell" className="data-[state=on]:bg-red-500/20 data-[state=on]:text-red-500">
+            Sell
+          </ToggleGroupItem>
         </ToggleGroup>
 
-        <div className="mb-1">
-            <div className="flex space-x-2">
-                <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'default' : 'outline'} size="xs" className="w-full">Market</Button>
-                <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'default' : 'outline'} size="xs" className="w-full">Limit</Button>
-            </div>
+        <div className="mb-2">
+          <div className="flex space-x-2">
+            <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'default' : 'outline'} size="xs" className="w-full">Market</Button>
+            <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'default' : 'outline'} size="xs" className="w-full">Limit</Button>
+          </div>
         </div>
 
         {orderType === 'limit' && (
-          <div className="mb-1 flex items-center bg-input rounded-md">
+          <div className="mb-2">
+            <Label htmlFor="price" className="text-xs text-muted-foreground">Price</Label>
             <Input
               id="price"
               type="number"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="flex-grow bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-              placeholder={`Price (${displayQuoteSymbol})`}
+              className="mt-1"
+              placeholder={`${displayQuoteSymbol}`}
             />
-            <span className="text-xs text-muted-foreground p-1">BBO</span>
           </div>
         )}
 
-        <div className="mb-1 flex items-center bg-input rounded-md">
+        <div className="mb-2">
+          <Label htmlFor="amount" className="text-xs text-muted-foreground">Amount</Label>
           <Input
             id="amount"
             type="number"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="flex-grow bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-            placeholder={`Quantity (${displayBaseSymbol})`}
+            className="mt-1"
+            placeholder={`${displayBaseSymbol}`}
           />
-          <span className="text-xs text-muted-foreground p-1">{displayBaseSymbol}</span>
         </div>
         
-        <div className="mb-1 p-1 bg-input rounded-md flex justify-between items-center">
+        <div className="mb-2 p-2 bg-muted rounded-md flex justify-between items-center">
           <span className="text-xs text-muted-foreground">Total</span>
           <span className="text-xs font-mono">{total.toFixed(2)} {displayQuoteSymbol}</span>
         </div>
         
-        <div className="mb-1 flex items-center">
-          <input type="checkbox" id="tp_sl" className="mr-2" />
-          <label htmlFor="tp_sl" className="text-xs">TP/SL</label>
-        </div>
-        
-        <div className="text-xs text-muted-foreground mb-1">
-            Available: {availableBalance} {availableSymbol}
+        <div className="text-xs text-muted-foreground mb-2">
+          Available: {availableBalance} {availableSymbol}
         </div>
 
         <div className="flex-grow"></div>
 
-        
         <Button
-          className={`w-full text-sm p-4 ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
+          className={cn("w-full text-sm p-4", side === 'buy' ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600', { 'animate-pulse': isSubmitting })}
           onClick={handlePlaceOrder}
           disabled={disabled || isSubmitting || !ready || (authenticated && !connectedWallet) || !hasSufficientBalance}
         >
@@ -420,87 +418,86 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   }
 
   return (
-    <Card className="h-full bg-transparent border-0 md:border">
-      <CardContent className="p-0 md:p-4 text-xs">
-        <div className="mt-0">
-          <h3 className="text-sm font-semibold mb-4">Trade</h3>
-           <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => {
-            if (value) setSide(value);
-          }} className="w-full mb-4">
-            <ToggleGroupItem value="buy" className="w-full data-[state=on]:bg-blue-500 data-[state=on]:text-primary-foreground">Buy</ToggleGroupItem>
-            <ToggleGroupItem value="sell" className="w-full data-[state=on]:bg-orange-500 data-[state=on]:text-primary-foreground">Sell</ToggleGroupItem>
-          </ToggleGroup>
+    <Card className="h-full bg-card">
+      <CardContent className="p-4">
+        <h3 className="text-lg font-semibold mb-4">Trade</h3>
+        <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => { if (value) setSide(value); }} className="w-full mb-4 grid grid-cols-2">
+          <ToggleGroupItem value="buy" aria-label="Buy" className="data-[state=on]:bg-green-500/20 data-[state=on]:text-green-500">
+            <p>Buy</p>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="sell" aria-label="Sell" className="data-[state=on]:bg-red-500/20 data-[state=on]:text-red-500">
+            <p>Sell</p>
+          </ToggleGroupItem>
+        </ToggleGroup>
 
-          <div className="mb-4 flex space-x-2">
-            <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'default' : 'outline'} size="xs" className="w-full">Market</Button>
-            <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'default' : 'outline'} size="xs" className="w-full">Limit</Button>
+        <div className="mb-4 flex space-x-2">
+          <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'secondary' : 'ghost'} className="w-full">Market</Button>
+          <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'secondary' : 'ghost'} className="w-full">Limit</Button>
         </div>
 
-          {orderType === 'limit' && (
-            <div className="mb-4">
-              <Label htmlFor="price">Price</Label>
-              <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${displayQuoteSymbol})`} className="bg-white/5 border" />
-            </div>
-          )}
-
-          <div className="mb-4">
-            <div className="flex justify-between items-center mb-1">
-                <Label htmlFor="amount">Amount</Label>
-                <span className="text-xs text-muted-foreground">Available: {availableBalance} {availableSymbol}</span>
-            </div>
-            <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="bg-white/5 border" />
-            <div className="flex justify-between mt-2">
-              <Button size="xs" variant="outline" onClick={() => handlePercentage(0.25)}>25%</Button>
-              <Button size="xs" variant="outline" onClick={() => handlePercentage(0.50)}>50%</Button>
-              <Button size="xs" variant="outline" onClick={() => handlePercentage(0.75)}>75%</Button>
-              <Button size="xs" variant="outline" onClick={() => handlePercentage(1)}>100%</Button>
-            </div>
+        {orderType === 'limit' && (
+          <div className="mb-4 space-y-2">
+            <Label htmlFor="price">Price</Label>
+            <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${displayQuoteSymbol})`} />
           </div>
+        )}
 
-          <div className="mb-4">
-            <div className="flex justify-between items-center mb-1">
-                <Label>Total</Label>
-            </div>
-            <div className="p-2 bg-white/5 rounded-md text-right font-mono">
-                {total.toFixed(4)} {displayQuoteSymbol}
-            </div>
+        <div className="mb-4 space-y-2">
+          <div className="flex justify-between items-center">
+            <Label htmlFor="amount">Amount</Label>
+            <span className="text-xs text-muted-foreground">Available: {availableBalance} {availableSymbol}</span>
           </div>
-          
-
-          <Button
-            className={`w-full ${side === 'buy' ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'} ${isSubmitting ? 'animate-pulse' : ''}`}
-            onClick={handlePlaceOrder}
-            disabled={disabled ||
-              isSubmitting ||
-              !ready ||
-              (authenticated && !connectedWallet) ||
-              !hasSufficientBalance ||
-              !amount ||
-              Number(amount) <= 0 ||
-              (orderType === 'limit' && (!price || Number(price) <= 0))}
-          >
-            {getButtonText()}
-          </Button>
+          <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+          <div className="flex justify-between mt-2 space-x-2">
+            <Button size="xs" variant="outline" onClick={() => handlePercentage(0.25)} className="flex-1">25%</Button>
+            <Button size="xs" variant="outline" onClick={() => handlePercentage(0.50)} className="flex-1">50%</Button>
+            <Button size="xs" variant="outline" onClick={() => handlePercentage(0.75)} className="flex-1">75%</Button>
+            <Button size="xs" variant="outline" onClick={() => handlePercentage(1)} className="flex-1">100%</Button>
+          </div>
         </div>
+        
+        <Separator className="my-4" />
 
-        <div className="mt-4">
-          <AgentLog logs={agentLogs} clearLogs={clearLogs} />
+        <div className="mb-4 space-y-2">
+            <div className="flex justify-between items-center">
+                <Label className="text-muted-foreground">Total</Label>
+                <span className="font-mono text-lg">{total.toFixed(4)} {displayQuoteSymbol}</span>
+            </div>
         </div>
-
-        <OrderConfirmationDialog
-          open={isConfirming}
-          onOpenChange={setIsConfirming}
-          onConfirm={handleConfirmOrder}
-          order={{
-            side,
-            amount,
-            symbol: pair.base ? pair.base.symbol : '',
-            price,
-            orderType,
-            total
-          }}
-        />
+        
+        <Button
+          onClick={handlePlaceOrder}
+          className={cn("w-full text-lg py-6", side === 'buy' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white', { 'animate-pulse': isSubmitting })}
+          disabled={disabled ||
+            isSubmitting ||
+            !ready ||
+            (authenticated && !connectedWallet) ||
+            !hasSufficientBalance ||
+            !amount ||
+            Number(amount) <= 0 ||
+            (orderType === 'limit' && (!price || Number(price) <= 0))}
+        >
+          {getButtonText()}
+        </Button>
       </CardContent>
+      
+      <div className="p-4 border-t">
+        <AgentLog logs={agentLogs} clearLogs={clearLogs} />
+      </div>
+
+      <OrderConfirmationDialog
+        open={isConfirming}
+        onOpenChange={setIsConfirming}
+        onConfirm={handleConfirmOrder}
+        order={{
+          side,
+          amount,
+          symbol: pair.base ? pair.base.symbol : '',
+          price,
+          orderType,
+          total
+        }}
+      />
     </Card>
   );
 }
