@@ -1,9 +1,8 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Market, TradingPair } from '@/types/market-data';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 
 interface OrderBookProps {
@@ -27,8 +26,6 @@ export function OrderBookSkeleton() {
 }
 
 export function OrderBook({ pair, book }: OrderBookProps) {
-  const [view, setView] = useState<'all' | 'bids' | 'asks'>('all');
-
   const bids = book?.bids || [];
   const asks = book?.asks || [];
   const baseAsset = pair?.base?.symbol;
@@ -67,8 +64,8 @@ export function OrderBook({ pair, book }: OrderBookProps) {
       const cumulativePercentage = (Number(cumulative) / maxCumulative) * 100;
       return (
         <TableRow key={i} className="relative h-6 text-xs p-0">
-          <TableCell className={cn("font-mono p-1 text-left", color)}>{Number(price).toFixed(2)}</TableCell>
-          <TableCell className="font-mono p-1 text-right">{Number(amount).toFixed(4)}</TableCell>
+          <TableCell className={cn("font-mono p-1 text-left pr-8", color)}>{Number(price).toFixed(2)}</TableCell>
+          <TableCell className="font-mono p-1 text-right pl-8">{Number(amount).toFixed(4)}</TableCell>
           <TableCell className="font-mono p-1 text-right hidden md:table-cell">{Number(cumulative).toFixed(4)}</TableCell>
           <td className="absolute top-0 right-0 h-full -z-10" style={{ width: `${cumulativePercentage}%`, backgroundColor: bgColor }} />
         </TableRow>
@@ -77,15 +74,7 @@ export function OrderBook({ pair, book }: OrderBookProps) {
   };
 
   return (
-    <Card className="h-full flex flex-col bg-card">
-      <CardHeader className="p-4 flex-row items-center justify-between">
-        <CardTitle className="text-base font-semibold">Order Book</CardTitle>
-        <ToggleGroup type="single" value={view} onValueChange={(v) => setView(v as any)} className="w-auto">
-            <ToggleGroupItem value="all" size="sm">All</ToggleGroupItem>
-            <ToggleGroupItem value="bids" size="sm">Bids</ToggleGroupItem>
-            <ToggleGroupItem value="asks" size="sm">Asks</ToggleGroupItem>
-        </ToggleGroup>
-      </CardHeader>
+    <Card className="h-full flex flex-col bg-card border-0">
       <CardContent className="p-0 flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
           <Table className="w-full table-fixed">
@@ -100,13 +89,13 @@ export function OrderBook({ pair, book }: OrderBookProps) {
           <div className="flex-1 overflow-y-auto">
             <Table className="w-full table-fixed">
               <TableBody>
-                {(view === 'all' || view === 'asks') && renderRows(cumulativeAsks.reverse(), 'ask')}
+                {renderRows(cumulativeAsks.reverse(), 'ask')}
                 <TableRow className="h-10">
                   <TableCell colSpan={3} className="text-center font-bold text-lg">
                     {book?.lastPrice}
                   </TableCell>
                 </TableRow>
-                {(view === 'all' || view === 'bids') && renderRows(cumulativeBids, 'bid')}
+                {renderRows(cumulativeBids, 'bid')}
               </TableBody>
             </Table>
           </div>

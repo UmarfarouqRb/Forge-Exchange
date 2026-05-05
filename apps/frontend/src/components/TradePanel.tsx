@@ -438,7 +438,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   return (
     <Card className="h-full bg-card text-sm">
       <CardContent className="p-4">
-        <h3 className="text-base font-semibold mb-4">Trade</h3>
         <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => { if (value) setSide(value); }} className="w-full mb-4 grid grid-cols-2">
           <ToggleGroupItem value="buy" aria-label="Buy" className="data-[state=on]:bg-green-500/20 data-[state=on]:text-green-500">
             <p className="text-sm">Buy</p>
