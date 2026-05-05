@@ -85,6 +85,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [price, setPrice] = useState(market?.lastPrice || '');
   const [amount, setAmount] = useState('');
+  const [total, setTotal] = useState('');
   const [isConfirming, setIsConfirming] = useState(false);
   
   const { ready, authenticated, user, login, getAccessToken } = usePrivy();
@@ -114,21 +115,47 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const baseBalance = baseToken ? getVaultBalance(baseToken.address) : 0n;
   const quoteBalance = quoteToken ? getVaultBalance(quoteToken.address) : 0n;
 
-  const total = parseFloat(amount || '0') * parseFloat(orderType === 'limit' ? price : currentPrice);
+  const calculatedTotal = useMemo(() => {
+    const numericAmount = parseFloat(amount);
+    const numericPrice = parseFloat(orderType === 'limit' ? price : currentPrice);
+    if (isNaN(numericAmount) || isNaN(numericPrice) || numericPrice === 0) {
+        return '';
+    }
+    return (numericAmount * numericPrice).toFixed(4);
+  }, [amount, price, currentPrice, orderType]);
+
+  const handleAmountChange = (newAmount: string) => {
+    setAmount(newAmount);
+    const numericAmount = parseFloat(newAmount);
+    const numericPrice = parseFloat(orderType === 'limit' ? price : currentPrice);
+    if (!isNaN(numericAmount) && !isNaN(numericPrice) && numericPrice > 0) {
+        setTotal((numericAmount * numericPrice).toFixed(4));
+    }
+  };
+
+  const handleTotalChange = (newTotal: string) => {
+    setTotal(newTotal);
+    const numericTotal = parseFloat(newTotal);
+    const numericPrice = parseFloat(orderType === 'limit' ? price : currentPrice);
+    if (!isNaN(numericTotal) && !isNaN(numericPrice) && numericPrice > 0) {
+        setAmount((numericTotal / numericPrice).toFixed(baseToken?.decimals || 18));
+    }
+  };
 
   const hasSufficientBalance = useMemo(() => {
     if (!amount || parseFloat(amount) <= 0) return true;
+    const totalToCompare = parseFloat(total);
 
     if (side === 'buy') {
-      if (!quoteToken) return false;
-      const totalAmount = parseUnits(total.toString(), quoteToken.decimals);
+      if (!quoteToken || isNaN(totalToCompare)) return false;
+      const totalAmount = parseUnits(totalToCompare.toString(), quoteToken.decimals);
       return quoteBalance >= totalAmount;
     } else {
       if (!baseToken) return false;
       const orderAmount = parseUnits(amount, baseToken.decimals);
       return baseBalance >= orderAmount;
     }
-  }, [amount, side, baseBalance, quoteBalance, baseToken, quoteToken, total]);
+  }, [amount, total, side, baseBalance, quoteBalance, baseToken, quoteToken]);
 
   const { mutate: submitOrder, isPending: isSubmitting } = useMutation({
     mutationFn: async (order: CreateOrderRequest) => {
@@ -143,6 +170,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       toast.success('Order placed successfully!');
       setIsConfirming(false);
       setAmount('');
+      setTotal('');
       queryClient.invalidateQueries({ queryKey: ['vaultTokens'] });
       queryClient.invalidateQueries({ queryKey: ['orders', user?.wallet?.address] });
       queryClient.invalidateQueries({ queryKey: ['tradeHistory', user?.wallet?.address] });
@@ -203,13 +231,19 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     const tokenIn = isBuy ? quoteToken : baseToken;
     const tokenOut = isBuy ? baseToken : quoteToken;
     
-    const amountIn = isBuy ? safeParseUnits(total.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
+    const finalTotal = parseFloat(total);
+    if (isNaN(finalTotal)) {
+      toast.error("Invalid total amount");
+      return;
+    }
+
+    const amountIn = isBuy ? safeParseUnits(finalTotal.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
     
     let expectedAmountOut: bigint;
 
     if (isBuy) {
         // BUY: quote -> base (e.g. USDC -> WETH)
-        const amountInFloat = parseFloat(total.toString()); // Total is in quote currency
+        const amountInFloat = finalTotal; // Total is in quote currency
         const priceFloat = parseFloat(currentPrice);
         if (priceFloat === 0) {
             toast.error("Cannot execute trade with a price of zero.");
@@ -228,18 +262,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
     // Apply 2% slippage tolerance
     const minAmountOut = expectedAmountOut * 98n / 100n;
-
-    // Logging for debug purposes
-    console.log("=== TRADE DEBUG ===");
-    console.log("Side:", side);
-    console.log("Input Amount:", amount);
-    console.log("Total (Quote Value):", total.toString());
-    console.log("Price:", currentPrice);
-    console.log("Token In:", tokenIn.symbol, `(Decimals: ${tokenIn.decimals})`);
-    console.log("Token Out:", tokenOut.symbol, `(Decimals: ${tokenOut.decimals})`);
-    console.log("Calculated amountIn (wei):", amountIn.toString());
-    console.log("Calculated expectedAmountOut (wei):", expectedAmountOut.toString());
-    console.log("Calculated minAmountOut (wei):", minAmountOut.toString());
 
     const nonce = await getNonce();
 
@@ -311,16 +333,13 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   
     if (side === 'buy') {
       if (currentPrice && parseFloat(currentPrice) > 0) {
-        const priceBigInt = parseUnits(currentPrice, decimals);
         const amountInQuote = formatUnits(newAmountWei, decimals);
-        const newAmount = parseFloat(amountInQuote) / parseFloat(currentPrice);
-        setAmount(newAmount.toFixed(baseToken?.decimals || 18));
+        handleTotalChange(amountInQuote);
       }
     } else {
-      setAmount(formatUnits(newAmountWei, decimals));
+      handleAmountChange(formatUnits(newAmountWei, decimals));
     }
   };
-
 
   const getButtonText = () => {
     if (disabled) return 'Disabled';
@@ -350,6 +369,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     return <SkeletonTradePanel />;
   }
 
+  // Mobile view is simplified and does not include the total input field for now.
   if (isMobile) {
     return (
       <div className="p-2 bg-background h-full flex flex-col text-xs">
@@ -373,7 +393,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           <div className="mb-2">
             <Label htmlFor="price" className="text-xs text-muted-foreground">Price</Label>
             <Input
-              id="price"
+              id="price-mobile"
               type="number"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
@@ -384,12 +404,12 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         )}
 
         <div className="mb-2">
-          <Label htmlFor="amount" className="text-xs text-muted-foreground">Amount</Label>
+          <Label htmlFor="amount-mobile" className="text-xs text-muted-foreground">Amount</Label>
           <Input
-            id="amount"
+            id="amount-mobile"
             type="number"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => handleAmountChange(e.target.value)}
             className="mt-1"
             placeholder={`${displayBaseSymbol}`}
           />
@@ -397,7 +417,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         
         <div className="mb-2 p-2 bg-muted rounded-md flex justify-between items-center">
           <span className="text-xs text-muted-foreground">Total</span>
-          <span className="text-xs font-mono">{total.toFixed(2)} {displayQuoteSymbol}</span>
+          <span className="text-xs font-mono">{calculatedTotal} {displayQuoteSymbol}</span>
         </div>
         
         <div className="text-xs text-muted-foreground mb-2">
@@ -447,22 +467,20 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             <Label htmlFor="amount">Amount</Label>
             <span className="text-xs text-muted-foreground">Available: {availableBalance} {availableSymbol}</span>
           </div>
-          <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
-          <div className="flex justify-between mt-2 space-x-2">
-            <Button size="xs" variant="outline" onClick={() => handlePercentage(0.25)} className="flex-1">25%</Button>
-            <Button size="xs" variant="outline" onClick={() => handlePercentage(0.50)} className="flex-1">50%</Button>
-            <Button size="xs" variant="outline" onClick={() => handlePercentage(0.75)} className="flex-1">75%</Button>
-            <Button size="xs" variant="outline" onClick={() => handlePercentage(1)} className="flex-1">100%</Button>
+          <Input id="amount" type="number" value={amount} onChange={(e) => handleAmountChange(e.target.value)} placeholder="0.00" />
+          <div className="flex justify-between mt-2 space-x-1">
+            <Button size="sm" variant="outline" onClick={() => handlePercentage(0.25)} className="flex-1 text-xs px-2 py-1 h-auto">25%</Button>
+            <Button size="sm" variant="outline" onClick={() => handlePercentage(0.50)} className="flex-1 text-xs px-2 py-1 h-auto">50%</Button>
+            <Button size="sm" variant="outline" onClick={() => handlePercentage(0.75)} className="flex-1 text-xs px-2 py-1 h-auto">75%</Button>
+            <Button size="sm" variant="outline" onClick={() => handlePercentage(1)} className="flex-1 text-xs px-2 py-1 h-auto">100%</Button>
           </div>
         </div>
         
         <Separator className="my-4" />
 
         <div className="mb-4 space-y-2">
-            <div className="flex justify-between items-center">
-                <Label className="text-muted-foreground">Total</Label>
-                <span className="font-mono text-lg">{total.toFixed(4)} {displayQuoteSymbol}</span>
-            </div>
+            <Label htmlFor="total" className="text-muted-foreground">Total</Label>
+            <Input id="total" type="number" value={total} onChange={(e) => handleTotalChange(e.target.value)} placeholder={calculatedTotal || `Total (${displayQuoteSymbol})`} />
         </div>
         
         <Button
@@ -495,7 +513,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           symbol: pair.base ? pair.base.symbol : '',
           price,
           orderType,
-          total
+          total: parseFloat(total) || 0
         }}
       />
     </Card>

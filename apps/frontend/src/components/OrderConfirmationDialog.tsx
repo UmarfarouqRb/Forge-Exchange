@@ -30,9 +30,9 @@ export function OrderConfirmationDialog({ open, onOpenChange, onConfirm, order }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-sm rounded-lg">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">
+          <DialogTitle className="text-lg font-semibold">
             Confirm {order.orderType.charAt(0).toUpperCase() + order.orderType.slice(1)} Order
           </DialogTitle>
           <DialogDescription>
@@ -40,19 +40,19 @@ export function OrderConfirmationDialog({ open, onOpenChange, onConfirm, order }
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-3 py-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-2 py-3">
+          <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Side</span>
             <span className={cn("font-semibold", isBuy ? "text-green-500" : "text-red-500")}>
               {order.side.toUpperCase()}
             </span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Amount</span>
             <span className="font-semibold font-mono">{order.amount} {order.symbol.replace('USDT', '')}</span>
           </div>
           {order.orderType === 'limit' && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Price</span>
               <span className="font-semibold font-mono">{order.price} USDC</span>
             </div>
@@ -61,18 +61,18 @@ export function OrderConfirmationDialog({ open, onOpenChange, onConfirm, order }
 
         <Separator />
 
-        <div className="flex items-center justify-between pt-4 text-lg">
+        <div className="flex items-center justify-between pt-3 text-base">
           <span className="text-muted-foreground">Total</span>
           <span className="font-bold font-mono">{order.total.toFixed(2)} USDC</span>
         </div>
 
-        <DialogFooter className="gap-2 pt-6 sm:gap-0">
-          <Button variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-2 pt-4 sm:justify-end">
+          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
+            size="sm"
             variant={isBuy ? 'default' : 'destructive'}
-            className="w-full sm:w-auto"
             onClick={() => {
               onConfirm();
               onOpenChange(false);

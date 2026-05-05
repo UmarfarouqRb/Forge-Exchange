@@ -76,7 +76,7 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
   return (
     <div className="bg-[#020617] border border-[#1E293B] rounded-lg h-[260px] md:h-[320px] flex flex-col text-sm font-mono overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b border-[#1E293B] flex-shrink-0">
-        <h3 className="font-semibold text-base text-[#E2E8F0]">Agent Status</h3>
+        <h3 className="font-semibold text-base text-[#E2E8F0]">Agent </h3>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={handleCopy} className="h-7 w-7 text-[#94A3B8] hover:text-[#E2E8F0]">
             <Copy className="h-4 w-4" />
