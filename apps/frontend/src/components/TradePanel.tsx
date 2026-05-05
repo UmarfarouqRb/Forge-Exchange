@@ -438,36 +438,36 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   }
 
   return (
-    <Card className="h-full bg-card">
+    <Card className="h-full bg-card text-sm">
       <CardContent className="p-4">
-        <h3 className="text-lg font-semibold mb-4">Trade</h3>
+        <h3 className="text-base font-semibold mb-4">Trade</h3>
         <ToggleGroup type="single" value={side} onValueChange={(value: 'buy' | 'sell') => { if (value) setSide(value); }} className="w-full mb-4 grid grid-cols-2">
           <ToggleGroupItem value="buy" aria-label="Buy" className="data-[state=on]:bg-green-500/20 data-[state=on]:text-green-500">
-            <p>Buy</p>
+            <p className="text-sm">Buy</p>
           </ToggleGroupItem>
           <ToggleGroupItem value="sell" aria-label="Sell" className="data-[state=on]:bg-red-500/20 data-[state=on]:text-red-500">
-            <p>Sell</p>
+            <p className="text-sm">Sell</p>
           </ToggleGroupItem>
         </ToggleGroup>
 
         <div className="mb-4 flex space-x-2">
-          <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'secondary' : 'ghost'} className="w-full">Market</Button>
-          <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'secondary' : 'ghost'} className="w-full">Limit</Button>
+          <Button onClick={() => setOrderType('market')} variant={orderType === 'market' ? 'secondary' : 'ghost'} className="w-full text-sm">Market</Button>
+          <Button onClick={() => setOrderType('limit')} variant={orderType === 'limit' ? 'secondary' : 'ghost'} className="w-full text-sm">Limit</Button>
         </div>
 
         {orderType === 'limit' && (
           <div className="mb-4 space-y-2">
-            <Label htmlFor="price">Price</Label>
-            <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${displayQuoteSymbol})`} />
+            <Label htmlFor="price" className="text-xs">Price</Label>
+            <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder={`Price (${displayQuoteSymbol})`} className="text-sm" />
           </div>
         )}
 
         <div className="mb-4 space-y-2">
           <div className="flex justify-between items-center">
-            <Label htmlFor="amount">Amount</Label>
+            <Label htmlFor="amount" className="text-xs">Amount</Label>
             <span className="text-xs text-muted-foreground">Available: {availableBalance} {availableSymbol}</span>
           </div>
-          <Input id="amount" type="number" value={amount} onChange={(e) => handleAmountChange(e.target.value)} placeholder="0.00" />
+          <Input id="amount" type="number" value={amount} onChange={(e) => handleAmountChange(e.target.value)} placeholder="0.00" className="text-sm" />
           <div className="flex justify-between mt-2 space-x-1">
             <Button size="sm" variant="outline" onClick={() => handlePercentage(0.25)} className="flex-1 text-xs px-2 py-1 h-auto">25%</Button>
             <Button size="sm" variant="outline" onClick={() => handlePercentage(0.50)} className="flex-1 text-xs px-2 py-1 h-auto">50%</Button>
@@ -479,13 +479,13 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         <Separator className="my-4" />
 
         <div className="mb-4 space-y-2">
-            <Label htmlFor="total" className="text-muted-foreground">Total</Label>
-            <Input id="total" type="number" value={total} onChange={(e) => handleTotalChange(e.target.value)} placeholder={calculatedTotal || `Total (${displayQuoteSymbol})`} />
+            <Label htmlFor="total" className="text-xs text-muted-foreground">Total</Label>
+            <Input id="total" type="number" value={total} onChange={(e) => handleTotalChange(e.target.value)} placeholder={calculatedTotal || `Total (${displayQuoteSymbol})`} className="text-sm" />
         </div>
         
         <Button
           onClick={handlePlaceOrder}
-          className={cn("w-full text-lg py-6", side === 'buy' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white', { 'animate-pulse': isSubmitting })}
+          className={cn("w-full text-base py-5", side === 'buy' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white', { 'animate-pulse': isSubmitting })}
           disabled={disabled ||
             isSubmitting ||
             !ready ||

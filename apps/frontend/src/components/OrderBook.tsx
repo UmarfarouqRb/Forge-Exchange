@@ -1,5 +1,10 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Market, TradingPair } from '@/types/market-data';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useMemo, useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface OrderBookProps {
   pair?: TradingPair;
@@ -8,88 +13,105 @@ interface OrderBookProps {
 
 export function OrderBookSkeleton() {
   return (
-    <div className="h-full p-2">
-      {Array.from({ length: 15 }).map((_, i: number) => (
-        <Skeleton key={i} className="h-6 w-full mb-1" />
-      ))}
-    </div>
+    <Card className="h-full">
+      <CardHeader>
+        <Skeleton className="h-6 w-24" />
+      </CardHeader>
+      <CardContent>
+        {Array.from({ length: 15 }).map((_, i: number) => (
+          <Skeleton key={i} className="h-6 w-full mb-1" />
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
 export function OrderBook({ pair, book }: OrderBookProps) {
+  const [view, setView] = useState<'all' | 'bids' | 'asks'>('all');
+
   const bids = book?.bids || [];
   const asks = book?.asks || [];
   const baseAsset = pair?.base?.symbol;
   const quoteAsset = pair?.quote?.symbol;
 
+  const cumulativeBids = useMemo(() => {
+    let cumulativeAmount = 0;
+    return bids.map(([price, amount]) => {
+      cumulativeAmount += parseFloat(amount);
+      return [price, amount, cumulativeAmount];
+    });
+  }, [bids]);
+
+  const cumulativeAsks = useMemo(() => {
+    let cumulativeAmount = 0;
+    return asks.map(([price, amount]) => {
+      cumulativeAmount += parseFloat(amount);
+      return [price, amount, cumulativeAmount];
+    });
+  }, [asks]);
+
   if (!pair) {
     return <OrderBookSkeleton />;
   }
 
+  const maxCumulative = Math.max(
+    cumulativeBids[cumulativeBids.length - 1]?.[2] || 0,
+    cumulativeAsks[cumulativeAsks.length - 1]?.[2] || 0
+  );
+
+  const renderRows = (data: (string | number)[][], type: 'bid' | 'ask') => {
+    const color = type === 'bid' ? 'text-green-500' : 'text-red-500';
+    const bgColor = type === 'bid' ? 'bg-green-500/10' : 'bg-red-500/10';
+
+    return data.slice(0, 15).map(([price, amount, cumulative], i) => {
+      const cumulativePercentage = (Number(cumulative) / maxCumulative) * 100;
+      return (
+        <TableRow key={i} className="relative h-6 text-xs p-0">
+          <TableCell className={cn("font-mono p-1 text-left", color)}>{Number(price).toFixed(2)}</TableCell>
+          <TableCell className="font-mono p-1 text-right">{Number(amount).toFixed(4)}</TableCell>
+          <TableCell className="font-mono p-1 text-right hidden md:table-cell">{Number(cumulative).toFixed(4)}</TableCell>
+          <td className="absolute top-0 right-0 h-full -z-10" style={{ width: `${cumulativePercentage}%`, backgroundColor: bgColor }} />
+        </TableRow>
+      );
+    });
+  };
+
   return (
-    <div className="h-full flex flex-col bg-background p-2 text-xs">
-      <div className="grid grid-cols-2 gap-2 text-muted-foreground mb-2">
-        <div className="text-left text-xs">Price {quoteAsset || ''}</div>
-        <div className="text-right text-xs">Quantity {baseAsset || ''}</div>
-      </div>
-
-      <div className="flex-1 overflow-auto">
-        {/* Asks (Sell Orders) */}
-        <div>
-          {asks.slice(0, 7).reverse().map(([price, amount]: [string, string], i: number) => (
-            <div
-              key={i}
-              className="grid grid-cols-2 gap-2 py-1 relative"
-              data-testid={`row-ask-${i}`}>
-              <div className="font-mono text-red-500 text-xs">{price}</div>
-              <div className="font-mono text-right text-xs">{amount}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Spread */}
-        <div className="my-2 py-2">
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-base font-bold font-mono text-green-500" data-testid="text-spread-price">
-              {bids[0]?.[0] || '0.00'}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              ≈${bids[0]?.[0] || '0.00'}
-            </span>
+    <Card className="h-full flex flex-col bg-card">
+      <CardHeader className="p-4">
+        <CardTitle className="text-base font-semibold">Order Book</CardTitle>
+        <ToggleGroup type="single" value={view} onValueChange={(v) => setView(v as any)} className="w-full grid grid-cols-3 mt-2">
+            <ToggleGroupItem value="all" size="sm">All</ToggleGroupItem>
+            <ToggleGroupItem value="bids" size="sm">Bids</ToggleGroupItem>
+            <ToggleGroupItem value="asks" size="sm">Asks</ToggleGroupItem>
+        </ToggleGroup>
+      </CardHeader>
+      <CardContent className="p-0 flex-1 overflow-hidden">
+        <div className="h-full flex flex-col">
+          <Table className="w-full table-fixed">
+            <TableHeader className="sticky top-0 bg-card z-10">
+              <TableRow className="text-xs">
+                <TableHead className="p-1 text-left w-1/3">Price ({quoteAsset})</TableHead>
+                <TableHead className="p-1 text-right w-1/3">Amount ({baseAsset})</TableHead>
+                <TableHead className="p-1 text-right hidden md:table-cell w-1/3">Total ({baseAsset})</TableHead>
+              </TableRow>
+            </TableHeader>
+          </Table>
+          <div className="flex-1 overflow-y-auto">
+            <Table className="w-full table-fixed">
+              <TableBody>
+                {(view === 'all' || view === 'asks') && renderRows(cumulativeAsks.reverse(), 'ask')}
+                <TableRow className="h-10">
+                  <TableCell colSpan={3} className="text-center font-bold text-lg">
+                    {book?.lastPrice}
+                  </TableCell>
+                </TableRow>
+                {(view === 'all' || view === 'bids') && renderRows(cumulativeBids, 'bid')}
+              </TableBody>
+            </Table>
           </div>
         </div>
-
-        {/* Bids (Buy Orders) */}
-        <div>
-          {bids.slice(0, 7).map(([price, amount]: [string, string], i: number) => (
-            <div
-              key={i}
-              className="grid grid-cols-2 gap-2 py-1 relative"
-              data-testid={`row-bid-${i}`}>
-              <div className="font-mono text-green-500 text-xs">{price}</div>
-              <div className="font-mono text-right text-xs">{amount}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-2 pt-2 border-t border-border">
-        <div className="flex items-center justify-between mb-2">
-            <span className="text-green-500">B 30%</span>
-            <div className="w-full h-2 mx-2 bg-gray-700 rounded-full overflow-hidden">
-                <div className="h-full bg-green-500" style={{ width: '30%' }}></div>
-            </div>
-            <span className="text-red-500">70% S</span>
-        </div>
-        <div className="flex items-center gap-2">
-            <div className="p-1 border border-border rounded-md">...</div>
-            <select className="p-1 border border-border rounded-md bg-transparent text-xs">
-                <option>0.01</option>
-                <option>0.1</option>
-                <option>1</option>
-            </select>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
