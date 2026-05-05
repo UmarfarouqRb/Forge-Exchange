@@ -1,9 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, CheckCircle, Info, XCircle, Loader, Trash2, Copy } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export interface LogEntry {
   id: string; 
@@ -13,7 +14,7 @@ export interface LogEntry {
   details?: any; 
 }
 
-interface AgentLogProps {
+export interface AgentLogProps {
   logs: LogEntry[];
   clearLogs: () => void;
   maxLogs?: number;
@@ -41,14 +42,32 @@ const logConfig = {
     label: 'Error',
   },
   info: {
-    icon: <Info className="h-4 w-4 text-gray-400" />,
-    color: 'text-gray-400',
+    icon: <CheckCircle className="h-4 w-4 text-blue-400" />,
+    color: 'text-blue-400',
     label: 'Info',
+  },
+};
+
+type RouteOption = "Automatic" | "Internal" | "External Dex";
+
+const routeConfig: Record<RouteOption, { color: string; indicator: string }> = {
+  "Automatic": {
+    color: "text-green-400",
+    indicator: "bg-green-400",
+  },
+  "Internal": {
+    color: "text-blue-400",
+    indicator: "bg-blue-400",
+  },
+  "External Dex": {
+    color: "text-orange-400",
+    indicator: "bg-orange-400",
   },
 };
 
 export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [selectedRoute, setSelectedRoute] = useState<RouteOption>("Automatic");
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -76,7 +95,17 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
   return (
     <div className="bg-[#020617] border border-[#1E293B] rounded-lg h-[260px] md:h-[320px] flex flex-col text-sm font-mono overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 border-b border-[#1E293B] flex-shrink-0">
-        <h3 className="font-semibold text-base text-[#E2E8F0]">Agent </h3>
+        <div className="flex items-center gap-4">
+          <h3 className="font-semibold text-base text-[#E2E8F0]">Agent </h3>
+          <ToggleGroup type="single" value={selectedRoute} onValueChange={(value: RouteOption) => { if (value) setSelectedRoute(value); }} className="flex items-center gap-2">
+            {Object.keys(routeConfig).map((route) => (
+              <ToggleGroupItem key={route} value={route} className="flex items-center gap-2 px-2 py-1 h-auto text-xs data-[state=on]:bg-white/10">
+                <div className={cn("w-2 h-2 rounded-full", routeConfig[route as RouteOption].indicator)}></div>
+                <span className={cn("capitalize", routeConfig[route as RouteOption].color)}>{route}</span>
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={handleCopy} className="h-7 w-7 text-[#94A3B8] hover:text-[#E2E8F0]">
             <Copy className="h-4 w-4" />

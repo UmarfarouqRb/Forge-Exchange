@@ -1,4 +1,3 @@
-
 import { OrderBook } from '@/components/OrderBook';
 import { TradePanel } from '@/components/TradePanel';
 import { TradingPair, Market, Order } from '@/types/market-data';
@@ -10,6 +9,8 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useMemo } from 'react';
 import { OrderHistory } from '@/components/OrderHistory';
 import { TradeHistory } from '@/components/TradeHistory';
+import { AgentLog } from '@/components/AgentLog';
+import { useAgentStatus } from '@/hooks/useAgentStatus';
 
 interface TradeProps {
   pair: TradingPair;
@@ -20,6 +21,7 @@ interface TradeProps {
 export default function Trade({ pair, market, pairsList }: TradeProps) {
   const { user, authenticated, getAccessToken } = usePrivy();
   const wallet = user?.wallet;
+  const { logs, clearLogs } = useAgentStatus();
 
   const { data: userOrders, isLoading: areUserOrdersLoading, isError: areUserOrdersError } = useQuery<Order[]>({
     queryKey: ['user-orders', wallet?.address, 'spot'],
@@ -115,13 +117,16 @@ export default function Trade({ pair, market, pairsList }: TradeProps) {
 
   return (
     <div className="flex flex-col h-full bg-background text-xs">
-      <div className="grid grid-cols-2 gap-2 p-2 flex-1">
+      <div className="grid grid-cols-2 gap-2 p-2 flex-1" style={{ height: '66.66%' }}>
         <div className="col-span-1">
           <TradePanel pair={pair} market={market} />
         </div>
         <div className="col-span-1">
           <OrderBook pair={pair} book={market} />
         </div>
+      </div>
+      <div className="flex-1" style={{ height: '33.33%' }}>
+        <AgentLog logs={logs} clearLogs={clearLogs} />
       </div>
       <div className="flex-1">
         {renderOrderTabs()}

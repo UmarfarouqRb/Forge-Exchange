@@ -1,4 +1,3 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,6 @@ import { formatBalance } from '@/lib/format';
 import { useVault } from '@/contexts/VaultContext';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@/config/contracts';
 import { toast } from 'sonner';
-import { AgentLog } from './AgentLog';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
 import { serialize } from '@/lib/serializers';
 import { usePublicClient } from 'wagmi';
@@ -94,9 +92,9 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const queryClient = useQueryClient();
   const { getVaultBalance, isLoading: isVaultLoading } = useVault();
   const { signTypedData } = useSignTypedData();
-  const { logs: agentLogs, addLog, clearLogs } = useAgentStatus();
   const publicClient = usePublicClient();
   const { getNonce } = useCorrectNonce();
+  const { addLog, clearLogs } = useAgentStatus();
 
   const connectedWallet = wallets[0];
   const currentPrice = market?.lastPrice || '0';
@@ -163,10 +161,10 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         return createOrder(order, accessToken || '');
     },
     onMutate: () => {
-      addLog('Submitting order to backend...');
+      addLog('Submitting order to backend...', 'info');
     },
     onSuccess: (data) => {
-      addLog('Order successfully received by backend.');
+      addLog('Order successfully received by backend.', 'info');
       toast.success('Order placed successfully!');
       setIsConfirming(false);
       setAmount('');
@@ -277,7 +275,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         relayerFee: "0"
     };
 
-    addLog('Awaiting signature for trade intent...');
+    addLog('Awaiting signature for trade intent...', 'info');
 
     try {
       const result:any = await signTypedData({
@@ -299,7 +297,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         throw new Error("Invalid signature format");
       }
 
-      addLog(`Signature received: ${signature.slice(0,10)}...`);
+      addLog(`Signature received: ${signature.slice(5,5)}...`, 'info');
 
       const rawOrder: CreateOrderRequest = {
         intent: intent as CreateOrderRequest['intent'],
@@ -468,11 +466,11 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
             <span className="text-xs text-muted-foreground">Available: {availableBalance} {availableSymbol}</span>
           </div>
           <Input id="amount" type="number" value={amount} onChange={(e) => handleAmountChange(e.target.value)} placeholder="0.00" className="text-sm" />
-          <div className="flex justify-between mt-2 space-x-1">
-            <Button size="sm" variant="outline" onClick={() => handlePercentage(0.25)} className="flex-1 text-xs px-2 py-1 h-auto">25%</Button>
-            <Button size="sm" variant="outline" onClick={() => handlePercentage(0.50)} className="flex-1 text-xs px-2 py-1 h-auto">50%</Button>
-            <Button size="sm" variant="outline" onClick={() => handlePercentage(0.75)} className="flex-1 text-xs px-2 py-1 h-auto">75%</Button>
-            <Button size="sm" variant="outline" onClick={() => handlePercentage(1)} className="flex-1 text-xs px-2 py-1 h-auto">100%</Button>
+          <div className="grid grid-cols-4 gap-1 mt-2">
+            <Button size="sm" variant="outline" onClick={() => handlePercentage(0.25)} className="text-xs px-2 py-1 h-auto">25%</Button>
+            <Button size="sm" variant="outline" onClick={() => handlePercentage(0.50)} className="text-xs px-2 py-1 h-auto">50%</Button>
+            <Button size="sm" variant="outline" onClick={() => handlePercentage(0.75)} className="text-xs px-2 py-1 h-auto">75%</Button>
+            <Button size="sm" variant="outline" onClick={() => handlePercentage(1)} className="text-xs px-2 py-1 h-auto">100%</Button>
           </div>
         </div>
         
@@ -498,10 +496,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           {getButtonText()}
         </Button>
       </CardContent>
-      
-      <div className="p-4 border-t">
-        <AgentLog logs={agentLogs} clearLogs={clearLogs} />
-      </div>
 
       <OrderConfirmationDialog
         open={isConfirming}

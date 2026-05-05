@@ -18,7 +18,7 @@ export function OrderBookSkeleton() {
         <Skeleton className="h-6 w-24" />
       </CardHeader>
       <CardContent>
-        {Array.from({ length: 15 }).map((_, i: number) => (
+        {Array.from({ length: 5 }).map((_, i: number) => (
           <Skeleton key={i} className="h-6 w-full mb-1" />
         ))}
       </CardContent>
@@ -55,15 +55,15 @@ export function OrderBook({ pair, book }: OrderBookProps) {
   }
 
   const maxCumulative = Math.max(
-    cumulativeBids[cumulativeBids.length - 1]?.[2] || 0,
-    cumulativeAsks[cumulativeAsks.length - 1]?.[2] || 0
+    Number(cumulativeBids[cumulativeBids.length - 1]?.[2] || 0),
+    Number(cumulativeAsks[cumulativeAsks.length - 1]?.[2] || 0)
   );
 
   const renderRows = (data: (string | number)[][], type: 'bid' | 'ask') => {
     const color = type === 'bid' ? 'text-green-500' : 'text-red-500';
     const bgColor = type === 'bid' ? 'bg-green-500/10' : 'bg-red-500/10';
 
-    return data.slice(0, 15).map(([price, amount, cumulative], i) => {
+    return data.slice(0, 5).map(([price, amount, cumulative], i) => {
       const cumulativePercentage = (Number(cumulative) / maxCumulative) * 100;
       return (
         <TableRow key={i} className="relative h-6 text-xs p-0">
@@ -78,9 +78,9 @@ export function OrderBook({ pair, book }: OrderBookProps) {
 
   return (
     <Card className="h-full flex flex-col bg-card">
-      <CardHeader className="p-4">
+      <CardHeader className="p-4 flex-row items-center justify-between">
         <CardTitle className="text-base font-semibold">Order Book</CardTitle>
-        <ToggleGroup type="single" value={view} onValueChange={(v) => setView(v as any)} className="w-full grid grid-cols-3 mt-2">
+        <ToggleGroup type="single" value={view} onValueChange={(v) => setView(v as any)} className="w-auto">
             <ToggleGroupItem value="all" size="sm">All</ToggleGroupItem>
             <ToggleGroupItem value="bids" size="sm">Bids</ToggleGroupItem>
             <ToggleGroupItem value="asks" size="sm">Asks</ToggleGroupItem>

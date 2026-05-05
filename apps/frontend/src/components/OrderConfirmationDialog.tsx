@@ -66,7 +66,7 @@ export function OrderConfirmationDialog({ open, onOpenChange, onConfirm, order }
           <span className="font-bold font-mono">{order.total.toFixed(2)} USDC</span>
         </div>
 
-        <DialogFooter className="gap-2 pt-4 sm:justify-end">
+        <DialogFooter className="gap-2 pt-4 justify-end">
           <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
