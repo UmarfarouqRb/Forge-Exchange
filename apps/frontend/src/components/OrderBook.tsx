@@ -1,7 +1,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Market, TradingPair } from '@/types/market-data';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -17,7 +16,7 @@ export function OrderBookSkeleton() {
         <Skeleton className="h-6 w-24" />
       </CardHeader>
       <CardContent>
-        {Array.from({ length: 5 }).map((_, i: number) => (
+        {Array.from({ length: 10 }).map((_, i: number) => (
           <Skeleton key={i} className="h-6 w-full mb-1" />
         ))}
       </CardContent>
@@ -63,12 +62,12 @@ export function OrderBook({ pair, book }: OrderBookProps) {
     return data.slice(0, 5).map(([price, amount, cumulative], i) => {
       const cumulativePercentage = (Number(cumulative) / maxCumulative) * 100;
       return (
-        <TableRow key={i} className="relative h-6 text-xs p-0">
-          <TableCell className={cn("font-mono p-1 text-left pr-8", color)}>{Number(price).toFixed(2)}</TableCell>
-          <TableCell className="font-mono p-1 text-right pl-8">{Number(amount).toFixed(4)}</TableCell>
-          <TableCell className="font-mono p-1 text-right hidden md:table-cell">{Number(cumulative).toFixed(4)}</TableCell>
-          <td className="absolute top-0 right-0 h-full -z-10" style={{ width: `${cumulativePercentage}%`, backgroundColor: bgColor }} />
-        </TableRow>
+        <div key={i} className="relative flex justify-between items-center h-6 text-xs p-1">
+          <div className={cn("w-1/3 text-left font-mono", color)}>{Number(price).toFixed(2)}</div>
+          <div className="w-1/3 text-right font-mono">{Number(amount).toFixed(4)}</div>
+          <div className="w-1/3 text-right font-mono hidden md:block">{Number(cumulative).toFixed(4)}</div>
+          <div className="absolute top-0 right-0 h-full -z-10" style={{ width: `${cumulativePercentage}%`, backgroundColor: bgColor }} />
+        </div>
       );
     });
   };
@@ -77,27 +76,17 @@ export function OrderBook({ pair, book }: OrderBookProps) {
     <Card className="h-full flex flex-col bg-card border-0">
       <CardContent className="p-0 flex-1 overflow-hidden">
         <div className="h-full flex flex-col">
-          <Table className="w-full table-fixed">
-            <TableHeader className="sticky top-0 bg-card z-10">
-              <TableRow className="text-xs">
-                <TableHead className="p-1 text-left w-1/3">Price ({quoteAsset})</TableHead>
-                <TableHead className="p-1 text-right w-1/3">Amount ({baseAsset})</TableHead>
-                <TableHead className="p-1 text-right hidden md:table-cell w-1/3">Total ({baseAsset})</TableHead>
-              </TableRow>
-            </TableHeader>
-          </Table>
+          <div className="sticky top-0 bg-card z-10 px-1 py-2 text-xs text-muted-foreground flex justify-between">
+            <div className="w-1/3 text-left">Price ({quoteAsset})</div>
+            <div className="w-1/3 text-right">Amount ({baseAsset})</div>
+            <div className="w-1/3 text-right hidden md:block">Total ({baseAsset})</div>
+          </div>
           <div className="flex-1 overflow-y-auto">
-            <Table className="w-full table-fixed">
-              <TableBody>
-                {renderRows(cumulativeAsks.reverse(), 'ask')}
-                <TableRow className="h-10">
-                  <TableCell colSpan={3} className="text-center font-bold text-lg">
-                    {book?.lastPrice}
-                  </TableCell>
-                </TableRow>
-                {renderRows(cumulativeBids, 'bid')}
-              </TableBody>
-            </Table>
+            {renderRows(cumulativeAsks.reverse(), 'ask')}
+            <div className="h-10 flex items-center justify-center font-bold text-lg">
+              {book?.lastPrice}
+            </div>
+            {renderRows(cumulativeBids, 'bid')}
           </div>
         </div>
       </CardContent>

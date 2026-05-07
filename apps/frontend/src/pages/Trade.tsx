@@ -91,7 +91,7 @@ export default function Trade({ pair, market, pairsList }: TradeProps) {
   };
 
   const renderOrderTabs = () => (
-    <Card className="h-full flex flex-col mt-2">
+    <Card className="h-full flex flex-col">
       <CardContent className="p-0 flex-1 overflow-hidden">
         <Tabs defaultValue="open-orders" className="h-full flex flex-col">
           <TabsList className="w-full justify-start rounded-none border-b border-border px-4">
@@ -116,19 +116,19 @@ export default function Trade({ pair, market, pairsList }: TradeProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background text-xs">
-      <div className="grid grid-cols-2 gap-2 p-2" style={{ height: '35%' }}>
-        <div className="col-span-1">
+    <div className="flex flex-col h-full bg-background text-xs p-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
+        <div className="col-span-1 min-h-0">
           <TradePanel pair={pair} market={market} />
         </div>
-        <div className="col-span-1">
+        <div className="col-span-1 min-h-0">
           <OrderBook pair={pair} book={market} />
         </div>
       </div>
-      <div style={{ height: '20%' }}>
+      <div className="h-[220px]">
         <AgentLog logs={logs} clearLogs={clearLogs} />
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         {renderOrderTabs()}
       </div>
     </div>

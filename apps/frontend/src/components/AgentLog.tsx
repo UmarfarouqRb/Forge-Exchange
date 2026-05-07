@@ -18,6 +18,7 @@ export interface AgentLogProps {
   logs: LogEntry[];
   clearLogs: () => void;
   maxLogs?: number;
+  className?: string;
 }
 
 const logConfig = {
@@ -65,7 +66,7 @@ const routeConfig: Record<RouteOption, { color: string; indicator: string }> = {
   },
 };
 
-export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
+export function AgentLog({ logs, clearLogs, maxLogs = 10, className }: AgentLogProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [selectedRoute, setSelectedRoute] = useState<RouteOption>("Automatic");
 
@@ -93,13 +94,13 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
   const displayedLogs = logs.slice(-maxLogs);
 
   return (
-    <div className="bg-[#020617] border border-[#1E293B] rounded-lg h-[260px] md:h-[320px] flex flex-col text-sm font-mono overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[#1E293B] flex-shrink-0">
+    <div className={cn("bg-card border rounded-lg h-full flex flex-col text-sm font-mono overflow-hidden", className)}>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h3 className="font-semibold text-base text-[#E2E8F0]">Agent </h3>
+          <h3 className="font-semibold text-base text-card-foreground">Agent </h3>
           <ToggleGroup type="single" value={selectedRoute} onValueChange={(value: RouteOption) => { if (value) setSelectedRoute(value); }} className="flex items-center gap-2">
             {Object.keys(routeConfig).map((route) => (
-              <ToggleGroupItem key={route} value={route} className="flex items-center gap-2 px-2 py-1 h-auto text-xs data-[state=on]:bg-white/10">
+              <ToggleGroupItem key={route} value={route} className="flex items-center gap-2 px-2 py-1 h-auto text-xs data-[state=on]:bg-secondary">
                 <div className={cn("w-2 h-2 rounded-full", routeConfig[route as RouteOption].indicator)}></div>
                 <span className={cn("capitalize", routeConfig[route as RouteOption].color)}>{route}</span>
               </ToggleGroupItem>
@@ -107,10 +108,10 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
           </ToggleGroup>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleCopy} className="h-7 w-7 text-[#94A3B8] hover:text-[#E2E8F0]">
+          <Button variant="ghost" size="icon" onClick={handleCopy} className="h-7 w-7 text-muted-foreground hover:text-foreground">
             <Copy className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={clearLogs} className="h-7 w-7 text-[#94A3B8] hover:text-[#E2E8F0]">
+          <Button variant="ghost" size="icon" onClick={clearLogs} className="h-7 w-7 text-muted-foreground hover:text-foreground">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -127,7 +128,7 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
                 exit={{ opacity: 0, transition: { duration: 0.2 } }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
                 className={cn(
-                  "flex items-start gap-3 px-4 py-2 border-b border-white/5",
+                  "flex items-start gap-3 px-4 py-2 border-b border-border",
                   logConfig[log.type].color
                 )}
               >
@@ -136,9 +137,9 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10 }: AgentLogProps) {
                   <span className="font-bold mr-2">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>
                   <span className="italic">{log.msg}</span>
                   {log.details && (
-                    <details className="mt-1 text-xs text-[#94A3B8]">
+                    <details className="mt-1 text-xs text-muted-foreground">
                       <summary className="cursor-pointer">View details</summary>
-                      <pre className="mt-1 p-2 bg-black/20 rounded-md whitespace-pre-wrap text-xs">
+                      <pre className="mt-1 p-2 bg-background rounded-md whitespace-pre-wrap text-xs">
                         {JSON.stringify(log.details, null, 2)}
                       </pre>
                     </details>

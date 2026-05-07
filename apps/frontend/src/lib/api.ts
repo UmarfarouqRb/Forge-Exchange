@@ -1,7 +1,7 @@
 import { Market, Order, TradingPair, Token, VaultAsset } from "@/types/market-data";
 import { serialize } from './serializers';
 
-const API_URL = 'https://forge-exchange-api.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || 'https://forge-exchange-api.onrender.com';
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -35,14 +35,6 @@ export interface TradeMetrics {
   twentyFourHourVolume: number;
   totalTrades: number;
   uniqueUsers: number;
-}
-
-export interface QuoteResponse {
-  pairId: string;
-  side: string;
-  quantity: number;
-  price: string;
-  error?: string;
 }
 
 // --- Aligned with apps/api/routes.ts ---
@@ -156,16 +148,16 @@ export async function placeOrder(payload: PlaceOrderPayload, accessToken: string
   return handleResponse<Order>(response);
 }
 
+export interface QuoteResponse {
+  pairId: string;
+  side: string;
+  quantity: number;
+  price: string;
+  error?: string;
+}
+
 export async function getQuote(pairId: string, side: 'buy' | 'sell', quantity: string): Promise<QuoteResponse> {
-  const params = new URLSearchParams({
-    pairId,
-    side,
-    quantity
-  });
-  const response = await fetch(`${API_URL}/api/quote?${params.toString()}`);
-  const result = await handleResponse<QuoteResponse>(response);
-  if (result.error) {
-    throw new Error(result.error);
-  }
-  return result;
+    const params = new URLSearchParams({ pairId, side, quantity });
+    const response = await fetch(`${API_URL}/api/quote?${params.toString()}`);
+    return handleResponse<QuoteResponse>(response);
 }
