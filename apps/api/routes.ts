@@ -31,7 +31,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // --- Relayer Proxy Routes ---
   app.use('/api/spot', relayerProxy);
   app.use('/api/session/authorize', relayerProxy);
-  app.use('/api/metrics', relayerProxy); // <-- ADD THIS LINE
+  app.use('/api/metrics', relayerProxy);
+  app.use('/api/quote', relayerProxy);
 
   // --- Health Check ---
   app.get("/health", health);
@@ -46,7 +47,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).send({ message: "Broadcast successful" });
   });
 
-  // --- Order Routesconst relayerProxy = createProxyMiddleware({
+  // --- Order Routes
   
   app.post("/api/orders", async (req: Request, res: Response, next: NextFunction) => {
     try {

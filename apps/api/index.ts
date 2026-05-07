@@ -3,6 +3,7 @@ import http from "http";
 import cors from "cors";
 import { registerRoutes } from "./routes";
 import { createWebSocketServer } from "./websocket";
+import { WarmingService } from "./src/warming";
 
 const app = express();
 const server = http.createServer(app);
@@ -73,4 +74,8 @@ app.use((req, res, next) => {
     // Initialize WebSocket server after HTTP server starts
     createWebSocketServer(server);
   });
+
+  // Start the warming service
+  const warmingService = new WarmingService();
+  warmingService.start();
 })();

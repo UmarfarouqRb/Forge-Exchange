@@ -117,9 +117,9 @@ export default function Home() {
               </span>
             </div>
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-[hsl(27,87%,61%)] via-[hsl(45,93%,58%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">
-              Decentralized Trading,
+              Intent-based Trading,
               <br />
-              Simplified
+              For Humans + AI Agents
             </h1>
             <p className="text-lg sm:text-xl text-muted-foreground mb-4 max-w-2xl mx-auto">
               Trade cryptocurrency across multiple chains with professional tools, real-time data, and complete control

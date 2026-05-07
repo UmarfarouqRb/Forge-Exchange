@@ -19,11 +19,13 @@ import Dashboard from "@/pages/Dashboard";
 
 function AppLayout() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navigation />
-      <ErrorBoundary>
-        <Outlet />
-      </ErrorBoundary>
+      <main className="pb-16 md:pb-0">
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
+      </main>
     </div>
   );
 }

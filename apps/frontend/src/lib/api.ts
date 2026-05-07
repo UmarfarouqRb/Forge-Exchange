@@ -37,6 +37,14 @@ export interface TradeMetrics {
   uniqueUsers: number;
 }
 
+export interface QuoteResponse {
+  pairId: string;
+  side: string;
+  quantity: number;
+  price: string;
+  error?: string;
+}
+
 // --- Aligned with apps/api/routes.ts ---
 
 export async function getAllPairs(): Promise<TradingPair[]> {
@@ -146,4 +154,18 @@ export async function placeOrder(payload: PlaceOrderPayload, accessToken: string
     body: JSON.stringify(payload), // Caller is responsible for serialization
   });
   return handleResponse<Order>(response);
+}
+
+export async function getQuote(pairId: string, side: 'buy' | 'sell', quantity: string): Promise<QuoteResponse> {
+  const params = new URLSearchParams({
+    pairId,
+    side,
+    quantity
+  });
+  const response = await fetch(`${API_URL}/api/quote?${params.toString()}`);
+  const result = await handleResponse<QuoteResponse>(response);
+  if (result.error) {
+    throw new Error(result.error);
+  }
+  return result;
 }

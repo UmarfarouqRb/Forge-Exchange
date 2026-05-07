@@ -1,4 +1,3 @@
-
 import express, { Request, Response } from 'express';
 import fetch from 'node-fetch';
 import { MatchingEngine } from './matching/engine';
@@ -6,6 +5,7 @@ import { LiquidityEngine } from './liquidity/engine';
 import { RetryWorker } from './worker';
 import { setBook } from '@forge/markets';
 import { createClient } from '@supabase/supabase-js';
+import healthRouter from './health';
 
 const app: express.Express = express();
 app.use(express.json());
@@ -47,6 +47,8 @@ matchingEngine.on('orderbook_update', ({ pairId, bids, asks }) => {
 
 // --- API Endpoints ---
 
+app.use('/api/health', healthRouter);
+
 app.post('/api/orders', async (req: Request, res: Response) => {
     console.log('[Relayer] Received a new order payload:', JSON.stringify(req.body, null, 2));
     const order = req.body;
@@ -57,6 +59,36 @@ app.post('/api/orders', async (req: Request, res: Response) => {
 
     matchingEngine.processOrder(order);
     res.status(202).json({ message: 'Order received and is being processed.' });
+});
+
+app.get('/api/quote', async (req: Request, res: Response) => {
+    try {
+        const { pairId, side, quantity } = req.query;
+
+        if (!pairId || !side || !quantity) {
+            return res.status(400).json({ error: 'Missing required parameters: pairId, side, and quantity are required.' });
+        }
+
+        if (side !== 'buy' && side !== 'sell') {
+            return res.status(400).json({ error: "Invalid side. Must be 'buy' or 'sell'." });
+        }
+
+        const qty = Number(quantity);
+        if (isNaN(qty) || qty <= 0) {
+            return res.status(400).json({ error: 'Invalid quantity. Must be a positive number.' });
+        }
+
+        const quote = await matchingEngine.getQuote(pairId as string, side as 'buy' | 'sell', qty);
+        
+        if ('error' in quote) {
+            return res.status(400).json(quote);
+        }
+
+        res.status(200).json(quote);
+    } catch (error: any) {
+        console.error('[Relayer] Error fetching quote:', error);
+        res.status(500).json({ error: 'Failed to fetch quote', details: error.message });
+    }
 });
 
 app.get('/api/metrics', async (req: Request, res: Response) => {

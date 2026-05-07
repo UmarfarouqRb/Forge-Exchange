@@ -26,7 +26,6 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useState } from 'react';
-import { LevelBadge } from './LevelBadge';
 
 const navItems = [
   { path: '/', label: 'Home', icon: FiHome },
@@ -76,102 +75,106 @@ export function Navigation() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-background">
-      <div className="flex items-center justify-between h-16 pl-0 pr-6">
-        <div className="flex items-center gap-0 md:gap-4">
-          <NavLink to="/" className="flex items-center gap-1 hover-elevate px-2 md:px-3 py-2 rounded-md" data-testid="link-home-logo">
-            <img src="/assets/ForgeX.png" alt="Forge Logo" className="w-14 h-14 md:w-16 md:h-16 object-contain dark:hidden"/>
-            <img src="/assets/ForgeX dark.png" alt="Forge Logo" className="w-14 h-14 md:w-16 md:h-16 object-contain hidden dark:block"/>
-            <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">Forge</span>
-          </NavLink>
-          <div className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    buttonVariants({ variant: 'ghost', size: 'sm' }),
-                    'justify-start',
-                    pathname === item.path && 'bg-accent text-accent-foreground'
-                  )}
-                  data-testid={`link-nav-${item.label.toLowerCase()}`}
-                >
-                  <Icon className="w-4 h-4 mr-2" />
-                  {item.label}
-                </NavLink>
-              );
-            })}
+    <>
+      {/* Top Bar */}
+      <nav className="sticky top-0 z-50 border-b border-border bg-background h-14 md:h-16">
+        <div className="flex items-center justify-between h-full px-4">
+          <div className="flex items-center gap-4">
+            <NavLink to="/" className="flex items-center gap-2 hover-elevate" data-testid="link-home-logo">
+              <img src="/assets/ForgeX.png" alt="Forge Logo" className="w-10 h-10 md:w-12 md:h-12 object-contain dark:hidden"/>
+              <img src="/assets/ForgeX dark.png" alt="Forge Logo" className="w-10 h-10 md:w-12 md:h-12 object-contain hidden dark:block"/>
+              <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-[hsl(27,87%,61%)] to-[hsl(214,66%,54%)] bg-clip-text text-transparent">Forge</span>
+            </NavLink>
+            <div className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      buttonVariants({ variant: 'ghost', size: 'sm' }),
+                      'justify-start',
+                      pathname === item.path && 'bg-accent text-accent-foreground'
+                    )}
+                    data-testid={`link-nav-${item.label.toLowerCase()}`}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    {item.label}
+                  </NavLink>
+                );
+              })}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 md:gap-3">
-          
-          {!ready ? (
-            <Button variant="outline" size="sm" disabled className="text-xs md:text-sm">
-              <FiLoader className="w-4 h-4 mr-2 animate-spin" />
-              Loading...
-            </Button>
-          ) : authenticated ? (
-            <>
-            <ChainSelector />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="default" size="sm" className="text-xs md:text-sm font-mono" data-testid="button-wallet-connected">
-                  {wallet?.address ? formatAddress(wallet.address) : 'Connected'}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground font-mono truncate">{wallet?.address}</span>
-                    <Button variant="ghost" size="icon" onClick={copyAddressToClipboard} className="h-8 w-8">
-                      <FiCopy className="h-4 w-4" />
+          <div className="flex items-center gap-3">
+            {!ready ? (
+              <Button variant="outline" size="sm" disabled>
+                <FiLoader className="w-4 h-4 mr-2 animate-spin" />
+                Loading...
+              </Button>
+            ) : authenticated ? (
+              <>
+                <ChainSelector />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="default" size="sm" className="font-mono" data-testid="button-wallet-connected">
+                      {wallet?.address ? formatAddress(wallet.address) : 'Connected'}
                     </Button>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {privateKey && (
-                  <>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-60">
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground font-mono truncate">{privateKey}</span>
-                        <Button variant="ghost" size="icon" onClick={copyPrivateKeyToClipboard} className="h-8 w-8">
+                        <span className="text-sm text-muted-foreground font-mono truncate">{wallet?.address}</span>
+                        <Button variant="ghost" size="icon" onClick={copyAddressToClipboard} className="h-8 w-8">
                           <FiCopy className="h-4 w-4" />
                         </Button>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                  </>
-                )}
-                <DropdownMenuItem onClick={() => navigate('/portfolio')}>
-                  <FiFolder className="w-4 h-4 mr-2" />
-                  Portfolio
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  <FiSettings className="w-4 h-4 mr-2" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPrivateKey}>
-                  <FiKey className="w-4 h-4 mr-2" />
-                  Export Private Key
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} data-testid="button-wallet-disconnect" className="text-red-500 focus:text-red-500">
-                  <FiLogOut className="w-4 h-4 mr-2" />
-                  Disconnect
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            </>
-          ) : (
-            <Button variant="default" size="sm" onClick={login} className="text-xs md:text-sm px-2 md:px-4" data-testid="button-wallet-connect">
-              Connect Wallet
-            </Button>
-          )}
+                    {privateKey && (
+                      <>
+                        <DropdownMenuLabel className="font-normal">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground font-mono truncate">{privateKey}</span>
+                            <Button variant="ghost" size="icon" onClick={copyPrivateKeyToClipboard} className="h-8 w-8">
+                              <FiCopy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem onClick={() => navigate('/portfolio')}>
+                      <FiFolder className="w-4 h-4 mr-2" />
+                      Portfolio
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                      <FiSettings className="w-4 h-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportPrivateKey}>
+                      <FiKey className="w-4 h-4 mr-2" />
+                      Export Private Key
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} data-testid="button-wallet-disconnect" className="text-red-500 focus:text-red-500">
+                      <FiLogOut className="w-4 h-4 mr-2" />
+                      Disconnect
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <Button variant="default" size="sm" onClick={login} data-testid="button-wallet-connect">
+                Connect Wallet
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="md:hidden border-t border-border">
+      </nav>
+
+      {/* Bottom Nav for Mobile */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background">
         <div className="flex items-center justify-around py-2 px-2">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -184,7 +187,8 @@ export function Navigation() {
                   'flex-col h-auto py-2 leading-none',
                   pathname === item.path && 'bg-accent text-accent-foreground'
                 )}
-                data-testid={`link-mobile-${item.label.toLowerCase()}`}>
+                data-testid={`link-mobile-${item.label.toLowerCase()}`}
+              >
                 <Icon className="w-5 h-5 mb-1" />
                 <span className="text-xs">{item.label}</span>
               </NavLink>
@@ -192,6 +196,6 @@ export function Navigation() {
           })}
         </div>
       </div>
-    </nav>
+    </>
   );
 }
