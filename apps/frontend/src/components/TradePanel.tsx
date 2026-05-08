@@ -9,7 +9,7 @@ import { parseUnits, getAddress, isAddress, formatUnits } from 'viem';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createOrder, CreateOrderRequest, getQuote } from '@/lib/api';
+import { createOrder, CreateOrderRequest } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatBalance } from '@/lib/format';
 import { useVault } from '@/contexts/VaultContext';
@@ -47,7 +47,7 @@ const types = {
 };
 
 // Helper function to safely parse units
-const safeParseUnits = (value: string, decimals: number) => {
+const safeParseUnits = (value: string, decimals: number): bigint => {
   if (!value || isNaN(Number(value))) {
     throw new Error("Invalid numeric value");
   }
@@ -96,7 +96,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const currentPrice = market?.lastPrice || '0';
 
   useEffect(() => {
-    if (orderType === 'limit') {
+    if (orderType === 'limit' && currentPrice) {
       setPrice(currentPrice);
     }
   }, [currentPrice, orderType]);
@@ -122,7 +122,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
   const handleAmountChange = (newAmount: string) => {
     setAmount(newAmount);
-    setTotal('');
+    setTotal(''); // Clear total when amount changes
   };
 
   const handleTotalChange = (newTotal: string) => {
@@ -138,17 +138,21 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   };
 
   const hasSufficientBalance = useMemo(() => {
-    if (!amount || parseFloat(amount) <= 0) return true;
+    if (!amount || parseFloat(amount) <= 0) return true; // No input, so no balance check needed
     const totalToCompare = parseFloat(effectiveTotal);
 
-    if (side === 'buy') {
-      if (!quoteToken || isNaN(totalToCompare)) return false;
-      const totalAmount = parseUnits(totalToCompare.toString(), quoteToken.decimals);
-      return quoteBalance >= totalAmount;
-    } else {
-      if (!baseToken) return false;
-      const orderAmount = parseUnits(amount, baseToken.decimals);
-      return baseBalance >= orderAmount;
+    try {
+        if (side === 'buy') {
+            if (!quoteToken || isNaN(totalToCompare)) return false;
+            const totalAmount = safeParseUnits(totalToCompare.toString(), quoteToken.decimals);
+            return quoteBalance >= totalAmount;
+        } else {
+            if (!baseToken) return false;
+            const orderAmount = safeParseUnits(amount, baseToken.decimals);
+            return baseBalance >= orderAmount;
+        }
+    } catch {
+        return false;
     }
   }, [amount, effectiveTotal, side, baseBalance, quoteBalance, baseToken, quoteToken]);
 
@@ -178,6 +182,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
   const handlePlaceOrder = async () => {
     try {
+      // --- 1. PRE-CHECKS ---
       if (!authenticated) {
         login();
         return;
@@ -190,7 +195,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         toast.error("Invalid amount");
         return;
       }
-      if (orderType === 'limit' && (!price || isNaN(Number(price)))) {
+      if (orderType === 'limit' && (!price || isNaN(Number(price)) || Number(price) <= 0)) {
         toast.error("Invalid price");
         return;
       }
@@ -202,34 +207,42 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         toast.error("Wallet not connected or tokens not defined.");
         return;
       }
-      const userAddress = user.wallet.address;
-      if (!isAddress(userAddress)) {
-        const errorMsg = `Invalid wallet address before signing: ${userAddress}`;
-        addLog(errorMsg, 'error');
-        console.error(errorMsg);
-        toast.error("Invalid wallet address detected. Please reconnect your wallet.");
-        return;
-      }
-  
+      const userAddress = getAddress(user.wallet.address);
+
+      // --- 2. INTENT CONSTRUCTION ---
       const isBuy = side === 'buy';
       const tokenIn = isBuy ? quoteToken : baseToken;
       const tokenOut = isBuy ? baseToken : quoteToken;
-      
-      const finalTotal = parseFloat(effectiveTotal);
-      if (isNaN(finalTotal)) {
-        toast.error("Invalid total amount");
-        return;
+      const priceToUse = orderType === 'market' ? currentPrice : price;
+
+      const amountIn = isBuy 
+        ? safeParseUnits(effectiveTotal, tokenIn.decimals) 
+        : safeParseUnits(amount, tokenIn.decimals);
+
+      const numericPrice = parseFloat(priceToUse);
+      if (isNaN(numericPrice) || numericPrice <= 0) {
+          throw new Error("Invalid price for calculation.");
       }
-  
-      const amountIn = isBuy ? safeParseUnits(finalTotal.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
-      
-      const quote = await getQuote(pair.id, side, amount);
-      const expectedAmountOut = parseUnits(quote.price, tokenOut.decimals);
-  
-      const minAmountOut = expectedAmountOut * 98n / 100n; // 2% slippage
-  
+
+      let expectedAmountOut: bigint;
+      if (isBuy) {
+          // When buying, the 'amount' is the quantity of the base token we want to receive.
+          // This is our expected amount out.
+          expectedAmountOut = safeParseUnits(amount, tokenOut.decimals);
+      } else {
+          // When selling, the 'amount' is the quantity of the base token we are sending.
+          // The expected amount out is the total we receive in the quote token.
+          const totalFromPrice = parseFloat(amount) * numericPrice;
+          expectedAmountOut = safeParseUnits(totalFromPrice.toString(), tokenOut.decimals);
+      }
+
+      // Apply 2% slippage tolerance
+      const slippage = 200n; // 2% in basis points (200 / 10000 = 0.02)
+      const BIPS_BASE = 10000n;
+      const minAmountOut = (expectedAmountOut * (BIPS_BASE - slippage)) / BIPS_BASE;
+
       const nonce = await getNonce();
-  
+
       const intent = {
         user: userAddress,
         tokenIn: tokenIn.address,
@@ -241,10 +254,11 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         adapter: '0x0000000000000000000000000000000000000000', // Auto-adapter
         relayerFee: "0"
       };
-  
+
       addLog('Awaiting signature for trade intent...', 'info');
-  
-      const result:any = await signTypedData({
+
+      // --- 3. SIGNATURE ---
+      const result: any = await signTypedData({
         domain: domain,
         types,
         primaryType: "SwapIntent",
@@ -252,16 +266,20 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       });
       
       let signature: string;
+
       if (typeof result === "string") {
         signature = result;
       } else if (result?.signature) {
         signature = result.signature;
+      } else if (result?.r && result?.s && result?.v) {
+        signature = `${result.r}${result.s.slice(2)}${result.v.toString(16)}`;
       } else {
-        throw new Error("Invalid signature format received from wallet.");
+        throw new Error("Invalid signature format from wallet.");
       }
-  
+
       addLog(`Signature received: ${signature.substring(0, 10)}...`, 'info');
-  
+
+      // --- 4. SUBMISSION ---
       const rawOrder: CreateOrderRequest = {
         intent: intent as CreateOrderRequest['intent'],
         signature,
@@ -271,15 +289,15 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         quantity: amount,
         price: orderType === 'limit' ? price : null,
       };
-  
+
       submitOrder(rawOrder);
-  
+
     } catch (e) {
       const error = e as Error;
       const errorMessage = error.message || "An unknown error occurred.";
       addLog(`Order placement failed: ${errorMessage}`, 'error');
       console.error("Order placement error:", e);
-      
+
       if (errorMessage.toLowerCase().includes('user rejected') || errorMessage.toLowerCase().includes('declined')) {
         toast.error('Signature request was rejected.');
       } else {
@@ -294,14 +312,11 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     if (!balance || decimals === undefined) return;
   
     const percentageBigInt = BigInt(Math.floor(percentage * 100));
-    const HUNDRED = 100n;
+    const HUNDRED = 100n * 100n; // Use 10000 for basis points
     const newAmountWei = (balance * percentageBigInt) / HUNDRED;
   
     if (side === 'buy') {
-      if (currentPrice && parseFloat(currentPrice) > 0) {
-        const amountInQuote = formatUnits(newAmountWei, decimals);
-        handleTotalChange(amountInQuote);
-      }
+      handleTotalChange(formatUnits(newAmountWei, decimals));
     } else {
       handleAmountChange(formatUnits(newAmountWei, decimals));
     }
