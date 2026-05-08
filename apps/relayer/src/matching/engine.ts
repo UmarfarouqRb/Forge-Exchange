@@ -388,6 +388,37 @@ export class MatchingEngine extends EventEmitter {
             created_at: new Date()
         });
     }
+
+    private async fillOrderViaLP(order: Order) {
+        try {
+            const pairId = order.trading_pair_id;
+            const oppositeSide = order.side === 'buy' ? 'sell' : 'buy';
+            const lpOrder = await this.getLPOrder(pairId, oppositeSide);
+    
+            if (!lpOrder || !lpOrder.price) {
+                throw new Error(`LP fallback failed for ${order.id}: no valid LP price for pair ${pairId}.`);
+            }
+    
+            // We must respect the limit price of the order.
+            // For a buy order, the LP price must be <= the order's limit price.
+            // For a sell order, the LP price must be >= the order's limit price.
+            const isPriceFavorable = order.side === 'buy'
+                ? lpOrder.price <= Number(order.price)
+                : lpOrder.price >= Number(order.price);
+    
+            if (isPriceFavorable) {
+                this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Finalizing your trade using Forge internal liquidity.`, type: 'info' });
+                await this.executeLPMatch(order, lpOrder, Number(order.quantity));
+                // After successful LP match, we should ensure the order status is updated to 'fulfilled'.
+                this.updateOrderStatusInDB({ ...order, quantity: 0 });
+            } else {
+                 this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Could not fill order via LP: unfavorable price. Order remains active.`, type: 'warning' });
+            }
+        } catch(err) {
+            console.error(`[fillOrderViaLP] CRITICAL error for order ${order.id}:`, err);
+            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `An unexpected error occurred while trying to fill your order with our liquidity provider.`, type: 'error' });
+        }
+    }
     
     private async executeInternalMatch(buyer: Order, seller: Order, quantity: number, price: number) {
         if (!price || isNaN(price) || price <= 0) {
@@ -420,40 +451,77 @@ export class MatchingEngine extends EventEmitter {
             msg,
             type: 'info' 
         });
-            
-        const settlement = await this.liquidityEngine.settleMatchedTrade({ buyer, seller, quantity, price, intentId: buyer.intent_id });
-        if (!settlement) return;
         
-        const { receipt, amountOut } = settlement;
-        const inTokenPrice = await this.liquidityEngine.getPrice(buyer.intent.tokenIn) || 0;
-        const amountUsd = (Number(formatUnits(buyer.intent.amountIn, 18)) * inTokenPrice);
-
-        await this.supabase.from('trade_executions').insert({
-            tx_hash: receipt.transactionHash,
-            user_address: buyer.intent.user,
-            token_in: buyer.intent.tokenIn,
-            token_out: buyer.intent.tokenOut,
-            amount_in: buyer.intent.amountIn.toString(),
-            amount_out: amountOut.toString(),
-            amount_usd: amountUsd,
-            protocol_fee: '0', //TODO
-            relayer_fee: buyer.intent.relayerFee.toString(),
-            created_at: new Date()
-        });
-
-        const updatedBuyer = { ...buyer, quantity: Number(buyer.quantity) - quantity };
-        const updatedSeller = { ...seller, quantity: Number(seller.quantity) - quantity };
-    
-        const pairId = buyer.trading_pair_id || seller.trading_pair_id;
-        const book = this.books.get(pairId)!;
-    
-        book.bids = book.bids.map(o => o.id === buyer.id ? updatedBuyer : o).filter(o => o.quantity > 0);
-        book.asks = book.asks.map(o => o.id === seller.id ? updatedSeller : o).filter(o => o.quantity > 0);
+        try {
+            const settlement = await this.liquidityEngine.settleMatchedTrade({ buyer, seller, quantity, price, intentId: buyer.intent_id });
+            if (!settlement) {
+                throw new Error("Internal settlement failed pre-check in liquidity engine.");
+            }
             
-        this.updateOrderStatusInDB(updatedBuyer);
-        this.updateOrderStatusInDB(updatedSeller);
-            
-        this.emitFormattedBook(pairId, book);
+            const { receipt, amountOut } = settlement;
+            const inTokenPrice = await this.liquidityEngine.getPrice(buyer.intent.tokenIn) || 0;
+            const amountUsd = (Number(formatUnits(buyer.intent.amountIn, 18)) * inTokenPrice);
+    
+            await this.supabase.from('trade_executions').insert({
+                tx_hash: receipt.transactionHash,
+                user_address: buyer.intent.user,
+                token_in: buyer.intent.tokenIn,
+                token_out: buyer.intent.tokenOut,
+                amount_in: buyer.intent.amountIn.toString(),
+                amount_out: amountOut.toString(),
+                amount_usd: amountUsd,
+                protocol_fee: '0', //TODO
+                relayer_fee: buyer.intent.relayerFee.toString(),
+                created_at: new Date()
+            });
+    
+            const updatedBuyer = { ...buyer, quantity: Number(buyer.quantity) - quantity };
+            const updatedSeller = { ...seller, quantity: Number(seller.quantity) - quantity };
+        
+            const pairId = buyer.trading_pair_id || seller.trading_pair_id;
+            const book = this.books.get(pairId)!;
+        
+            book.bids = book.bids.map(o => o.id === buyer.id ? updatedBuyer : o).filter(o => o.quantity > 0);
+            book.asks = book.asks.map(o => o.id === seller.id ? updatedSeller : o).filter(o => o.quantity > 0);
+                
+            this.updateOrderStatusInDB(updatedBuyer);
+            this.updateOrderStatusInDB(updatedSeller);
+                
+            this.emitFormattedBook(pairId, book);
+
+        } catch (error) {
+            console.warn(`Internal match failed for quantity ${quantity}. Error: ${(error as Error).message}. Fallback to LP.`);
+            this.emit('agent_status', {
+                orderId: buyer.intent_id,
+                userAddress: buyer.intent.user,
+                msg: `Partial fill or liquidity issue. Rerouting to our LP network to complete your trade.`,
+                type: 'info'
+            });
+            this.emit('agent_status', {
+                orderId: seller.intent_id,
+                userAddress: seller.intent.user,
+                msg: `Partial fill or liquidity issue. Rerouting to our LP network to complete your trade.`,
+                type: 'info'
+            });
+    
+            if (buyer.quantity > 0) {
+                console.log(`Attempting to fill remaining BUY order ${buyer.id} via LP.`);
+                await this.fillOrderViaLP(buyer);
+            }
+    
+            if (seller.quantity > 0) {
+                console.log(`Attempting to fill remaining SELL order ${seller.id} via LP.`);
+                await this.fillOrderViaLP(seller);
+            }
+    
+            const pairId = buyer.trading_pair_id || seller.trading_pair_id;
+            const book = this.books.get(pairId)!;
+            if(book) {
+                book.bids = book.bids.filter(o => o.id !== buyer.id);
+                book.asks = book.asks.filter(o => o.id !== seller.id);
+                this.emitFormattedBook(pairId, book);
+            }
+        }
     }
 
     private emitFormattedBook(pairId: string, book: {bids: Order[], asks: Order[]}) {

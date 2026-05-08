@@ -177,79 +177,73 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   });
 
   const handlePlaceOrder = async () => {
-    if (!authenticated) {
-      login();
-      return;
-    }
-    if (!hasSufficientBalance) {
-      toast.error('Insufficient funds');
-      return;
-    }
-    
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+    try {
+      if (!authenticated) {
+        login();
+        return;
+      }
+      if (!hasSufficientBalance) {
+        toast.error('Insufficient funds');
+        return;
+      }
+      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
         toast.error("Invalid amount");
         return;
-    }
-
-    if (orderType === 'limit' && (!price || isNaN(Number(price)))) {
+      }
+      if (orderType === 'limit' && (!price || isNaN(Number(price)))) {
         toast.error("Invalid price");
         return;
-    }
-
-    if (!currentPrice || isNaN(Number(currentPrice)) || Number(currentPrice) <= 0) {
+      }
+      if (!currentPrice || isNaN(Number(currentPrice)) || Number(currentPrice) <= 0) {
         toast.error("Invalid market price. Cannot execute trade.");
         return;
-    }
-
-    if (!user?.wallet?.address || !baseToken || !quoteToken || !connectedWallet) {
+      }
+      if (!user?.wallet?.address || !baseToken || !quoteToken || !connectedWallet) {
         toast.error("Wallet not connected or tokens not defined.");
         return;
-    }
-
-    const userAddress = user.wallet.address;
-    if (!isAddress(userAddress)) {
+      }
+      const userAddress = user.wallet.address;
+      if (!isAddress(userAddress)) {
         const errorMsg = `Invalid wallet address before signing: ${userAddress}`;
         addLog(errorMsg, 'error');
         console.error(errorMsg);
         toast.error("Invalid wallet address detected. Please reconnect your wallet.");
         return;
-    }
-
-    const isBuy = side === 'buy';
-    const tokenIn = isBuy ? quoteToken : baseToken;
-    const tokenOut = isBuy ? baseToken : quoteToken;
-    
-    const finalTotal = parseFloat(effectiveTotal);
-    if (isNaN(finalTotal)) {
-      toast.error("Invalid total amount");
-      return;
-    }
-
-    const amountIn = isBuy ? safeParseUnits(finalTotal.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
-    
-    const quote = await getQuote(pair.id, side, amount);
-    const expectedAmountOut = parseUnits(quote.price, tokenOut.decimals);
-
-    // Apply 2% slippage tolerance
-    const minAmountOut = expectedAmountOut * 98n / 100n;
-
-    const nonce = await getNonce();
-
-    const intent = {
+      }
+  
+      const isBuy = side === 'buy';
+      const tokenIn = isBuy ? quoteToken : baseToken;
+      const tokenOut = isBuy ? baseToken : quoteToken;
+      
+      const finalTotal = parseFloat(effectiveTotal);
+      if (isNaN(finalTotal)) {
+        toast.error("Invalid total amount");
+        return;
+      }
+  
+      const amountIn = isBuy ? safeParseUnits(finalTotal.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
+      
+      const quote = await getQuote(pair.id, side, amount);
+      const expectedAmountOut = parseUnits(quote.price, tokenOut.decimals);
+  
+      const minAmountOut = expectedAmountOut * 98n / 100n; // 2% slippage
+  
+      const nonce = await getNonce();
+  
+      const intent = {
         user: userAddress,
         tokenIn: tokenIn.address,
         tokenOut: tokenOut.address,
         amountIn: amountIn.toString(),
         minAmountOut: minAmountOut.toString(),
-        deadline: (Math.floor(Date.now() / 1000) + 300).toString(),
+        deadline: (Math.floor(Date.now() / 1000) + 300).toString(), // 5 minutes from now
         nonce: nonce,
-        adapter: '0x0000000000000000000000000000000000000000',
+        adapter: '0x0000000000000000000000000000000000000000', // Auto-adapter
         relayerFee: "0"
-    };
-
-    addLog('Awaiting signature for trade intent...', 'info');
-
-    try {
+      };
+  
+      addLog('Awaiting signature for trade intent...', 'info');
+  
       const result:any = await signTypedData({
         domain: domain,
         types,
@@ -258,19 +252,16 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       });
       
       let signature: string;
-
       if (typeof result === "string") {
         signature = result;
       } else if (result?.signature) {
         signature = result.signature;
-      } else if (result?.r && result?.s && result?.v) {
-        signature = `${result.r}${result.s.slice(2)}${result.v.toString(16)}`;
       } else {
-        throw new Error("Invalid signature format");
+        throw new Error("Invalid signature format received from wallet.");
       }
-
-      addLog(`Signature received: ${signature.slice(5,5)}...`, 'info');
-
+  
+      addLog(`Signature received: ${signature.substring(0, 10)}...`, 'info');
+  
       const rawOrder: CreateOrderRequest = {
         intent: intent as CreateOrderRequest['intent'],
         signature,
@@ -280,14 +271,20 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         quantity: amount,
         price: orderType === 'limit' ? price : null,
       };
-
+  
       submitOrder(rawOrder);
-
+  
     } catch (e) {
-        const error = e as Error;
-        addLog(`Signing failed: ${error.message}`, 'error');
-        console.error("Signing error:", error);
-        toast.error(`Signing failed: ${error.message}`);
+      const error = e as Error;
+      const errorMessage = error.message || "An unknown error occurred.";
+      addLog(`Order placement failed: ${errorMessage}`, 'error');
+      console.error("Order placement error:", e);
+      
+      if (errorMessage.toLowerCase().includes('user rejected') || errorMessage.toLowerCase().includes('declined')) {
+        toast.error('Signature request was rejected.');
+      } else {
+        toast.error(`Error: ${errorMessage}`);
+      }
     }
   };
 
