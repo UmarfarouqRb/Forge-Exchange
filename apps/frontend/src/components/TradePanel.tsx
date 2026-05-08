@@ -6,20 +6,17 @@ import { Label } from '@/components/ui/label';
 import { usePrivy, useWallets, useSignTypedData } from '@privy-io/react-auth';
 import { Market, TradingPair } from '@/types/market-data';
 import { parseUnits, getAddress, isAddress, formatUnits } from 'viem';
-import { OrderConfirmationDialog } from './OrderConfirmationDialog';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createOrder, CreateOrderRequest } from '@/lib/api';
+import { createOrder, CreateOrderRequest, getQuote } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatBalance } from '@/lib/format';
 import { useVault } from '@/contexts/VaultContext';
 import { INTENT_SPOT_ROUTER_ADDRESS } from '@/config/contracts';
 import { toast } from 'sonner';
 import { useAgentStatus } from '@/hooks/useAgentStatus';
-import { serialize } from '@/lib/serializers';
 import { usePublicClient } from 'wagmi';
-import { IntentSpotRouterAbi } from '@/config/IntentSpotRouter';
 import { useCorrectNonce } from '@/hooks/useCorrectNonce';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
@@ -84,7 +81,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
   const [price, setPrice] = useState(market?.lastPrice || '');
   const [amount, setAmount] = useState('');
   const [total, setTotal] = useState('');
-  const [isConfirming, setIsConfirming] = useState(false);
   
   const { ready, authenticated, user, login, getAccessToken } = usePrivy();
   const { wallets } = useWallets();
@@ -167,7 +163,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     onSuccess: (data) => {
       addLog('Order successfully received by backend.', 'info');
       toast.success('Order placed successfully!');
-      setIsConfirming(false);
       setAmount('');
       setTotal('');
       queryClient.invalidateQueries({ queryKey: ['vaultTokens'] });
@@ -178,11 +173,10 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       addLog(`Backend failed to accept order: ${error.message}. See console for details.`, 'error');
       toast.error(error.message);
       console.error('Failed to create order:', error);
-      setIsConfirming(false);
     }
   });
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (!authenticated) {
       login();
       return;
@@ -191,11 +185,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
       toast.error('Insufficient funds');
       return;
     }
-    clearLogs();
-    setIsConfirming(true);
-  };
-
-  const handleConfirmOrder = async () => {
+    
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
         toast.error("Invalid amount");
         return;
@@ -222,7 +212,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         addLog(errorMsg, 'error');
         console.error(errorMsg);
         toast.error("Invalid wallet address detected. Please reconnect your wallet.");
-        setIsConfirming(false);
         return;
     }
 
@@ -238,26 +227,8 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
 
     const amountIn = isBuy ? safeParseUnits(finalTotal.toString(), tokenIn.decimals) : safeParseUnits(amount, tokenIn.decimals);
     
-    let expectedAmountOut: bigint;
-
-    if (isBuy) {
-        // BUY: quote -> base (e.g. USDC -> WETH)
-        const amountInFloat = finalTotal; // Total is in quote currency
-        const priceFloat = parseFloat(currentPrice);
-        if (priceFloat === 0) {
-            toast.error("Cannot execute trade with a price of zero.");
-            setIsConfirming(false);
-            return;
-        }
-        const out = amountInFloat / priceFloat;
-        expectedAmountOut = parseUnits(out.toFixed(tokenOut.decimals), tokenOut.decimals);
-    } else {
-        // SELL: base -> quote (e.g. WETH -> USDC)
-        const amountInFloat = parseFloat(amount); // Amount is in base currency
-        const priceFloat = parseFloat(currentPrice);
-        const out = amountInFloat * priceFloat;
-        expectedAmountOut = parseUnits(out.toFixed(tokenOut.decimals), tokenOut.decimals);
-    }
+    const quote = await getQuote(pair.id, side, amount);
+    const expectedAmountOut = parseUnits(quote.price, tokenOut.decimals);
 
     // Apply 2% slippage tolerance
     const minAmountOut = expectedAmountOut * 98n / 100n;
@@ -317,7 +288,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
         addLog(`Signing failed: ${error.message}`, 'error');
         console.error("Signing error:", error);
         toast.error(`Signing failed: ${error.message}`);
-        setIsConfirming(false);
     }
   };
 
@@ -496,20 +466,6 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
           {getButtonText()}
         </Button>
       </CardContent>
-
-      <OrderConfirmationDialog
-        open={isConfirming}
-        onOpenChange={setIsConfirming}
-        onConfirm={handleConfirmOrder}
-        order={{
-          side,
-          amount,
-          symbol: pair.base ? pair.base.symbol : '',
-          price,
-          orderType,
-          total: parseFloat(effectiveTotal) || 0
-        }}
-      />
     </Card>
   );
 }
