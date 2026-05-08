@@ -18,7 +18,7 @@ export default function Trade({ pair, market }: TradeProps) {
 
   return (
     <div className="flex flex-col h-full bg-background text-xs p-2 gap-2">
-      <div className="grid grid-cols-2 gap-2 flex-1 min-h-0">
+      <div className="grid grid-cols-2 gap-2">
         <div className="col-span-1 min-h-0">
           <TradePanel pair={pair} market={market} />
         </div>
@@ -26,7 +26,7 @@ export default function Trade({ pair, market }: TradeProps) {
           <OrderBook pair={pair} book={market} />
         </div>
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         <AgentLog logs={logs} clearLogs={clearLogs} />
       </div>
     </div>
