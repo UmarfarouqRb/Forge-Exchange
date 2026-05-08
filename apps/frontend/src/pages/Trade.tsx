@@ -26,7 +26,7 @@ export default function Trade({ pair, market }: TradeProps) {
           <OrderBook pair={pair} book={market} />
         </div>
       </div>
-      <div className="h-[220px]">
+      <div className="flex-1">
         <AgentLog logs={logs} clearLogs={clearLogs} />
       </div>
     </div>
