@@ -138,7 +138,8 @@ export class MatchingEngine extends EventEmitter {
             orderId: order.intent_id, 
             userAddress: order.intent.user, 
             msg: `Your order has been received and is being processed.`,
-            type: 'info' 
+            type: 'info',
+            side: order.side
         });
 
         if (order.order_type === 'market') {
@@ -151,7 +152,8 @@ export class MatchingEngine extends EventEmitter {
                 orderId: order.intent_id, 
                 userAddress: order.intent.user,
                 msg: `Invalid order type: ${order.order_type}`,
-                type: 'error' 
+                type: 'error',
+                side: order.side
             });
         }
     }
@@ -299,19 +301,20 @@ export class MatchingEngine extends EventEmitter {
                         orderId: marketOrder.intent_id, 
                         userAddress: marketOrder.intent.user, 
                         msg: `We found better price for you via our liquidity network!`,
-                        type: 'info' 
+                        type: 'info',
+                        side: marketOrder.side
                     });
 
                     await this.executeLPMatch(marketOrder, await this.getLPOrder(pairId, marketOrder.side === 'buy' ? 'sell' : 'buy'), remainingQuantity);
                     remainingQuantity = 0;
                 } else {
-                    this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `Could not get internal price. Proceeding with external swap.`, type: 'warning' });
+                    this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `Could not get internal price. Proceeding with external swap.`, type: 'warning', side: marketOrder.side });
                     try {
-                        await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature, marketOrder.intent_id);
+                        await this.liquidityEngine.executeWithExternalDex(marketOrder.intent, marketOrder.signature, marketOrder.intent_id, marketOrder.side);
                         remainingQuantity = 0; 
                     } catch (err) {
                          console.warn(`DEX execution failed after successful simulation: ${(err as Error).message}. Falling back to LP.`);
-                         this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `DEX execution failed. Falling back to LP.`, type: 'warning' });
+                         this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `DEX execution failed. Falling back to LP.`, type: 'warning', side: marketOrder.side });
                     }
                 }
 
@@ -320,8 +323,9 @@ export class MatchingEngine extends EventEmitter {
                 this.emit('agent_status', { 
                     orderId: marketOrder.intent_id, 
                     userAddress: marketOrder.intent.user, 
-                    msg: `External simulation failed. Falling back to LP.`, 
-                    type: 'info' 
+                    msg: `External simulation failed. Falling back to LP.`,
+                    type: 'info',
+                    side: marketOrder.side
                 });
             }
         }
@@ -339,11 +343,11 @@ export class MatchingEngine extends EventEmitter {
             }
 
             if (lpOrder) {
-                 this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `Finalizing your trade using Forge internal liquidity.`, type: 'info' });
+                 this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `Finalizing your trade using Forge internal liquidity.`, type: 'info', side: marketOrder.side });
                 await this.executeLPMatch(marketOrder, lpOrder, remainingQuantity);
                 remainingQuantity = 0;
             } else {
-                this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `CRITICAL: No LP fallback available for pair ${pairId}. Order may be partially filled.`, type: 'error' });
+                this.emit('agent_status', { orderId: marketOrder.intent_id, userAddress: marketOrder.intent.user, msg: `CRITICAL: No LP fallback available for pair ${pairId}. Order may be partially filled.`, type: 'error', side: marketOrder.side });
             }
         }
     }
@@ -407,16 +411,16 @@ export class MatchingEngine extends EventEmitter {
                 : lpOrder.price >= Number(order.price);
     
             if (isPriceFavorable) {
-                this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Finalizing your trade using Forge internal liquidity.`, type: 'info' });
+                this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Finalizing your trade using Forge internal liquidity.`, type: 'info', side: order.side });
                 await this.executeLPMatch(order, lpOrder, Number(order.quantity));
                 // After successful LP match, we should ensure the order status is updated to 'fulfilled'.
                 this.updateOrderStatusInDB({ ...order, quantity: 0 });
             } else {
-                 this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Could not fill order via LP: unfavorable price. Order remains active.`, type: 'warning' });
+                 this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Could not fill order via LP: unfavorable price. Order remains active.`, type: 'warning', side: order.side });
             }
         } catch(err) {
             console.error(`[fillOrderViaLP] CRITICAL error for order ${order.id}:`, err);
-            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `An unexpected error occurred while trying to fill your order with our liquidity provider.`, type: 'error' });
+            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `An unexpected error occurred while trying to fill your order with our liquidity provider.`, type: 'error', side: order.side });
         }
     }
     
@@ -425,7 +429,7 @@ export class MatchingEngine extends EventEmitter {
             console.error("Invalid trade price detected:", price);
             return;
         }
-        
+    
         if (!buyer.intent || !seller.intent) {
             console.error('CRITICAL: Invalid match payload due to missing intent structure.', {
                 buyerId: buyer.id,
@@ -442,14 +446,16 @@ export class MatchingEngine extends EventEmitter {
             orderId: buyer.intent_id, 
             userAddress: buyer.intent.user,
             msg,
-            type: 'info' 
+            type: 'info', 
+            side: buyer.side 
         });
     
         this.emit('agent_status', { 
             orderId: seller.intent_id, 
             userAddress: seller.intent.user,
             msg,
-            type: 'info' 
+            type: 'info', 
+            side: seller.side 
         });
         
         try {
@@ -495,13 +501,15 @@ export class MatchingEngine extends EventEmitter {
                 orderId: buyer.intent_id,
                 userAddress: buyer.intent.user,
                 msg: `Partial fill or liquidity issue. Rerouting to our LP network to complete your trade.`,
-                type: 'info'
+                type: 'info',
+                side: buyer.side
             });
             this.emit('agent_status', {
                 orderId: seller.intent_id,
                 userAddress: seller.intent.user,
                 msg: `Partial fill or liquidity issue. Rerouting to our LP network to complete your trade.`,
-                type: 'info'
+                type: 'info',
+                side: seller.side
             });
     
             if (buyer.quantity > 0) {

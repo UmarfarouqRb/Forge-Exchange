@@ -312,7 +312,7 @@ export function TradePanel({ pair, market, disabled = false, isMobile = false }:
     if (!balance || decimals === undefined) return;
   
     const percentageBigInt = BigInt(Math.floor(percentage * 100));
-    const HUNDRED = 100n * 100n; // Use 10000 for basis points
+    const HUNDRED = 100n;
     const newAmountWei = (balance * percentageBigInt) / HUNDRED;
   
     if (side === 'buy') {

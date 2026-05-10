@@ -127,22 +127,20 @@ export class LiquidityEngine extends EventEmitter {
             }
 
             const amountBase = parseUnits(quantity.toString(), pair.base.decimals);
-            const priceBigInt = parseUnits(price.toString(), pair.quote.decimals);
-            const baseDecimals = BigInt(10) ** BigInt(pair.base.decimals);
-            const amountQuote = (amountBase * priceBigInt) / baseDecimals;
 
-            this.emit('agent_status', { orderId: intentId, userAddress: buyer.intent.user, msg: `Settling internal match...`, type: 'info' });
+            this.emit('agent_status', { orderId: intentId, userAddress: buyer.intent.user, msg: `Settling internal match...`, type: 'info', side: buyer.side });
 
             return await this.settleOnChain({
                 intent: buyer.intent,
                 signature: buyer.signature,
                 counterparty: seller.intent.user,
-                amountOut: amountQuote,
-                intent_id: intentId
+                amountOut: amountBase, // Correctly use amountBase for the settlement
+                intent_id: intentId,
+                side: buyer.side
             });
         } catch (error: any) {
             console.error(`[settleMatchedTrade] Failed for intentId ${intentId}:`, error);
-            this.emit('agent_status', { orderId: intentId, userAddress: buyer.intent.user, msg: `Internal match settlement failed: ${error.message}`.substring(0, 100), type: 'error' });
+            this.emit('agent_status', { orderId: intentId, userAddress: buyer.intent.user, msg: `Internal match settlement failed: ${error.message}`.substring(0, 100), type: 'error', side: buyer.side });
             this.updateOrderStatusInDB(buyer.signature, 'failed', error.message);
         }
     }
@@ -175,24 +173,25 @@ export class LiquidityEngine extends EventEmitter {
                 throw new Error(`Slippage exceeded: LP quote was ${amountOut}, minAmountOut was ${order.intent.minAmountOut}`);
             }
     
-            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Settling ${order.quantity} with internal LP.`, type: 'info' });
+            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Settling ${order.quantity} with internal LP.`, type: 'info', side: order.side });
     
             return await this.settleOnChain({
                 intent: order.intent,
                 signature: order.signature,
                 counterparty: this.lpAddress,
                 amountOut: amountOut, 
-                intent_id: order.intent_id
+                intent_id: order.intent_id,
+                side: order.side
             });
         } catch (error: any) {
             console.error(`[executeWithLP] Failed for order ${order.intent_id}:`, error);
-            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `LP execution failed: ${error.message}`.substring(0, 100), type: 'error' });
+            this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `LP execution failed: ${error.message}`.substring(0, 100), type: 'error', side: order.side });
             this.updateOrderStatusInDB(order.signature, 'failed', error.message);
         }
     }
 
-    public async executeWithExternalDex(intent: any, signature: any, intent_id: string) {
-        this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `Routing to external DEX...`, type: 'info' });
+    public async executeWithExternalDex(intent: any, signature: any, intent_id: string, side: 'buy' | 'sell') {
+        this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `Routing to external DEX...`, type: 'info', side });
         
         try {
             const { request, result: amountOut } = await publicClient.simulateContract({
@@ -209,17 +208,17 @@ export class LiquidityEngine extends EventEmitter {
             
             const hash = await this.walletClient.writeContract(request);
             console.log("External swap transaction sent:", hash);
-            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade successful. Order filled.`, type: 'success' });
+            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade successful. Order filled.`, type: 'success', side });
             this.updateOrderStatusInDB(signature, 'fulfilled');
         } catch (error: any) {
             console.error("External DEX execution failed:", error);
-            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade failed.`, type: 'error' });
+            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade failed.`, type: 'error', side });
             this.updateOrderStatusInDB(signature, 'failed', error.message);
         }
     }
 
     private async settleOnChain(params: any) {
-        const { intent, signature, counterparty, amountOut, intent_id } = params;
+        const { intent, signature, counterparty, amountOut, intent_id, side } = params;
         
         try {
             if (amountOut === 0n) throw new Error("Zero output amount — aborting");
@@ -240,12 +239,12 @@ export class LiquidityEngine extends EventEmitter {
             console.log(`Internal settlement transaction sent: ${hash}. Intent ID: ${intent_id}`);
 
             this.emit('settlement_status', { userA: intent.user, userB: counterparty, message: `Settlement complete.`, type: 'success' });
-            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade successful. Order filled.`, type: 'success' });
+            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade successful. Order filled.`, type: 'success', side });
             this.updateOrderStatusInDB(signature, 'fulfilled');
             return { receipt: { transactionHash: hash }, amountOut };
         } catch (error: any) {
             console.error("On-chain settlement failed:", error);
-            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade failed: ${error.message}`.substring(0, 100), type: 'error' });
+            this.emit('agent_status', { orderId: intent_id, userAddress: intent.user, msg: `[${this.agentName}] Trade failed: ${error.message}`.substring(0, 100), type: 'error', side });
             this.updateOrderStatusInDB(signature, 'failed', error.message);
             throw error;
         }
