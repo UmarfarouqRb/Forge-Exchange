@@ -53,7 +53,7 @@ export function MarketRow({ pair, market }: MarketRowProps) {
                 <span className="ml-2">{getDisplaySymbolBySymbol(pair.symbol)}</span>
             </div>
         </TableCell>
-      <TableCell className="text-right font-mono hidden md:table-cell">{renderValue(market?.lastPrice, '$')}</TableCell>
+      <TableCell className="text-right font-mono md:table-cell">{renderValue(market?.lastPrice, '$')}</TableCell>
       <TableCell className="text-right">
         {priceChange24h !== undefined ? <PriceChange value={priceChange24h} /> : <Skeleton className="h-5 w-16 ml-auto" />}
       </TableCell>

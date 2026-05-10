@@ -162,14 +162,16 @@ export default function Spot() {
         </TabsList>
         <TabsContent value="chart" className="flex-1 overflow-hidden">
           {selectedDisplayPair ? (
-            <TradingChart symbol={selectedDisplayPair.symbol} />
+            <div className="h-full w-full">
+              <TradingChart symbol={selectedDisplayPair.symbol} />
+            </div>
           ) : (
             <div className="flex items-center justify-center h-full">Select a market to view the chart.</div>
           )}
         </TabsContent>
         <TabsContent value="trade" className="flex-1 overflow-auto p-2 flex flex-col h-full">
           {selectedDisplayPair ? (
-            <Trade pair={selectedDisplayPair} market={market} pairsList={displayPairsList} />
+            <Trade pair={selectedDisplayPair} market={market} />
           ) : (
             <div className="flex items-center justify-center h-full">Select a market to trade.</div>
           )}

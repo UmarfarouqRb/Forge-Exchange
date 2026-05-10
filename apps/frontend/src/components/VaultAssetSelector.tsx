@@ -17,7 +17,7 @@ import { useVault } from "@/contexts/VaultContext";
 import { getDisplaySymbolBySymbol, getAssetBySymbol, getDisplaySymbol } from "@/utils/tokenDisplay";
 import { ChevronsUpDown } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { VaultAsset } from "@/types";
+import { VaultAsset } from "@/types/market-data";
 
 interface VaultAssetSelectorProps {
   asset: string;
