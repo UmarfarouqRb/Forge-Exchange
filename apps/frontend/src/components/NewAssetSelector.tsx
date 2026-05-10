@@ -56,8 +56,8 @@ export function NewAssetSelector({ pairsList, selectedTradingPair, setSelectedTr
       className="flex justify-between items-center"
     >
       <div className="flex items-center">
-        <img src={pair.base.logo} alt={pair.base.name} className="w-6 h-6 rounded-full" />
-        <img src={pair.quote.logo} alt={pair.quote.name} className="w-6 h-6 rounded-full -ml-2" />
+        <img src={`/tokens/${pair.base.symbol}.svg`} alt={pair.base.name} className="w-6 h-6 rounded-full" />
+        <img src={`/tokens/${pair.quote.symbol}.svg`} alt={pair.quote.name} className="w-6 h-6 rounded-full -ml-2" />
         <span className="ml-2">{getDisplaySymbolBySymbol(pair.symbol)}</span>
       </div>
       <Star 
@@ -76,8 +76,8 @@ export function NewAssetSelector({ pairsList, selectedTradingPair, setSelectedTr
           <button className="text-lg md:text-2xl font-bold font-mono h-auto border-0 focus:ring-0 focus:ring-offset-0 flex items-center gap-2 p-2 rounded-md">
             {selectedTradingPair && (
               <div className="flex items-center">
-                <img src={selectedTradingPair.base.logo} alt={selectedTradingPair.base.name} className="w-8 h-8 rounded-full" />
-                <img src={selectedTradingPair.quote.logo} alt={selectedTradingPair.quote.name} className="w-8 h-8 rounded-full -ml-4" />
+                <img src={`/tokens/${selectedTradingPair.base.symbol}.svg`} alt={selectedTradingPair.base.name} className="w-8 h-8 rounded-full" />
+                <img src={`/tokens/${selectedTradingPair.quote.symbol}.svg`} alt={selectedTradingPair.quote.name} className="w-8 h-8 rounded-full -ml-4" />
               </div>
             )}
             <span>{selectedTradingPair ? getDisplaySymbolBySymbol(selectedTradingPair.symbol) : "Select Asset"}</span>

@@ -19,16 +19,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-const fixTokenLogoUrl = (token: Token): Token => {
-    if (token.logo && !token.logo.startsWith('http')) {
-        return {
-            ...token,
-            logo: `${API_URL}${token.logo}`
-        };
-    }
-    return token;
-};
-
 export interface IntentPayload {
     user: string;
     tokenIn: `0x${string}`;
@@ -51,22 +41,12 @@ export interface TradeMetrics {
 
 export async function getAllPairs(): Promise<TradingPair[]> {
   const response = await fetch(`${API_URL}/api/trading-pairs`);
-  const pairs = await handleResponse<TradingPair[]>(response);
-  return pairs.map(pair => ({
-      ...pair,
-      base: fixTokenLogoUrl(pair.base),
-      quote: fixTokenLogoUrl(pair.quote),
-  }));
+  return handleResponse<TradingPair[]>(response);
 }
 
 export async function getTrendingPairs(): Promise<TradingPair[]> {
     const response = await fetch(`${API_URL}/api/trading-pairs/trending`);
-    const pairs = await handleResponse<TradingPair[]>(response);
-    return pairs.map(pair => ({
-        ...pair,
-        base: fixTokenLogoUrl(pair.base),
-        quote: fixTokenLogoUrl(pair.quote),
-    }));
+    return handleResponse<TradingPair[]>(response);
 }
 
 export async function getMarketById(tradingPairId: string): Promise<Market> {
@@ -140,11 +120,7 @@ export async function getTokens(chainId: string): Promise<{ [symbol: string]: { 
 
 export async function getVaultTokens(): Promise<VaultAsset[]> {
     const response = await fetch(`${API_URL}/api/vault/tokens`);
-    const assets = await handleResponse<VaultAsset[]>(response);
-    return assets.map(asset => ({
-        ...asset,
-        token: fixTokenLogoUrl(asset.token),
-    }));
+    return handleResponse<VaultAsset[]>(response);
 }
 
 export async function getMetrics(): Promise<TradeMetrics> {

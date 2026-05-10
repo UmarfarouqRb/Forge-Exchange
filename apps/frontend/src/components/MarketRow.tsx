@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { PriceChange } from '@/components/PriceChange';
@@ -48,8 +47,8 @@ export function MarketRow({ pair, market }: MarketRowProps) {
     <TableRow onClick={() => handleRowClick(pair.symbol)} className="cursor-pointer hover:bg-muted/50">
         <TableCell className="font-medium">
             <div className="flex items-center">
-                <img src={pair.base.logo} alt={pair.base.name} className="w-6 h-6 rounded-full" />
-                <img src={pair.quote.logo} alt={pair.quote.name} className="w-6 h-6 rounded-full -ml-2" />
+                <img src={`/tokens/${pair.base.symbol}.svg`} alt={pair.base.name} className="w-6 h-6 rounded-full" />
+                <img src={`/tokens/${pair.quote.symbol}.svg`} alt={pair.quote.name} className="w-6 h-6 rounded-full -ml-2" />
                 <span className="ml-2">{getDisplaySymbolBySymbol(pair.symbol)}</span>
             </div>
         </TableCell>

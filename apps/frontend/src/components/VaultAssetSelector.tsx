@@ -27,7 +27,7 @@ interface VaultAssetSelectorProps {
 
 const AssetDisplay = ({ asset, isSelected }: { asset: VaultAsset, isSelected: boolean }) => (
     <div className="flex items-center w-full">
-        <img src={asset.token.logo} alt={asset.token.name} className="w-6 h-6 rounded-full mr-2" />
+        <img src={`/tokens/${asset.token.symbol}.svg`} alt={asset.token.name} className="w-6 h-6 rounded-full mr-2" />
         <div className="flex-grow">
             <div className="font-medium">{getDisplaySymbol(asset.token)}</div>
             {isSelected && <div className="text-xs text-muted-foreground">{asset.token.name}</div>}
