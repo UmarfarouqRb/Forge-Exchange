@@ -19,9 +19,9 @@ export function MarketRow({ pair, market }: MarketRowProps) {
   };
 
   const formatVolume = (volume: string | number | null | undefined) => {
-    if (volume === null || volume === undefined) return <Skeleton className="h-6 w-full" />;
+    if (volume === null || volume === undefined) return <Skeleton className="h-5 w-16 ml-auto" />;
     const numValue = parseFloat(volume.toString());
-    if (isNaN(numValue)) return <Skeleton className="h-6 w-full" />;
+    if (isNaN(numValue)) return <Skeleton className="h-5 w-16 ml-auto" />;
 
     if (numValue >= 1_000_000_000) {
       return `${(numValue / 1_000_000_000).toFixed(2)}B`;
@@ -36,9 +36,9 @@ export function MarketRow({ pair, market }: MarketRowProps) {
   };
   
   const renderValue = (value: string | number | null | undefined, prefix = '') => {
-    if (value === null || value === undefined) return <Skeleton className="h-6 w-full" />;
+    if (value === null || value === undefined) return <Skeleton className="h-5 w-16 ml-auto" />;
     const numValue = parseFloat(value.toString());
-    if (isNaN(numValue)) return <Skeleton className="h-6 w-full" />;
+    if (isNaN(numValue)) return <Skeleton className="h-5 w-16 ml-auto" />;
     return `${prefix}${numValue.toFixed(2)}`;
   };
 
@@ -46,14 +46,20 @@ export function MarketRow({ pair, market }: MarketRowProps) {
 
   return (
     <TableRow onClick={() => handleRowClick(pair.symbol)} className="cursor-pointer hover:bg-muted/50">
-      <TableCell className="font-medium">{getDisplaySymbolBySymbol(pair.symbol)}</TableCell>
-      <TableCell className="text-right font-mono">{renderValue(market?.lastPrice, '$')}</TableCell>
+        <TableCell className="font-medium">
+            <div className="flex items-center">
+                <img src={pair.base.logo} alt={pair.base.name} className="w-6 h-6 rounded-full" />
+                <img src={pair.quote.logo} alt={pair.quote.name} className="w-6 h-6 rounded-full -ml-2" />
+                <span className="ml-2">{getDisplaySymbolBySymbol(pair.symbol)}</span>
+            </div>
+        </TableCell>
+      <TableCell className="text-right font-mono hidden md:table-cell">{renderValue(market?.lastPrice, '$')}</TableCell>
       <TableCell className="text-right">
-        {priceChange24h !== undefined ? <PriceChange value={priceChange24h} /> : <Skeleton className="h-6 w-16" />}
+        {priceChange24h !== undefined ? <PriceChange value={priceChange24h} /> : <Skeleton className="h-5 w-16 ml-auto" />}
       </TableCell>
-      <TableCell className="text-right font-mono">{renderValue(market?.high24h, '$')}</TableCell>
-      <TableCell className="text-right font-mono">{renderValue(market?.low24h, '$')}</TableCell>
-      <TableCell className="text-right font-mono">{formatVolume(market?.volume24h)}</TableCell>
+      <TableCell className="text-right font-mono hidden md:table-cell">{renderValue(market?.high24h, '$')}</TableCell>
+      <TableCell className="text-right font-mono hidden md:table-cell">{renderValue(market?.low24h, '$')}</TableCell>
+      <TableCell className="text-right font-mono hidden md:table-cell">{formatVolume(market?.volume24h)}</TableCell>
     </TableRow>
   );
 }

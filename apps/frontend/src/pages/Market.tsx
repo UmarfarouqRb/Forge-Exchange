@@ -89,11 +89,11 @@ export default function MarketPage() {
       {[...Array(5)].map((_, i) => (
         <TableRow key={i}>
           <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+          <TableCell className="text-right hidden md:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
           <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
-          <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
-          <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
-          <TableCell className="text-right"><Skeleton className="h-5 w-20" /></TableCell>
-          <TableCell className="text-right"><Skeleton className="h-5 w-24" /></TableCell>
+          <TableCell className="text-right hidden md:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
+          <TableCell className="text-right hidden md:table-cell"><Skeleton className="h-5 w-20" /></TableCell>
+          <TableCell className="text-right hidden md:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
         </TableRow>
       ))}
     </TableBody>
@@ -112,11 +112,11 @@ export default function MarketPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Pair</TableHead>
-              <TableHead className="text-right">Price</TableHead>
+              <TableHead className="text-right hidden md:table-cell">Price</TableHead>
               <TableHead className="text-right">24h Change</TableHead>
-              <TableHead className="text-right">24h High</TableHead>
-              <TableHead className="text-right">24h Low</TableHead>
-              <TableHead className="text-right">24h Volume</TableHead>
+              <TableHead className="text-right hidden md:table-cell">24h High</TableHead>
+              <TableHead className="text-right hidden md:table-cell">24h Low</TableHead>
+              <TableHead className="text-right hidden md:table-cell">24h Volume</TableHead>
             </TableRow>
           </TableHeader>
           {renderSkeleton()}
@@ -135,11 +135,11 @@ export default function MarketPage() {
         <TableHeader>
           <TableRow>
             <TableHead>Pair</TableHead>
-            <TableHead className="text-right">Price</TableHead>
+            <TableHead className="text-right hidden md:table-cell">Price</TableHead>
             <TableHead className="text-right">24h Change</TableHead>
-            <TableHead className="text-right">24h High</TableHead>
-            <TableHead className="text-right">24h Low</TableHead>
-            <TableHead className="text-right">24h Volume</TableHead>
+            <TableHead className="text-right hidden md:table-cell">24h High</TableHead>
+            <TableHead className="text-right hidden md:table-cell">24h Low</TableHead>
+            <TableHead className="text-right hidden md:table-cell">24h Volume</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

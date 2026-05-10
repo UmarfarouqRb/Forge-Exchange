@@ -5,6 +5,7 @@ export type Token = {
   name: string;
   decimals: number;
   wrapped?: string;
+  logo: string;
 };
 
 export const TOKENS: Record<string, Token> = {
@@ -14,6 +15,7 @@ export const TOKENS: Record<string, Token> = {
     name: "Wrapped Ethereum",
     symbol: "WETH",
     decimals: 18,
+    logo: "/tokens/WETH.svg",
   },
   USDC: {
     id: "USDC",
@@ -21,6 +23,7 @@ export const TOKENS: Record<string, Token> = {
     name: "USD Coin",
     symbol: "USDC",
     decimals: 6,
+    logo: "/tokens/USDC.svg",
   },
   BTC: {
     id: "BTC",
@@ -28,6 +31,7 @@ export const TOKENS: Record<string, Token> = {
     name: "Coinbase Wrapped BTC",
     symbol: "BTC",
     decimals: 8,
+    logo: "/tokens/BTC.svg",
   },
   EURC: {
     id: "EURC",
@@ -35,5 +39,6 @@ export const TOKENS: Record<string, Token> = {
     name: "EURO Coin",
     symbol: "EURC",
     decimals: 6,
+    logo: "/tokens/EURC.svg",
   },
 };

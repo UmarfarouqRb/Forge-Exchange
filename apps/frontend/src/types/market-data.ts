@@ -6,7 +6,7 @@ export type Token = {
   name: string;
   decimals: number;
   wrapped?: string;
-  logoURI?: string;
+  logo: string;
 };
 
 export type VaultToken = {

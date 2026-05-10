@@ -25,7 +25,10 @@ function AssetRow({ asset }: { asset: VaultAsset }) {
             data-testid={`row-asset-${asset.token.symbol}`}>
             <div className="flex justify-between items-center md:block">
                 <span className="text-sm text-muted-foreground md:hidden">Asset</span>
-                <div className="font-medium text-foreground">{displaySymbol}</div>
+                <div className="flex items-center gap-2">
+                    <img src={asset.token.logo} alt={asset.token.name} className="w-6 h-6 rounded-full" />
+                    <div className="font-medium text-foreground">{displaySymbol}</div>
+                </div>
             </div>
 
             <div className="flex justify-between items-center md:block md:text-right">
@@ -192,7 +195,8 @@ export default function Assets() {
                                     ))
                                 ) : (
                                     <div className="p-12 text-center text-muted-foreground">No assets found</div>
-                                )}
+                                )
+                                }
                             </div>
                         </CardContent>
                     </Card>
