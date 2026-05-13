@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, CheckCircle, Info, XCircle, Loader, Trash2, Copy } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Loader, Trash2, Copy } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export interface LogEntry {
@@ -11,7 +11,8 @@ export interface LogEntry {
   msg: string;
   type: 'pending' | 'processing' | 'success' | 'error' | 'info';
   timestamp: number;
-  details?: any; 
+  details?: any;
+  side?: 'buy' | 'sell';
 }
 
 export interface AgentLogProps {
@@ -86,7 +87,7 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10, className }: AgentLogP
       if (log.details) {
         details = JSON.stringify(log.details, null, 2);
       }
-      return `[${timestamp}] [${log.type.toUpperCase()}] ${log.msg}${details ? `\n${details}` : ''}`;
+      return `[${timestamp}] [${log.type.toUpperCase()}] ${log.side ? `[${log.side.toUpperCase()}]` : ''} ${log.msg}${details ? `\n${details}` : ''}`;
     }).join('\n');
     navigator.clipboard.writeText(logString);
   };
@@ -135,6 +136,14 @@ export function AgentLog({ logs, clearLogs, maxLogs = 10, className }: AgentLogP
                 <div className="mt-0.5">{logConfig[log.type].icon}</div>
                 <div className="flex-1">
                   <span className="font-bold mr-2">{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>
+                  {log.side && (
+                    <span className={cn("font-bold mr-2", {
+                        "text-green-400": log.side === 'buy',
+                        "text-red-400": log.side === 'sell'
+                    })}>
+                        {log.side.toUpperCase()}
+                    </span>
+                  )}
                   <span className="italic">{log.msg}</span>
                   {log.details && (
                     <details className="mt-1 text-xs text-muted-foreground">

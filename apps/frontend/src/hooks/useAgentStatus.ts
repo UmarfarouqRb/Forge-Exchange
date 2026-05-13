@@ -40,7 +40,8 @@ export function useAgentStatus(orderId?: string) {
                 msg: data.msg,
                 type: mapLogType(data.type || 'processing'),
                 timestamp: Date.now(),
-                details: data.details
+                details: data.details,
+                side: data.side
             };
             setLogs(prevLogs => [...prevLogs, newLog]);
         }
