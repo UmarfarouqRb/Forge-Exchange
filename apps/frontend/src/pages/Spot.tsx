@@ -160,7 +160,7 @@ export default function Spot() {
           <TabsTrigger value="chart">Chart</TabsTrigger>
           <TabsTrigger value="trade">Trade</TabsTrigger>
         </TabsList>
-        <TabsContent value="chart" className="flex-1 overflow-hidden">
+        <TabsContent value="chart" className="flex-1 overflow-auto">
           {selectedDisplayPair ? (
             <div className="h-full w-full">
               <TradingChart symbol={selectedDisplayPair.symbol} />
@@ -169,7 +169,7 @@ export default function Spot() {
             <div className="flex items-center justify-center h-full">Select a market to view the chart.</div>
           )}
         </TabsContent>
-        <TabsContent value="trade" className="flex-1 overflow-auto p-2 flex flex-col h-full">
+        <TabsContent value="trade" className="flex-1 overflow-auto p-2">
           {selectedDisplayPair ? (
             <Trade pair={selectedDisplayPair} market={market} />
           ) : (

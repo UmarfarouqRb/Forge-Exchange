@@ -96,7 +96,8 @@ export function VaultAssetSelector({ asset, setAsset, type }: VaultAssetSelector
                   key={a.token.symbol}
                   value={getDisplaySymbol(a.token)}
                   onSelect={(currentValue) => {
-                    setAsset(currentValue.toUpperCase());
+                    const selectedSymbol = currentValue.toUpperCase() === 'ETH' ? 'WETH' : currentValue.toUpperCase();
+                    setAsset(selectedSymbol);
                     setOpen(false);
                   }}
                 >
