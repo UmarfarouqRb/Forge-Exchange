@@ -101,10 +101,29 @@ export class MatchingEngine extends EventEmitter {
     }
 
     private addToOrderBook(order: Order, silent: boolean = false) {
-        const { trading_pair_id, id } = order;
+        const { trading_pair_id, id, order_type, price } = order;
         if (!trading_pair_id) {
-            console.warn("Order is missing trading_pair_id", order);
+            console.warn(`[addToOrderBook] Order ${id} is missing trading_pair_id`, order);
             return;
+        }
+
+        // Sanitize limit orders before adding to the book.
+        if (order_type === 'limit') {
+            const numericPrice = Number(price);
+            if (!numericPrice || numericPrice <= 0) {
+                console.error(`[Sanitization] Refusing to add invalid limit order ${id} to book. Price: ${price}`);
+                // Don't emit agent status if silent (e.g. from hydration)
+                if (!silent) {
+                    this.emit('agent_status', {
+                        orderId: order.intent_id || id,
+                        userAddress: order.intent.user,
+                        msg: `Your limit order has an invalid price and will not be placed.`,
+                        type: 'error',
+                        side: order.side
+                    });
+                }
+                return;
+            }
         }
 
         if (!this.books.has(trading_pair_id)) {
@@ -113,14 +132,15 @@ export class MatchingEngine extends EventEmitter {
 
         const book = this.books.get(trading_pair_id)!;
         const orderList = order.side === 'buy' ? book.bids : book.asks;
-        
+
+        // Avoid duplicates
         if (orderList.some(o => o.id === id)) return;
 
         orderList.push(order);
-        orderList.sort((a, b) => 
+        orderList.sort((a, b) =>
             order.side === 'buy' ? Number(b.price) - Number(a.price) : Number(a.price) - Number(b.price)
         );
-        
+
         if (!silent) {
             this.emitFormattedBook(trading_pair_id, book);
         }
@@ -142,19 +162,43 @@ export class MatchingEngine extends EventEmitter {
             side: order.side
         });
 
-        if (order.order_type === 'market') {
-            await this.fillMarketOrder(order);
-        } else if (order.order_type === 'limit') {
-            this.addToOrderBook(order);
-            this.enqueueMatch();
-        } else {
-             this.emit('agent_status', { 
+        const isLimit = order.order_type === "limit";
+        const isMarket = order.order_type === "market";
+
+        try {
+            if (isLimit) {
+                const numericPrice = Number(order.price);
+                if (!numericPrice || numericPrice <= 0) {
+                    throw new Error(`Invalid price for limit order: ${order.price}`);
+                }
+                this.addToOrderBook(order);
+                this.enqueueMatch();
+
+            } else if (isMarket) {
+                const executionPrice = await this.liquidityEngine.getPrice(order.trading_pair_id);
+
+                if (!executionPrice || executionPrice <= 0) {
+                    throw new Error(`No price available for this trading pair at the moment.`);
+                }
+
+                order.price = executionPrice; 
+
+                await this.fillMarketOrder(order);
+
+            } else {
+                throw new Error(`Invalid order type: ${order.order_type}`);
+            }
+        } catch (error) {
+            const errorMessage = (error as Error).message;
+            console.error(`[ProcessOrder] Failed order ${order.intent_id}:`, errorMessage);
+            this.emit('agent_status', { 
                 orderId: order.intent_id, 
                 userAddress: order.intent.user,
-                msg: `Invalid order type: ${order.order_type}`,
+                msg: `Your order could not be processed: ${errorMessage}`,
                 type: 'error',
                 side: order.side
             });
+            await this.updateOrderStatusInDB({ ...order, status: 'failed', last_error: errorMessage });
         }
     }
     
@@ -376,8 +420,29 @@ export class MatchingEngine extends EventEmitter {
         if (!settlement) return;
 
         const { receipt, amountOut } = settlement;
-        const inTokenPrice = await this.liquidityEngine.getPrice(taker.intent.tokenIn) || 0;
-        const amountUsd = (Number(formatUnits(taker.intent.amountIn, 18)) * inTokenPrice);
+        const pair = this.liquidityEngine.getTradingPairs().find(p => p.id === taker.trading_pair_id);
+        let amountUsd = 0;
+
+        if (pair) {
+            const tokenInAddress = getAddress(taker.intent.tokenIn);
+            const inTokenIsBase = getAddress(pair.base.address) === tokenInAddress;
+            const inTokenIsQuote = getAddress(pair.quote.address) === tokenInAddress;
+            const inDecimals = inTokenIsBase ? pair.base.decimals : pair.quote.decimals;
+            const amountInFormatted = Number(formatUnits(taker.intent.amountIn, inDecimals));
+
+            if (pair.quote.symbol.includes('USD')) {
+                if (inTokenIsQuote) {
+                    amountUsd = amountInFormatted;
+                } else { // inToken is Base
+                    const pairPrice = await this.liquidityEngine.getPrice(taker.trading_pair_id);
+                    if (pairPrice) {
+                        amountUsd = amountInFormatted * pairPrice;
+                    }
+                }
+            }
+        } else {
+            console.error(`[executeLPMatch] Could not find pair for id: ${taker.trading_pair_id}`);
+        }
 
         await this.supabase.from('trade_executions').insert({
             tx_hash: receipt.transactionHash,
@@ -387,7 +452,7 @@ export class MatchingEngine extends EventEmitter {
             amount_in: taker.intent.amountIn.toString(),
             amount_out: amountOut.toString(),
             amount_usd: amountUsd,
-            protocol_fee: '0', //TODO
+            protocol_fee: '0',
             relayer_fee: taker.intent.relayerFee.toString(),
             created_at: new Date()
         });
@@ -403,9 +468,6 @@ export class MatchingEngine extends EventEmitter {
                 throw new Error(`LP fallback failed for ${order.id}: no valid LP price for pair ${pairId}.`);
             }
     
-            // We must respect the limit price of the order.
-            // For a buy order, the LP price must be <= the order's limit price.
-            // For a sell order, the LP price must be >= the order's limit price.
             const isPriceFavorable = order.side === 'buy'
                 ? lpOrder.price <= Number(order.price)
                 : lpOrder.price >= Number(order.price);
@@ -413,7 +475,6 @@ export class MatchingEngine extends EventEmitter {
             if (isPriceFavorable) {
                 this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Finalizing your trade using Forge internal liquidity.`, type: 'info', side: order.side });
                 await this.executeLPMatch(order, lpOrder, Number(order.quantity));
-                // After successful LP match, we should ensure the order status is updated to 'fulfilled'.
                 this.updateOrderStatusInDB({ ...order, quantity: 0 });
             } else {
                  this.emit('agent_status', { orderId: order.intent_id, userAddress: order.intent.user, msg: `Could not fill order via LP: unfavorable price. Order remains active.`, type: 'warning', side: order.side });
@@ -465,8 +526,26 @@ export class MatchingEngine extends EventEmitter {
             }
             
             const { receipt, amountOut } = settlement;
-            const inTokenPrice = await this.liquidityEngine.getPrice(buyer.intent.tokenIn) || 0;
-            const amountUsd = (Number(formatUnits(buyer.intent.amountIn, 18)) * inTokenPrice);
+            const pair = this.liquidityEngine.getTradingPairs().find(p => p.id === buyer.trading_pair_id);
+            let amountUsd = 0;
+
+            if (pair) {
+                const tokenInAddress = getAddress(buyer.intent.tokenIn);
+                const inTokenIsBase = getAddress(pair.base.address) === tokenInAddress;
+                const inTokenIsQuote = getAddress(pair.quote.address) === tokenInAddress;
+                const inDecimals = inTokenIsBase ? pair.base.decimals : pair.quote.decimals;
+                const amountInFormatted = Number(formatUnits(buyer.intent.amountIn, inDecimals));
+
+                if (pair.quote.symbol.includes('USD')) {
+                    if (inTokenIsQuote) {
+                        amountUsd = amountInFormatted;
+                    } else { // inToken is Base
+                        amountUsd = amountInFormatted * price;
+                    }
+                }
+            } else {
+                console.error(`[executeInternalMatch] Could not find pair for id: ${buyer.trading_pair_id}`);
+            }
     
             await this.supabase.from('trade_executions').insert({
                 tx_hash: receipt.transactionHash,
@@ -476,7 +555,7 @@ export class MatchingEngine extends EventEmitter {
                 amount_in: buyer.intent.amountIn.toString(),
                 amount_out: amountOut.toString(),
                 amount_usd: amountUsd,
-                protocol_fee: '0', //TODO
+                protocol_fee: '0',
                 relayer_fee: buyer.intent.relayerFee.toString(),
                 created_at: new Date()
             });
@@ -556,22 +635,31 @@ export class MatchingEngine extends EventEmitter {
     private async updateOrderStatusInDB(order: Order) {
         const orderId = order.id || order.intent_id;
         if (!orderId) {
-            console.error("Missing order ID:", order);
+            console.error("Missing order ID for DB update:", order);
             return;
         }
-    
-        const isFilled = order.quantity <= 0;
-        const status = isFilled ? 'fulfilled' : 'processing';
-
         if (order.id === 'LP_ORDER') return;
+    
+        const isFilled = order.quantity !== undefined && Number(order.quantity) <= 0;
+        const finalStatus = order.status || (isFilled ? 'fulfilled' : 'processing');
+        
+        const updatePayload: { quantity?: string; status: string; last_error?: string | null } = {
+            status: finalStatus,
+        };
+
+        if (order.quantity !== undefined) {
+            updatePayload.quantity = order.quantity.toString();
+        }
+
+        updatePayload.last_error = order.last_error || null;
 
         const { error } = await this.supabase
             .from('orders')
-            .update({ quantity: order.quantity.toString(), status })
+            .update(updatePayload)
             .eq('id', orderId);
 
         if (error) {
-            console.error(`[DB_SYNC_ERROR] Failed to update order ${orderId}:`, error);
+            console.error(`[DB_SYNC_ERROR] Failed to update order ${orderId} with payload ${JSON.stringify(updatePayload)}:`, error);
         }
     }
 }

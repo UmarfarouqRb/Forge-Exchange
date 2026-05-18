@@ -1,7 +1,7 @@
 
 import { formatUnits } from 'viem';
 
-const MINIMUM_VISIBLE_BALANCE = 0.000001;
+const MINIMUM_VISIBLE_BALANCE = 0.0001;
 
 export const formatBalance = (balance: bigint, decimals: number): string => {
     const formatted = formatUnits(balance, decimals);
@@ -12,7 +12,7 @@ export const formatBalance = (balance: bigint, decimals: number): string => {
     }
 
     // Remove trailing zeros and unnecessary decimal point
-    return value.toLocaleString(undefined, { maximumFractionDigits: 6, minimumFractionDigits: 0 });
+    return value.toLocaleString(undefined, { maximumFractionDigits: 5, minimumFractionDigits: 0 });
 };
 
 const USD_FORMATTER = new Intl.NumberFormat('en-US', {
