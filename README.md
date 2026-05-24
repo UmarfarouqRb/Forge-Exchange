@@ -139,7 +139,7 @@ Properties that must always hold for the contract's state.
 
 ### Overview
 
-The `IntentSpotRouter.sol` contract is a powerful extension of the protocol's trading capabilities, designed to process off-chain cryptographic signatures that represent a user's "intent" to swap. This enables a gas-less experience for the end-user, as a third-party "relayer" can submit the transaction on their behalf. The router is engineered with a novel security mechanism to find the best price while completely neutralizing the risk of relayer manipulation.
+The `IntentSpotRouter.sol` contract is a powerful extension of the protocol's trading capabilities, designed to process off-chain cryptographic signatures that represent a user's "intent" to swap. This enables a gas-less experience for the end-user, as a third-party "relayer" can submit the transaction on their behalf. The router is engineered with a novel security mechanism to find the best price or settle trades received by the Solver01 while completely neutralizing the risk of relayer manipulation.
 
 ### Core Architecture
 
@@ -147,15 +147,16 @@ The `IntentSpotRouter.sol` contract is a powerful extension of the protocol's tr
 
 - **Relayer-Proof Security through Hashing**: The router's most critical security feature is how it validates signatures. When generating the hash that a user signs, the contract deliberately uses `address(0)` as a placeholder for the DEX adapter. This means the user's signature authorizes the *trade itself*, but not *where* it executes. A relayer cannot alter the signature to force the trade through a specific, less-favorable DEX to extract value.
 
-- **Dual-Mode Execution**: When `executeSwap` is called with the user's intent and signature, it operates in one of two modes:
+- **Multi-path Execution**: When `executeSwap` is called with the user's intent and signature, it operates in one of two modes:
     1.  **Best Price Mode (Default)**: If the user specifies `address(0)` as the adapter in their intent, the router will automatically query all whitelisted DEX adapters to find the one offering the best real-time `quote`. It then executes the trade on that optimal route, ensuring the user gets the best possible price at the moment of execution.
     2.  **Direct Route Mode (Advanced)**: If the user specifies a particular adapter address in their intent, the router will honor that choice and execute the swap directly on the chosen DEX, bypassing the price-finding logic.
+    3. Internal settlement when executing trades with counter party, if internal match found or LP_ADDRESS via solver.
 
-This dual-mode system provides both maximum security and flexibility, making it a highly advanced and user-centric routing mechanism.
+This multi-path system provides both maximum security and flexibility, making it a highly advanced and user-centric routing mechanism.
 
 ## The Relayer: A Trust-Minimized Executor
 
-The relayer is a crucial, yet untrusted, component of the gasless transaction architecture. Its primary role is to monitor for new, profitable `SignedIntent` messages off-chain and submit them to the `IntentSpotRouter` for on-chain execution.
+The relayer is a crucial, yet untrusted, component of the gasless transaction architecture. Its primary role is to monitor for new, profitable `SignedIntent` messages off-chain and submit them to the `IntentSpotRouter` through it's MatchingEngine and LiquidityEngine for on-chain execution.
 
 ### Key Responsibilities and Restrictions:
 
@@ -168,7 +169,11 @@ The relayer is a crucial, yet untrusted, component of the gasless transaction ar
 
 This design creates a powerful and secure system where users can enjoy a gas-free experience without needing to trust the relayer. The user's security is guaranteed by the immutable logic of the smart contract.
 
-# SpotRouter: A Resilient and Intelligent DeFi Aggregator
+# The MatchingEngine (Solver01) is the hybrid  and smart agent that validate user order and the price and try Matching user's internally, simulating dexs onchain liquidity from intent router, or settling using LP when possible to minimize Slippage and reduce trading fee's.
+
+# LiquidityEngine (Agent01) is the agent responsible for settlement onchain by what ever path received from the solver.
+
+# SpotRouter: A Resilient and Intelligent DeFi Aggregator (this contract is deprecated and all adapters are integrated with current intentSpotRouter contract)
 
 ## Overview
 
