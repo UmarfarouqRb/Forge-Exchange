@@ -124,7 +124,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build Frontend
-        run: pnpm build:frontend
+        run: pnpm --filter frontend build
 
       - name: Upload frontend artifact
         uses: actions/upload-artifact@v3
@@ -152,10 +152,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check types
-        run: pnpm --filter api check
+        run: pnpm --filter forge-exchange-api check
 
       - name: Build API
-        run: pnpm --filter api build
+        run: pnpm --filter forge-exchange-api build
 
       - name: Upload api artifact
         uses: actions/upload-artifact@v3
@@ -183,10 +183,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check types
-        run: pnpm --filter relayer check
+        run: pnpm --filter forge-exchange-relayer check
 
       - name: Build Relayer
-        run: pnpm build:relayer
+        run: pnpm --filter forge-exchange-relayer build
 
       - name: Upload relayer artifact
         uses: actions/upload-artifact@v3
