@@ -7,9 +7,50 @@ on:
     branches: [ main ]
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.changes.outputs.frontend }}
+      api: ${{ steps.changes.outputs.api }}
+      relayer: ${{ steps.changes.outputs.relayer }}
+      gateway: ${{ steps.changes.outputs.gateway }}
+      price-engine: ${{ steps.changes.outputs.price-engine }}
+      contracts: ${{ steps.changes.outputs.contracts }}
+      shared: ${{ steps.changes.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Check for file changes
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            # For push to main, check against previous commit
+            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+          else
+            # For PRs, check against base branch
+            CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+          fi
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check which services are affected
+          echo "frontend=$([[ "$CHANGED_FILES" == *"apps/frontend"* ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "api=$([[ "$CHANGED_FILES" == *"apps/api"* ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "relayer=$([[ "$CHANGED_FILES" == *"apps/relayer"* ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "gateway=$([[ "$CHANGED_FILES" == *"apps/gateway"* ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "price-engine=$([[ "$CHANGED_FILES" == *"apps/price-engine"* ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "contracts=$([[ "$CHANGED_FILES" == *"contracts"* ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "shared=$([[ "$CHANGED_FILES" == *"packages"* ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.shared == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.api == 'true' || needs.changes.outputs.relayer == 'true' || needs.changes.outputs.gateway == 'true'
     steps:
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2
@@ -30,6 +71,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.shared == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.api == 'true' || needs.changes.outputs.relayer == 'true' || needs.changes.outputs.gateway == 'true'
     steps:
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2
@@ -50,6 +93,8 @@ jobs:
   test-contracts:
     name: Test Contracts
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.contracts == 'true'
     steps:
       - uses: actions/checkout@v3
 
@@ -59,9 +104,11 @@ jobs:
       - name: Run Forge tests
         run: forge test
 
-  build:
-    name: Build
+  build-frontend:
+    name: Build Frontend
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.shared == 'true'
     steps:
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2
@@ -76,5 +123,132 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
+      - name: Build Frontend
+        run: pnpm build:frontend
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-dist
+          path: apps/frontend/dist
+
+  build-api:
+    name: Build API
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.shared == 'true'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check types
+        run: pnpm --filter api check
+
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Upload api artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: api-dist
+          path: apps/api/dist
+
+  build-relayer:
+    name: Build Relayer
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.relayer == 'true' || needs.changes.outputs.shared == 'true'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check types
+        run: pnpm --filter relayer check
+
+      - name: Build Relayer
+        run: pnpm build:relayer
+
+      - name: Upload relayer artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: relayer-dist
+          path: apps/relayer/dist
+
+  build-gateway:
+    name: Build Gateway
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.gateway == 'true' || needs.changes.outputs.shared == 'true'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check types
+        run: pnpm --filter gateway check
+
+      - name: Build Gateway
+        run: pnpm --filter gateway build
+
+      - name: Upload gateway artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: gateway-dist
+          path: apps/gateway/dist
+
+  build-price-engine:
+    name: Build Price Engine
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.price-engine == 'true' || needs.changes.outputs.shared == 'true'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Price Engine
+        run: pnpm --filter price-engine build
+
+      - name: Upload price-engine artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: price-engine-dist
+          path: apps/price-engine/dist
