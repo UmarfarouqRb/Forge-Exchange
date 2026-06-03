@@ -7,3 +7,31 @@ vite.config.ts.*
 .env
 .env.local
 .gitmodules
+
+# Foundry artifacts
+out/
+cache/
+broadcast/
+
+# TypeScript
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# Build artifacts
+build/
+*.o
+*.a
+
+# OS
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.AppleDouble
+.LSOverride
