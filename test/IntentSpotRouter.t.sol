@@ -34,6 +34,7 @@ contract IntentSpotRouterTest is Test {
     address internal relayer = address(0x2);
     address internal treasury = address(0x3);
     address internal lp = address(0x4); // Liquidity Provider
+    address internal sessionKeyAddress = address(0x5);
     uint256 internal userPrivateKey = 0x123;
     uint256 internal invalidUserPrivateKey = 0x456;
 
@@ -61,6 +62,9 @@ contract IntentSpotRouterTest is Test {
         bytes32 adapterId = keccak256("MockAdapter");
         router.addAdapter(adapterId, address(adapter));
 
+        // [FIX #6] Authorize relayer BEFORE tests run
+        router.authorizeRelayer(relayer);
+
         // 4. Fund user and deposit into vault
         vm.deal(user, 10 ether);
         vm.startPrank(user);
@@ -71,6 +75,87 @@ contract IntentSpotRouterTest is Test {
     }
 
     // --- Test Cases ---
+
+    // [FIX #6] Test: Relayer Authorization Check
+    function test_executeSwap_relayerNotAuthorized() public {
+        uint256 amountIn = 1 ether;
+        uint256 expectedAmountOut = 2000 * 1e6;
+
+        adapter.setAmountOut(address(weth), address(usdc), amountIn, expectedAmountOut);
+        deal(address(usdc), address(adapter), expectedAmountOut);
+
+        ISpotRouter.SwapIntent memory intent = ISpotRouter.SwapIntent({
+            user: user,
+            tokenIn: address(weth),
+            tokenOut: address(usdc),
+            amountIn: amountIn,
+            minAmountOut: expectedAmountOut,
+            deadline: block.timestamp + 1 hours,
+            nonce: 0,
+            adapter: address(adapter),
+            relayerFee: 0
+        });
+
+        bytes32 digest = getDigest(intent);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // Try to execute with unauthorized relayer
+        address unauthorizedRelayer = address(0x999);
+        vm.prank(unauthorizedRelayer);
+        vm.expectRevert("Unauthorized relayer");
+        router.executeSwap(intent, signature);
+    }
+
+    // [FIX #5] Test: Zero Amount Validation
+    function test_executeSwap_zeroAmountIn() public {
+        ISpotRouter.SwapIntent memory intent = ISpotRouter.SwapIntent({
+            user: user,
+            tokenIn: address(weth),
+            tokenOut: address(usdc),
+            amountIn: 0, // ZERO AMOUNT
+            minAmountOut: 0,
+            deadline: block.timestamp + 1 hours,
+            nonce: 0,
+            adapter: address(adapter),
+            relayerFee: 0
+        });
+
+        bytes32 digest = getDigest(intent);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(userPrivateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        vm.prank(relayer);
+        vm.expectRevert("Input amount cannot be zero");
+        router.executeSwap(intent, signature);
+    }
+
+    // [FIX #1] Test: Nonce Not Consumed on Invalid Signature
+    function test_executeSwap_invalidSignature_nonceNotConsumed() public {
+        ISpotRouter.SwapIntent memory intent = ISpotRouter.SwapIntent({
+            user: user,
+            tokenIn: address(weth),
+            tokenOut: address(usdc),
+            amountIn: 1 ether,
+            minAmountOut: 2000 * 1e6,
+            deadline: block.timestamp + 1 hours,
+            nonce: 0,
+            adapter: address(adapter),
+            relayerFee: 0
+        });
+
+        // Create INVALID signature
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(0x999, keccak256("invalid"));
+        bytes memory invalidSignature = abi.encodePacked(r, s, v);
+
+        // This should revert due to invalid signature
+        vm.prank(relayer);
+        vm.expectRevert("SpotRouter: Invalid signature or session key");
+        router.executeSwap(intent, invalidSignature);
+
+        // Verify nonce was NOT consumed (still 0)
+        assertEq(router.nonces(user), 0, "FAIL: Nonce was consumed despite invalid signature!");
+    }
 
     function test_executeSwap_withProtocolFee() public {
         // --- Setup ---
@@ -111,6 +196,7 @@ contract IntentSpotRouterTest is Test {
 
         // --- Execution ---
         uint256 treasuryBalanceBefore = weth.balanceOf(treasury);
+        vm.prank(relayer);
         router.executeSwap(intent, signature);
         uint256 treasuryBalanceAfter = weth.balanceOf(treasury);
 
@@ -152,7 +238,7 @@ contract IntentSpotRouterTest is Test {
             amountIn: amountIn,
             minAmountOut: expectedAmountOut,
             deadline: block.timestamp + 1 hours,
-            nonce: 0, // Each test has its own state, so nonce starts at 0
+            nonce: 0,
             adapter: address(adapter),
             relayerFee: 0
         });
@@ -163,6 +249,7 @@ contract IntentSpotRouterTest is Test {
 
         // --- Execution ---
         uint256 treasuryBalanceBefore = weth.balanceOf(treasury);
+        vm.prank(relayer);
         router.executeSwap(intent, signature);
         uint256 treasuryBalanceAfter = weth.balanceOf(treasury);
 
@@ -207,13 +294,134 @@ contract IntentSpotRouterTest is Test {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         // --- Execution ---
-        vm.startPrank(relayer);
+        vm.prank(relayer);
         uint256 actualAmountOut = router.executeSwap(intent, signature);
-        vm.stopPrank();
 
         // --- Assertions ---
         assertEq(actualAmountOut, bestAmountOut, "executeSwap did not return the best amount");
         assertEq(vault.balances(user, address(usdc)), bestAmountOut, "User did not receive the best amount out");
+    }
+
+    // [FIX #7] Test: Public Swap with minAmountOut parameter
+    function test_swap_withMinAmountOut() public {
+        uint256 amountIn = 1 ether;
+        uint256 expectedAmountOut = 2000 * 1e6;
+
+        adapter.setAmountOut(address(weth), address(usdc), amountIn, expectedAmountOut);
+        deal(address(usdc), address(adapter), expectedAmountOut);
+
+        bytes32[] memory adapterIds = new bytes32[](1);
+        adapterIds[0] = keccak256("MockAdapter");
+
+        vm.prank(user);
+        uint256 amountOut = router.swap(
+            address(weth),
+            address(usdc),
+            amountIn,
+            expectedAmountOut, // [FIX #7] NEW: minAmountOut parameter
+            adapterIds,
+            ""
+        );
+
+        assertEq(amountOut, expectedAmountOut, "Incorrect amount out");
+    }
+
+    // [FIX #7] Test: Slippage protection in public swap
+    function test_swap_slippageExceeded() public {
+        uint256 amountIn = 1 ether;
+        uint256 actualAmountOut = 2500 * 1e6; // Lower than expected
+        uint256 minAmountOut = 3000 * 1e6;    // Higher expectation
+
+        adapter.setAmountOut(address(weth), address(usdc), amountIn, actualAmountOut);
+        deal(address(usdc), address(adapter), actualAmountOut);
+
+        bytes32[] memory adapterIds = new bytes32[](1);
+        adapterIds[0] = keccak256("MockAdapter");
+
+        vm.prank(user);
+        vm.expectRevert("SpotRouter: Slippage exceeded");
+        router.swap(address(weth), address(usdc), amountIn, minAmountOut, adapterIds, "");
+    }
+
+    // [NEW FEATURE] Test: Session Key Registration
+    function test_registerSessionKey() public {
+        address[] memory allowedTokens = new address[](1);
+        allowedTokens[0] = address(usdc);
+
+        vm.prank(user);
+        router.registerSessionKey(
+            sessionKeyAddress,
+            500 * 1e6,      // maxPerTx: 500 USDC
+            5000 * 1e6,     // totalLimit: 5000 USDC
+            block.timestamp + 30 days,
+            allowedTokens
+        );
+
+        // Verify session key was registered
+        (address owner, , , , , bool active) = router.sessionKeys(sessionKeyAddress);
+        assertEq(owner, user, "Session key owner incorrect");
+        assertTrue(active, "Session key not active");
+    }
+
+    // [NEW FEATURE] Test: Session Key Spending Limits
+    function test_sessionKey_spendingLimitEnforced() public {
+        address[] memory allowedTokens = new address[](1);
+        allowedTokens[0] = address(usdc);
+
+        vm.prank(user);
+        router.registerSessionKey(
+            sessionKeyAddress,
+            500 * 1e6,      // maxPerTx: 500 USDC
+            500 * 1e6,      // totalLimit: 500 USDC
+            block.timestamp + 30 days,
+            allowedTokens
+        );
+
+        ISpotRouter.SwapIntent memory intent = ISpotRouter.SwapIntent({
+            user: user,
+            tokenIn: address(usdc),
+            tokenOut: address(weth),
+            amountIn: 1000 * 1e6, // Exceeds limit
+            minAmountOut: 0.3 ether,
+            deadline: block.timestamp + 1 hours,
+            nonce: 0,
+            adapter: address(adapter),
+            relayerFee: 0
+        });
+
+        bytes32 digest = getDigest(intent);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(0x555, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        vm.prank(relayer);
+        vm.expectRevert("Exceeds session key per-tx limit");
+        router.executeSwap(intent, signature);
+    }
+
+    // [NEW FEATURE] Test: Session Key Revocation
+    function test_revokeSessionKey() public {
+        address[] memory allowedTokens = new address[](0);
+
+        vm.prank(user);
+        router.registerSessionKey(
+            sessionKeyAddress,
+            500 * 1e6,
+            5000 * 1e6,
+            block.timestamp + 30 days,
+            allowedTokens
+        );
+
+        // Verify session key is active
+        (, , , , , bool activeBefore) = router.sessionKeys(sessionKeyAddress);
+        assertTrue(activeBefore, "Session key should be active");
+
+        // Revoke session key
+        vm.prank(user);
+        router.revokeSessionKey(sessionKeyAddress);
+
+        // Verify session key is inactive
+        (, , , , , bool activeAfter) = router.sessionKeys(sessionKeyAddress);
+        assertFalse(activeAfter, "Session key should be revoked");
     }
 
     function test_settleTrade_successful() public {
@@ -240,10 +448,10 @@ contract IntentSpotRouterTest is Test {
             tokenIn: address(weth),
             tokenOut: address(usdc),
             amountIn: amountIn,
-            minAmountOut: minAmountOut, // User is willing to accept at least 1950 USDC
+            minAmountOut: minAmountOut,
             deadline: block.timestamp + 1 hours,
             nonce: 0,
-            adapter: address(0), // Not specifying an adapter
+            adapter: address(0),
             relayerFee: relayerFee
         });
 
